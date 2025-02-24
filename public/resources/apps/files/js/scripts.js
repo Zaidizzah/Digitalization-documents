@@ -130,70 +130,32 @@
         fileList.innerHTML = files
             .map(
                 (file) => `
-                <div class="file-item uploaded-file-item p-3" data-file-id="${
-                    file.id
-                }" data-file-name="${file.name}" data-file-extension="${
-                    file.extension
-                }" data-file-size="${
-                    file.size
-                }" data-file-preview-uri="${addSlashes(
-                    file.preview_uri
-                )}" data-file-uploaded-at="${
-                    file.uploaded_at
-                }" data-file-modified-at="${
-                    file.modified_at
-                }" aria-label="File ${file.name}" title="File ${file.name}.${
-                    file.extension
-                }">
-                    <button type="button" role="button" class="file-browse btn btn-outline-success btn-sm" aria-label="Browse file ${
-                        file.name
-                    }.${file.extension}" title="Browse file ${file.name}.${
-                    file.extension
-                }" popovertarget="#file-info-dialog-${
-                    file.id
-                }"><i class="bi bi-search fs-5"></i></button>
+                <div class="file-item uploaded-file-item p-3" data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" data-file-size="${file.size}" data-file-preview-uri="${addSlashes(file.preview_uri)}" data-file-uploaded-at="${file.uploaded_at}" data-file-modified-at="${file.modified_at}" aria-label="File ${file.name}" title="File ${file.name}.${file.extension}">
+                    <button type="button" role="button" class="file-browse btn btn-outline-success btn-sm" aria-label="Browse file ${file.name}.${file.extension}" title="Browse file ${file.name}.${file.extension}" popovertarget="#file-info-dialog-${file.id}"><i class="bi bi-search fs-5"></i></button>
                     <div class="d-flex align-items-center">
                         <div class="file-icon me-3">
                             <i class="bi bi-files text-primary"></i>
                         </div>
-                        <div class="file-info" aria-label="File info" title="Size: ${
-                            file.size
-                        } -- Uploaded at ${file.date}">
-                            <div class="fw-semibold"><span>${file.name}.${
-                    file.extension
-                }</span></div>
+                        <div class="file-info" aria-label="File info" title="Size: ${file.size} -- Uploaded at ${file.date}">
+                            <div class="fw-semibold"><span>${file.name}.${file.extension}</span></div>
                             <div class="small text-muted">
-                                <span>${file.size} -- Uploaded on ${
-                    file.date
-                }.</span>
+                                <span>${file.size} -- Uploaded on ${file.date}.</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Popover dialog for ${file.name} -->
-                <dialog class="dialog-wrapper" role="tooltip" popover id="file-info-dialog-${
-                    file.id
-                }" aria-label="File ${file.name} info" title="File ${
-                    file.name
-                } info">
-                    <span class="position-absolute p-2 top-0 start-50 translate-middle badge rounded border border-2 border-dark bg-white shadow-sm text-dark" aria-hidden="true">File: ${
-                        file.name
-                    } info.</span>
-                    <div class="dialog-section pt-2" aria-labelledby="dialog-label-${
-                        file.id
-                    }">
-                        <h3 class="visually-hidden" id="#dialog-label-${
-                            file.id
-                        }" aria-hidden="true">File: ${file.name} info.</h3>
+                <dialog class="dialog-wrapper" role="tooltip" popover id="file-info-dialog-${file.id}" aria-label="File ${file.name} info" title="File ${file.name} info">
+                    <span class="position-absolute p-2 top-0 start-50 translate-middle badge rounded border border-2 border-dark bg-white shadow-sm text-dark" aria-hidden="true">File: ${file.name} info.</span>
+                    <div class="dialog-section pt-2" aria-labelledby="dialog-label-${file.id}">
+                        <h3 class="visually-hidden" id="#dialog-label-${file.id}" aria-hidden="true">File: ${file.name} info.</h3>
 
                         <div class="dialog-content">
                             <div class="dialog-content-metadata">
                                 <div class="meta-item">
                                     <span class="meta-label">Name:</span>
-                                    <span class="meta-value">${file.name}.${
-                    file.extension
-                }</span>
+                                    <span class="meta-value">${file.name}.${file.extension}</span>
                                 </div>
                                 <div class="meta-item">
                                     <span class="meta-label">Labeled:</span>
@@ -205,39 +167,19 @@
                                 </div>
                                 <div class="meta-item">
                                     <span class="meta-label">Uploaded at:</span>
-                                    <span class="meta-value">${
-                                        file.uploaded_at
-                                    }</span>
+                                    <span class="meta-value">${file.uploaded_at}</span>
                                 </div>
                                 <div class="meta-item">
                                     <span class="meta-label">Modified at:</span>
-                                    <span class="meta-value">${
-                                        file.modified_at
-                                    }</span>
+                                    <span class="meta-value">${file.modified_at}</span>
                                 </div>
                             </div>
 
                             <div class="dialog-content-actions">
-                                <button type="button" role="button" class="btn btn-primary btn-sm" aria-label="Download file ${
-                                    file.name
-                                }" title="Button: to download file ${
-                    file.name
-                }"><i class="bi bi-download fs-5"></i> Download</button>
-                                <button type="button" role="button" class="btn btn-danger btn-sm" aria-label="Delete file ${
-                                    file.name
-                                }" title="Button: to delete file ${
-                    file.name
-                }"><i class="bi bi-trash fs-5"></i> Delete</button>
-                                <button type="button" role="button" class="btn btn-info btn-sm" aria-label="Preview file ${
-                                    file.name
-                                }" title="Button: to preview file ${
-                    file.name
-                }"><i class="bi bi-eye fs-5"></i> Preview</button>
-                                <button type="submit" role="button" class="btn btn-primary btn-sm" aria-label="Save changes for file ${
-                                    file.name
-                                }" title="Button: to save changes for file ${
-                    file.name
-                }"><i class="bi bi-save fs-5"></i> Save</button>
+                                <button type="button" role="button" class="btn btn-primary btn-sm" aria-label="Download file ${file.name}" title="Button: to download file ${file.name}"><i class="bi bi-download fs-5"></i> Download</button>
+                                <button type="button" role="button" class="btn btn-danger btn-sm" aria-label="Delete file ${file.name}" title="Button: to delete file ${file.name}"><i class="bi bi-trash fs-5"></i> Delete</button>
+                                <button type="button" role="button" class="btn btn-info btn-sm" aria-label="Preview file ${file.name}" title="Button: to preview file ${file.name}"><i class="bi bi-eye fs-5"></i> Preview</button>
+                                <button type="submit" role="button" class="btn btn-primary btn-sm" aria-label="Save changes for file ${file.name}" title="Button: to save changes for file ${file.name}"><i class="bi bi-save fs-5"></i> Save</button>
                             </div>
                         </div>
                     </div>

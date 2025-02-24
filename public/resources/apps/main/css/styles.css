@@ -220,7 +220,7 @@ textarea:invalid {
 }
 
 /* Dialog for content metadata */
-.dialog-wrapper[popover] .dialog-content .dialog-content-metadata {
+.dialog-content .dialog-content-metadata {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px 16px;
@@ -230,19 +230,18 @@ textarea:invalid {
     border: var(--bs-border-width) solid var(--bs-border-color);
 }
 
-.dialog-wrapper[popover] .dialog-content .dialog-content-actions {
+.dialog-content .dialog-content-actions {
     margin-top: 1rem;
 }
 
-.dialog-wrapper[popover] .dialog-content .dialog-content-metadata .meta-item {
+.dialog-content .dialog-content-metadata .meta-item {
     display: flex;
     justify-content: space-between;
     padding: 6px 0;
     border-bottom: 1px solid #ddd;
 }
 
-.dialog-wrapper[popover]
-    .dialog-content
+.dialog-content
     .dialog-content-metadata
     .meta-item
     .meta-label {
@@ -250,8 +249,7 @@ textarea:invalid {
     color: #555;
 }
 
-.dialog-wrapper[popover]
-    .dialog-content
+.dialog-content
     .dialog-content-metadata
     .meta-item
     .meta-value {
@@ -259,8 +257,7 @@ textarea:invalid {
     text-align: right;
 }
 
-.dialog-wrapper[popover]
-    .dialog-content
+.dialog-content
     .dialog-content-metadata
     .meta-item
     .meta-value
@@ -268,8 +265,7 @@ textarea:invalid {
     margin-right: 0.5rem;
 }
 
-.dialog-wrapper[popover]
-    .dialog-content
+.dialog-content
     .dialog-content-metadata
     .meta-item:last-child {
     border-bottom: none;
