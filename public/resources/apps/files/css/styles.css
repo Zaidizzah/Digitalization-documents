@@ -1,0 +1,97 @@
+.sticky-panel {
+    position: sticky;
+    top: calc(53px + 1rem);
+}
+
+.file-list {
+    height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-zone i {
+    font-size: 3.5rem;
+}
+
+.upload-zone:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.no-file-available {
+    height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-item {
+    position: relative;
+    padding-right: 2rem;
+    border-style: solid;
+    border-color: var(--bs-border-color);
+    transition: all 0.2s ease;
+}
+
+.file-item.active,
+.file-item.active:hover,
+.file-item.uploaded-file-item.active,
+.file-item.uploaded-file-item.active:hover {
+    background-color: var(--bs-info-bg-subtle);
+}
+
+.file-item:not(:first-child) {
+    border-width: 0 var(--bs-border-width) var(--bs-border-width)
+        var(--bs-border-width);
+}
+
+.file-item:first-child {
+    border-width: var(--bs-border-width);
+}
+
+.file-item.uploaded-file-item {
+    position: relative;
+    padding-right: 2rem;
+    background-color: #f1fffd7d;
+}
+
+.file-item.uploaded-file-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.file-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.file-item .file-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border-radius: 0.375rem;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+.file-item.uploaded-file-item button.file-browse {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+@media screen and (max-width: 768px) {
+    .sticky-panel {
+        position: static;
+    }
+}
