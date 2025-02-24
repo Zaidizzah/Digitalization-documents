@@ -1151,12 +1151,15 @@ class SchemaBuilder
      * This function validates if column name that will be added already exists in the table.
      *
      * @param array $columns_name The name's attribute of the schema representation for column addition.
+     * @param string|null $table_name The name of the table to check for duplicate column names.
      *
      * @throws \RuntimeException If a column name already exists in the table.
      */
-    public static function validate_unique_name_for_attribute(array $columns_name): void
+    public static function validate_unique_name_for_attribute(array $columns_name, ?string $table_name = null): void
     {
         $restricted_names = ['id', 'file_id', 'file id', 'created_at', 'created at', 'updated_at', 'updated at'];
+
+        $columns_name = array_map('strtolower', $columns_name);
 
         $columns_name = array_merge($columns_name, array_filter(array_map(function ($column_name) {
             if (strpos($column_name, '_')) {
@@ -1167,16 +1170,21 @@ class SchemaBuilder
         }, $columns_name), fn($column) => $column !== null, ARRAY_FILTER_USE_BOTH));
 
         // check duplicate column name
-        $duplicate_in_new = array_keys(array_filter(array_count_values($columns_name), fn($count) => $count > 1, ARRAY_FILTER_USE_BOTH));
+        if (empty($table_name)) {
+            $duplicate_columns_name = array_keys(array_filter(array_count_values($columns_name), fn($count) => $count > 1, ARRAY_FILTER_USE_BOTH));
+        } else {
+            $old_columns_name = array_map('strtolower', self::get_form_columns_name_from_schema_representation($table_name));
+            $duplicate_columns_name = array_keys(array_filter(array_count_values(array_merge($columns_name, $old_columns_name)), fn($count) => $count > 1, ARRAY_FILTER_USE_BOTH));
+        }
 
         // Check duplicate column name and contains restricted names
         $invalid_columns = array_intersect($columns_name, $restricted_names);
 
-        if (!empty($duplicate_in_new)) {
+        if (!empty($duplicate_columns_name)) {
             throw new \RuntimeException(
                 sprintf(
                     "Duplicate column names found in new columns: '%s'. Choose unique names.",
-                    implode("', '", $duplicate_in_new)
+                    implode("', '", $duplicate_columns_name)
                 )
             );
         }
@@ -1573,7 +1581,7 @@ class SchemaBuilder
             self::validate_structure_of_table_schema($old_table_schema);
 
         // validate same name or duplicate name of attribute
-        self::validate_unique_name_for_attribute(array_keys($new_table_schema));
+        self::validate_unique_name_for_attribute(array_keys($new_table_schema), $table_name);
 
         if (!self::table_exists($table_name))
             throw new \RuntimeException(
