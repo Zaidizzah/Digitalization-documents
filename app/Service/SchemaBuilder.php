@@ -1030,7 +1030,8 @@ class SchemaBuilder
             $columns_sql = [];
 
             // Add id column
-            array_push($columns_sql, ["id BIGINT(20) AUTO_INCREMENT UNSIGNED PRIMARY KEY", "file_id BIGINT(20) UNSIGNED DEFAULT NULL"]);
+            $columns_sql[] = "id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY";
+            $columns_sql[] = "file_id BIGINT(20) UNSIGNED DEFAULT NULL";
 
             foreach ($new_table_schema as $key => $column) {
                 $columns_sql[] = "$key " . self::get_column_definition($column, $key);
