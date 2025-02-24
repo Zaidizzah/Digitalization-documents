@@ -433,6 +433,11 @@ class SchemaBuilder
             $attribute['step'] = $field['rules']['step'];
         }
 
+        // Handle INSTRUCTIONS rule
+        if (Arr::has($field, 'rules.instructions') && is_string($field['rules']['instructions']) && trim($field['rules']['instructions']) !== '') {
+            $field['rules']['instructions'] = strip_tags($field['rules']['instructions']);
+        }
+
         // if status is create add sequence_number and created_at attribute
         if ($action === "create") $attribute = Arr::add($attribute, 'created_at', now('Asia/Jakarta'));
 
@@ -521,8 +526,6 @@ class SchemaBuilder
             $attributes = $generate_attributes($data['rules'], $data['type'], $data['required']);
             $inputMode = $get_input_mode($data['type']);
             $label = ucfirst($field) . ($data['required'] ? ' <span class="text-danger">*</span>' : '');
-            $instructions = $data['rules']['instructions'] ? "<p class=\"form-text\">{$data['instructions']}</p>" : '';
-            $title = $instructions ? "title=\"{$data['instructions']}\"" : '';
 
             // Form group wrapper
             $form_html .= <<<HTML
@@ -536,33 +539,30 @@ class SchemaBuilder
                 case 'textarea':
                     $default_value = $data['rules']['defaultValue'] ?? '';
                     $form_html .= <<<HTML
-                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" {$title} placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$default_value}</textarea>
-                    {$instructions}
+                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" title="{$data['rules']['instructions']}" placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$default_value}</textarea>
                     HTML;
                     break;
 
                 case 'select':
                     $options = array_reduce($data['rules']['options'] ?? [], fn($html, $option) => $html .= "<option value=\"{$option}\">{$option}</option>", '');
                     $form_html .= <<<HTML
-                    <select class="form-select" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="{$data['name']}" {$attributes}>
+                    <select class="form-select" name="{$data['name']}" id="{$data['name']}" title="{$data['rules']['instructions']}" aria-label="{$data['name']}" {$attributes}>
                         <option value="" disabled selected>Choose...</option>
                         {$options}
                     </select>
-                    {$instructions}
                     HTML;
                     break;
 
                 default:
                     $input_type = $data['type'] === 'datetime' ? 'datetime-local' : $data['type'];
                     $form_html .= <<<HTML
-                    <input type="{$input_type}" class="form-control" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
-                    {$instructions}
+                    <input type="{$input_type}" class="form-control" name="{$data['name']}" id="{$data['name']}" title="{$data['rules']['instructions']}" aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
                     HTML;
             }
 
             // Add instructions if present
-            if ($instructions) {
-                $form_html .= "<p class=\"form-text text-muted\">{$instructions}</p>";
+            if ($data['rules']['instructions']) {
+                $form_html .= "<p class=\"form-text text-muted\">{$data['rules']['instructions']}</p>";
             }
 
             $form_html .= '</div></div>';
