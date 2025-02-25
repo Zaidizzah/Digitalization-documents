@@ -235,24 +235,16 @@ textarea:invalid {
 }
 
 .dialog-content .dialog-content-metadata .meta-item {
-    display: flex;
-    justify-content: space-between;
     padding: 6px 0;
     border-bottom: 1px solid #ddd;
 }
 
-.dialog-content
-    .dialog-content-metadata
-    .meta-item
-    .meta-label {
+.dialog-content .dialog-content-metadata .meta-item .meta-label {
     font-weight: bold;
     color: #555;
 }
 
-.dialog-content
-    .dialog-content-metadata
-    .meta-item
-    .meta-value {
+.dialog-content .dialog-content-metadata .meta-item .meta-value {
     color: #333;
     text-align: right;
 }
@@ -265,8 +257,6 @@ textarea:invalid {
     margin-right: 0.5rem;
 }
 
-.dialog-content
-    .dialog-content-metadata
-    .meta-item:last-child {
+.dialog-content .dialog-content-metadata .meta-item:last-child {
     border-bottom: none;
 }

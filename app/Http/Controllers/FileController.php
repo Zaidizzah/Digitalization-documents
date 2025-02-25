@@ -77,12 +77,18 @@ class FileController extends Controller
         return view('apps.files.index', $resources);
     }
 
+    public function extract_text_from_file(string $file_path)
+    {
+        return File::get($file_path);
+    }
+
     /**
      * Handle Edit filename and document type.
      *
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function rename(Request $req){
+    public function rename(Request $req)
+    {
         $req->validate([
             'name' => 'required|unique:files,name',
             'id' => 'required|exists:files,id',
@@ -169,7 +175,7 @@ class FileController extends Controller
             // save metadata of file
             $file_data = [
                 'user_id' => auth()->user()->id,
-                'document_type_id' => null,
+                'document_type_id' => $document_type->id ?? null,
                 'path' => $stored_file,
                 'name' => $file_name,
                 'encrypted_name' => pathinfo($file->hashName(), PATHINFO_FILENAME),
@@ -177,10 +183,6 @@ class FileController extends Controller
                 'type' => $file->getClientMimeType(),
                 'extension' => $file->getClientOriginalExtension(),
             ];
-
-            if ($name) {
-                $data['document_type_id'] = $document_type->id;
-            }
 
             // save metadata of file to database
             $uploaded_file = new FileModel();
@@ -190,6 +192,7 @@ class FileController extends Controller
             // metadata to return to client
             $metadata_uploaded_file = [
                 'id' => $uploaded_file->id,
+                'document_type_id' => $uploaded_file->document_type_id,
                 'name' => $uploaded_file->name,
                 'extension' => $uploaded_file->extension,
                 'size' => format_size_file($uploaded_file->size),

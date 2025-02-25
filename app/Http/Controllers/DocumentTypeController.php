@@ -500,7 +500,8 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        $resources = array_merge($resources, ['document_type' => $document_type, 'except_attributes_name' => $except_attributes_name]);
+        $resources['document_type'] = $document_type;
+        $resources['except_attributes_name'] = $except_attributes_name;
 
         return view('apps.documents.edit-schema', $resources);
     }
@@ -636,11 +637,9 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        $resources = array_merge($resources, [
-            'has_saved_schema' => $has_saved_schema,
-            'document_type' => $document_type,
-            'except_attributes_name' => $except_attributes_name
-        ]);
+        $resources['has_saved_schema'] = $has_saved_schema;
+        $resources['document_type'] = $document_type;
+        $resources['except_attributes_name'] = $except_attributes_name;
 
         return view('apps.documents.insert-schema', $resources);
     }

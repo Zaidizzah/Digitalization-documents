@@ -78,11 +78,9 @@ class DocumentTypeActionController extends Controller
             ]
         );
 
-        $resources = array_merge($resources, [
-            'list_document_data' => $list_document_data,
-            'pagination' => $document_type_data,
-            'document_type' => $document_type
-        ]);
+        $resources['list_document_data'] = $list_document_data;
+        $resources['pagination'] = $document_type_data;
+        $resources['document_type'] = $document_type;
 
         return view('apps.documents.browse', $resources);
     }
@@ -157,10 +155,8 @@ class DocumentTypeActionController extends Controller
             ]
         );
 
-        $resources = array_merge($resources, [
-            'list_schema_data' => $list_data_schema_attribute,
-            'document_type' => $document_type
-        ]);
+        $resources['list_schema_data'] = $list_data_schema_attribute;
+        $resources['document_type'] = $document_type;
 
         return view('apps.documents.structure', $resources);
     }
@@ -255,7 +251,8 @@ class DocumentTypeActionController extends Controller
             ]
         );
 
-        $resources = array_merge($resources, ['document_type' => $document_type, 'form_html' => $form_html]);
+        $resources['document_type'] = $document_type; 
+        $resources['form_html'] = $form_html;
 
         return view('apps.documents.insert', $resources);
     }

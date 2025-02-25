@@ -37,7 +37,7 @@ class UploadQueueManager {
                     <div class="modal-content">
                         <div class="modal-body text-center p-4">
                             <div class="spinner-border text-primary mb-3" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                                <span class="visually-hidden">Processing...</span>
                             </div>
                             <h5 class="modal-title mb-3" id="upload-progress-modal-label">Uploading Files</h5>
                             <p class="mb-2">Uploaded <span id="uploaded-count">0</span> out of <span id="total-count">0</span> files</p>
@@ -212,34 +212,5 @@ class UploadQueueManager {
         }
 
         return await response.json();
-    }
-
-    /**
-     * Renames a file in the server.
-     * @param {number|} fileId - The ID of the file to be renamed.
-     * @param {string} newName - The new name of the file.
-     */
-    async renameFile(fileId, newName) {
-        const response = await fetch(`/rename/${fileId}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ name: newName }),
-        });
-        const data = await response.json();
-        console.log(data);
-    }
-
-    /**
-     * Deletes a file from the list of uploaded files.
-     * @param {number} fileId - The ID of the file to be deleted.
-     */
-    async deleteFile(fileId) {
-        // Remove the deleted file from the array
-        files = files.filter((file) => file.id !== fileId);
-
-        // Remove the deleted file from the DOM
-        fileList.querySelector(`[data-file-id="${fileId}"]`).remove();
     }
 }
