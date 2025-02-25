@@ -183,7 +183,7 @@
                     <div class="dialog-section pt-2" aria-labelledby="dialog-label-${
                         file.id
                     }">
-                        <h3 class="visually-hidden" id="#dialog-label-${
+                        <h3 class="visually-hidden" id="dialog-label-${
                             file.id
                         }" aria-hidden="true">File: ${file.name} info.</h3>
 

@@ -15,6 +15,8 @@
             </div>
         </div>
         <form action="{{ route("documents.data.store", $document_type->name) }}" method="post" id="form-insert-document-type">
+            @csrf
+
             <div class="tile-body">
                 {!! $form_html !!}
             </div>

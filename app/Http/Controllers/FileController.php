@@ -102,8 +102,6 @@ class FileController extends Controller
             );
         }
 
-        $validated = $validator->validated();
-
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
 

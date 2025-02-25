@@ -466,13 +466,16 @@ class SchemaBuilder
      * @throws InvalidArgumentException When schema is empty
      * @throws OutOfBoundsException When field type is invalid
      */
-    public static function create_form_html(array $schema_form)
+    public static function create_form_html(array $schema_form, int|array|null $file_ids)
     {
         // Check if schema is empty
         if (empty($schema_form)) throw new \InvalidArgumentException("Sorry, we couldn't find any of your schema. Please try again and create a valid schema.", Response::HTTP_BAD_REQUEST);
 
         // Validate schema structure
         self::validate_structure_of_form_schema($schema_form);
+
+        // reorder schema
+        $schema_form = self::reorder_schema_sequence_number($schema_form);
 
         // Function to generate input attributes based on rules
         $generate_attributes = function (array $rules, string $type, bool $required) {
@@ -526,6 +529,7 @@ class SchemaBuilder
             $attributes = $generate_attributes($data['rules'], $data['type'], $data['required']);
             $inputMode = $get_input_mode($data['type']);
             $label = ucfirst($field) . ($data['required'] ? ' <span class="text-danger">*</span>' : '');
+            $title = $data['rules']['instructions'] ? "title=\"{$data['rules']['instructions']}\"" : '';
 
             // Form group wrapper
             $form_html .= <<<HTML
@@ -539,14 +543,14 @@ class SchemaBuilder
                 case 'textarea':
                     $default_value = $data['rules']['defaultValue'] ?? '';
                     $form_html .= <<<HTML
-                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" title="{$data['rules']['instructions']}" placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$default_value}</textarea>
+                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" {$title} placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$default_value}</textarea>
                     HTML;
                     break;
 
                 case 'select':
                     $options = array_reduce($data['rules']['options'] ?? [], fn($html, $option) => $html .= "<option value=\"{$option}\">{$option}</option>", '');
                     $form_html .= <<<HTML
-                    <select class="form-select" name="{$data['name']}" id="{$data['name']}" title="{$data['rules']['instructions']}" aria-label="{$data['name']}" {$attributes}>
+                    <select class="form-select" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="{$data['name']}" {$attributes}>
                         <option value="" disabled selected>Choose...</option>
                         {$options}
                     </select>
@@ -556,7 +560,7 @@ class SchemaBuilder
                 default:
                     $input_type = $data['type'] === 'datetime' ? 'datetime-local' : $data['type'];
                     $form_html .= <<<HTML
-                    <input type="{$input_type}" class="form-control" name="{$data['name']}" id="{$data['name']}" title="{$data['rules']['instructions']}" aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
+                    <input type="{$input_type}" class="form-control" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
                     HTML;
             }
 
@@ -916,7 +920,7 @@ class SchemaBuilder
                 ],
                 'phone'      => ['regex:/^\+?[1-9]\d{0,2}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,9}[-.\s]?\d{1,' . (int) self::FIELD_TYPE_CONFIG['phone']['maxLength'] . '}$/'],
                 'select'     => ['in:' . implode(',', $rulesConfig['options'])],
-                default      => throw new \OutOfRangeException()
+                default      => throw new \OutOfRangeException("Unsupported field type: {$type}", Response::HTTP_BAD_REQUEST),
             };
 
             $fieldRules = array_merge($fieldRules, $typeRules);

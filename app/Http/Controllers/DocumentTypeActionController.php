@@ -227,7 +227,7 @@ class DocumentTypeActionController extends Controller
         }
 
         try {
-            $form_html = SchemaBuilder::create_form_html($document_type->schema_form);
+            $form_html = SchemaBuilder::create_form_html($document_type->schema_form, null);
         } catch (\Exception $e) {
             return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
         }
@@ -294,18 +294,30 @@ class DocumentTypeActionController extends Controller
             return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
         }
 
-        dd($validation_rules, array_map(function ($value) {
-            return implode('|', $value);
-        }, $validation_rules));
-
         if (is_bool($validation_rules) && !$validation_rules) {
             return redirect()->back()->with('message', toast("Sorry, schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", 'error'));
         }
 
+        // add validation rules for file_id
+        $validation_rules['file_id'] = 'nullable|exists:files,id';
+
         // get and validate data from table document type
-        $validator = Validator::make($request->only($columns_name), array_map(function ($value) {
-            return implode('|', $value);
-        }, $validation_rules));
+        $validator = Validator::make($request->only([...$columns_name, 'file_id']), $validation_rules);
+
+        if ($validator->fails()) {
+            return redirect()->back()->with('message', toast("Invalid creating document type '$name' data, please fill the form correctly.", 'error'))->withInput()->withErrors($validator);
+        }
+
+        $validated = $validator->validated();
+
+        // insert data to table document type
+        $result = DB::table($document_type->table_name)->insert($validated);
+
+        if ($result) {
+            return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
+        } else {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
+        }
     }
 
     /**
