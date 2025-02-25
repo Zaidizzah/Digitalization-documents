@@ -66,13 +66,35 @@ class FileController extends Controller
                     'base_path' => asset('/resources/plugins/fileuploadmanager/js/')
                 ],
                 [
-                    'src' => 'scripts.js',
+                    'src' => 'modals.js',
                     'base_path' => asset('/resources/apps/files/js/')
                 ]
             ]
         );
+        $resources['files'] = FileModel::all();
+        $resources['document'] = DocumentType::all();
 
         return view('apps.files.index', $resources);
+    }
+
+    /**
+     * Handle Edit filename and document type.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function rename(Request $req){
+        $req->validate([
+            'name' => 'required|unique:files,name',
+            'id' => 'required|exists:files,id',
+            'document_type_id' => 'required|exists:document_types,id',
+        ]);
+
+        $file = FileModel::find($req->id);
+        $file->name = $req->name;
+        $file->document_type_id = $req->document_type_id;
+        $file->save();
+
+        return redirect()->back()->with('message', toast('File has been renamed successfully'));
     }
 
     /**
@@ -171,10 +193,10 @@ class FileController extends Controller
                 'name' => $uploaded_file->name,
                 'extension' => $uploaded_file->extension,
                 'size' => format_size_file($uploaded_file->size),
-                'preview_uri' => route('documents.files.preview', ['file' => $uploaded_file->name]),
-                'delete_uri' => route('documents.files.delete', ['file' => $uploaded_file->name]),
-                'download_uri' => route('documents.files.download', ['file' => $uploaded_file->name]),
-                'rename_uri' => route('documents.files.rename', ['file' => $uploaded_file->name]),
+                'preview_uri' => route('documents.files.root.preview', ['file' => $uploaded_file->encrypted_name]),
+                'delete_uri' => route('documents.files.root.delete', ['file' => $uploaded_file->encrypted_name]),
+                'download_uri' => route('documents.files.root.download', ['file' => $uploaded_file->encrypted_name]),
+                'rename_uri' => route('documents.files.root.rename', ['file' => $uploaded_file->encrypted_name]),
                 'uploaded_at' => $uploaded_file->created_at->format('d F Y, H:i A'),
                 'modified_at' => $uploaded_file->updated_at->format('d F Y, H:i A'),
             ];
