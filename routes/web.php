@@ -107,6 +107,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/documents/files/rename',[FileController::class,'rename'])->name('documents.files.root.rename');
     Route::post('/documents/{name}/files/rename',[FileController::class,'rename'])->name('documents.files.rename');
+    //iframe
+    Route::get('/files/index/{name}/{filename}', [FileController::class, 'files'])->name('files_iframe');
 });
 
 Route::middleware(['guest'])->group(function () {

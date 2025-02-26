@@ -18,7 +18,7 @@ class UploadQueueManager {
             "image/png",
             "image/jpg",
             "image/webp",
-            "pdf",
+            "application/pdf",
         ];
         this.maxFileSize = 20 * 1024 * 1024;
         this.createModal();
