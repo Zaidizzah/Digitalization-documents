@@ -118,7 +118,7 @@ class DocumentTypeActionController extends Controller
                 throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
             }
 
-            $list_data_schema_attribute = SchemaBuilder::create_table_row_for_schema_attributes_in_html($document_type->table_name, $document_type->schema_form);
+            $list_data_schema_attribute = SchemaBuilder::create_table_row_for_schema_attributes_in_html($document_type, $document_type->schema_form);
         } catch (\Exception $e) {
             return redirect()->route('documents.index')->with('message', toast($e->getMessage(), 'error'));
         }
@@ -251,7 +251,7 @@ class DocumentTypeActionController extends Controller
             ]
         );
 
-        $resources['document_type'] = $document_type; 
+        $resources['document_type'] = $document_type;
         $resources['form_html'] = $form_html;
 
         return view('apps.documents.insert', $resources);

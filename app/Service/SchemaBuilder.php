@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Models\DocumentType;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -305,7 +306,7 @@ class SchemaBuilder
             self::validate_attribute_name($field['name']);
 
             $column = [
-                'id' => $action === 'create' ? (strtolower(Str::random(4)) . '-' . time() . '-' . $sequence_number) : $field['id'],
+                'id' => $action === 'create' ? (strtolower(Str::random(10)) . ":$sequence_number") : $field['id'],
                 'sequence_number' => $action === 'create' ? $sequence_number : $field['sequence_number'],
                 'type' => $type_config['type'],
                 'maxLength' => $type_config['maxLength'],
@@ -591,10 +592,10 @@ class SchemaBuilder
      *
      * @throws \InvalidArgumentException If the schema form is empty.
      */
-    public static function create_table_row_for_schema_attributes_in_html(string $table_name, array $schema_form)
+    public static function create_table_row_for_schema_attributes_in_html(DocumentType $document_type, array $schema_form)
     {
         // check if schema is empty
-        if (empty($schema_form)) throw new \InvalidArgumentException('Schema attribute for related document type is empty. Please add at least one field/attribute to the schema.', Response::HTTP_BAD_REQUEST);
+        if (empty($schema_form)) throw new \InvalidArgumentException("Schema attribute for document type {$document_type->name} is empty. Please add at least one field/attribute to the schema.", Response::HTTP_BAD_REQUEST);
 
         // Validate schema structure
         self::validate_structure_of_form_schema($schema_form);
@@ -646,62 +647,53 @@ class SchemaBuilder
                 implode('', array_map(function ($key, $value) use ($rule_labels, $format_rules) {
                     if (!Arr::has($rule_labels, $key)) return '';
 
-                    $formattedValue = $value ?? 'Not defined';
+                    $formatted_value = $value ?? 'Not defined';
                     if (Arr::has($format_rules, $key) && $value) {
-                        $formattedValue = \Carbon\Carbon::parse($value)->format($format_rules[$key]);
+                        $formatted_value = \Carbon\Carbon::parse($value)->format($format_rules[$key]);
                     } elseif ($key === 'options') {
-                        $formattedValue = implode('', array_map(fn($option) => "<span class=\"badge bg-secondary border\">{$option}</span>", $value));
+                        $formatted_value = implode('', array_map(fn($option) => "<span class=\"badge bg-secondary border\">$option</span>", $value));
                     } elseif (in_array($key, ['minLength', 'maxLength'])) {
-                        $formattedValue = $value ? "{$value} characters" : 'Not defined';
+                        $formatted_value = $value ? "$value characters" : 'Not defined';
                     }
 
                     return "<div class=\"meta-item\">
                                 <div class=\"meta-label\">{$rule_labels[$key]}:</div>
-                                <div class=\"meta-value\">{$formattedValue}</div>
+                                <div class=\"meta-value\">$formatted_value</div>
                             </div>";
                 }, array_keys($data['rules'] ?? []), $data['rules'] ?? []))
             );
 
-            $link_edit_attribute = route('documents.edit.schema', [$table_name, $data['id']]);
-            $link_delete_attribute = route('documents.delete.schema', [$table_name, $data['id']]);
-
             $popover_id = Str::of($field)->lower()->replace(' ', '-')->toString();
-            $popover_content = <<<HTML
-                    <dialog class="dialog-wrapper" role="tooltip" popover id="rules-dialog-{$popover_id}" aria-label="Rules wrapper for {$field}" title="Rules wrapper for {$field}">
-                        <span class="position-absolute p-2 top-0 start-50 translate-middle badge rounded border border-2 border-dark bg-white shadow-sm text-dark" aria-hidden="true">Rules for attribute: {$field}.</span>
-                        <div class="dialog-section pt-2" aria-labelledby="dialog-label-{$popover_id}">
-                            <h3 class="visually-hidden" id="#dialog-label-{$popover_id}" aria-hidden="true">Rules for attribute: {$field}.</h3>
+            $popover_content = "<dialog class=\"dialog-wrapper\" role=\"tooltip\" popover id=\"rules-dialog-$popover_id\" aria-label=\"Rules wrapper for $field\" title=\"Rules wrapper for $field\">
+                        <span class=\"position-absolute p-2 top-0 start-50 translate-middle badge rounded border border-2 border-dark bg-white shadow-sm text-dark\" aria-hidden=\"true\">Rules for attribute: $field.</span>
+                        <div class=\"dialog-section pt-2\" aria-labelledby=\"dialog-label-$popover_id\">
+                            <h3 class=\"visually-hidden\" id=\"#dialog-label-$popover_id\" aria-hidden=\"true\">Rules for attribute: $field.</h3>
 
-                            <div class="dialog-content">
-                                {$rules}
-                            </div>
+                            <div class=\"dialog-content\">$rules</div>
                         </div>
-                    </dialog>
-                HTML;
+                    </dialog>";
 
-            $rows .= <<<HTML
-                    <tr 
-                    aria-rowindex="{$loop_index}" 
-                    aria-expanded="false"
-                    role="row"
-                    popovertarget="#rules-dialog-{$popover_id}"
-                    title="Click to open rules for attribute {$field}."
+            $rows .= "<tr 
+                    aria-rowindex=\"$loop_index\" 
+                    aria-expanded=\"false\"
+                    role=\"row\"
+                    popovertarget=\"#rules-dialog-$popover_id\"
+                    title=\"Click to open rules for attribute $field.\"
                     >
-                        <td class="text-nowrap">{$loop_index}</td>
-                        <td class="text-nowrap">{$field}</td>
-                        <td class="text-nowrap" translate="no">{$data['type']}</td>
-                        <td class="text-nowrap">{$data['required']}</td>
-                        <td class="text-nowrap">{$data['unique']}</td>
-                        <td class="text-nowrap">{$data['created_at']}</td>
-                        <td class="text-nowrap">{$data['updated_at']}</td>
-                        <td class="text-nowrap">
-                            <a href="{$link_edit_attribute}" role="button" class="btn btn-warning btn-sm btn-edit-attribute" title="Button: to edit attribute {$field} from document type {$table_name}." data-id="{$data['id']}"><i class="bi bi-pencil fs-5"></i></a>
-                            <a href="{$link_delete_attribute}" role="button" class="btn btn-danger btn-sm btn-delete-attribute" title="Button: to delete attribute {$field} from document type {$table_name}." data-id="{$data['id']}" onclick="return confirm('Are you sure you want to delete attribute {$field}?')"><i class="bi bi-trash fs-5"></i></a>
+                        <td class=\"text-nowrap\">$loop_index</td>
+                        <td class=\"text-nowrap\">$field</td>
+                        <td class=\"text-nowrap\" translate=\"no\">{$data['type']}</td>
+                        <td class=\"text-nowrap\">{$data['required']}</td>
+                        <td class=\"text-nowrap\">{$data['unique']}</td>
+                        <td class=\"text-nowrap\">{$data['created_at']}</td>
+                        <td class=\"text-nowrap\">{$data['updated_at']}</td>
+                        <td class=\"text-nowrap\">
+                            <a href=\"" . route('documents.edit.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-warning btn-sm btn-edit-attribute\" title=\"Button: to edit attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\"><i class=\"bi bi-pencil fs-5\"></i></a>
+                            <a href=\"" . route('documents.delete.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\" onclick=\"return confirm('Are you sure you want to delete attribute $field?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                         </td>
                     </tr>
 
-                    {$popover_content}
-            HTML;
+                    $popover_content";
 
             $loop_index++;
         }
@@ -2256,7 +2248,7 @@ class SchemaBuilder
             }
 
             if (isset($column['id'])) {
-                $column['id'] = substr_replace($column['id'], (string) $max_sequence, strrpos($column['id'], '-') + 1);
+                $column['id'] = substr_replace($column['id'], (string) $max_sequence, strrpos($column['id'], ':') + 1);
             }
         }
 
