@@ -21,16 +21,17 @@
                             <div class="input-group">
                                 <label for="type-file" class="input-group-text">Type</label>
                                 <select name="type" class="form-control" id="type-file">
-                                    <option value="all">all</option>
-                                    <option value="png">.png</option>
-                                    <option value="jpg">.jpg</option>
-                                    <option value="jpeg">.jpeg</option>
-                                    <option value="webp">.webp</option>
-                                    <option value="pdf">.pdf</option>
+                                    <option value="">all</option>
+                                    <option value="png" @selected($input['type'] == "png")>.png</option>
+                                    <option value="jpg" @selected($input['type'] == "jpg")>.jpg</option>
+                                    <option value="jpeg" @selected($input['type'] == "jpeg")>.jpeg</option>
+                                    <option value="webp" @selected($input['type'] == "webp")>.webp</option>
+                                    <option value="pdf" @selected($input['type'] == "pdf")>.pdf</option>
                                 </select>
                             </div>
 
-                            <input type="search" class="form-control" placeholder="Search" aria-label="Example text with button addon" aria-describedby="button-addon1">
+                            <input type="search" class="form-control" name="search" placeholder="Search" aria-label="Example text with button addon" aria-describedby="button-addon1" value="{{ $input['search'] }}">
+                            <button type="submit" class="btn btn-primary">Search</button>
                         </form>
                     </div>
 
@@ -71,10 +72,10 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('documents.files.root.preview', $f->encrypted_name) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $f->name }}" title="Button: to preview file {{ $f->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
+                                                <a href="{{ route('documents.files.root.preview', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $f->name }}" title="Button: to preview file {{ $f->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('documents.files.root.download', $f->encrypted_name) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
+                                                <a href="{{ route('documents.files.root.download', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
                                             </li>
                                             <li>    
                                                 <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $f->name }}" 
@@ -85,7 +86,7 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('documents.files.root.delete', $f->encrypted_name) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}" onclick="return confirm('Are you sure to delete this file?')">
+                                                <a href="{{ route('documents.files.root.delete', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}" onclick="return confirm('Are you sure to delete this file?')">
                                                     <i class="bi bi-trash fs-5"></i> Delete
                                                 </a>
                                             </li>

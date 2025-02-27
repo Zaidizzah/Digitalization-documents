@@ -38,7 +38,7 @@ class FileController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(?string $name = null)
+    public function index(Request $req, ?string $name = null)
     {
         $resources = build_resource_array(
             "Manage document files",
@@ -71,7 +71,23 @@ class FileController extends Controller
                 ]
             ]
         );
-        $resources['files'] = FileModel::all();
+        $inputs = [
+            'type' => null,
+            'search' => null,
+        ];
+
+        $files = FileModel::where([]);
+        if($req->search){
+            $inputs['search'] = $req->search;
+            $files->where('name', 'like', '%'.$req->search.'%');
+        }
+        if($req->type){
+            $inputs['type'] = $req->type;
+            $files->where('extension', $req->type);
+        }
+        
+        $resources['input'] = $inputs;
+        $resources['files'] = $files->get();
         $resources['document'] = DocumentType::all();
 
         return view('apps.files.index', $resources);
@@ -215,9 +231,85 @@ class FileController extends Controller
             // delete uploaded file
             if (is_string($stored_file) && Storage::disk('local')->exists($stored_file)) Storage::disk('local')->delete($stored_file);
 
-            dd($e);
-
             return $this->error_response("Sorry, we couldn't upload the file. Please try again.", null, Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public function destroy(Request $req, $name = null){
+        if ($name) {
+            $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
+
+            if (empty($document_type)) {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't find a document type with the name '$name'. Please try again.", 'error'));
+            }
+        }
+
+        try {
+            $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
+            Storage::delete($file->path);
+    
+            FileModel::destroy($file->id);
+            return redirect()->back()->with('message', toast("File {$file->name}.{$file->extension} has deleted successfully"));
+        } catch (\Throwable $th) {
+            return redirect()->back()->with('message', toast("Sorry, we have trouble while deleting this file: ".$th->getMessage(), 'error'));
+        }
+    }
+    public function download(Request $req, $name = null){
+        if ($name) {
+            $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
+
+            if (empty($document_type)) {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't find a document type with the name '$name'. Please try again.", 'error'));
+            }
+        }
+
+        try {
+            $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
+            return Storage::download($file->path, $file->name.'.'.$file->extension);
+        } catch (\Throwable $th) {
+            return redirect()->back()->with('message', toast("Sorry, we have trouble while downloading this file: ".$th->getMessage(), 'error'));
+        }
+    }
+    public function preview(Request $req, $name = null){
+        $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
+        $resources = build_resource_array(
+            "Manage document files",
+            "Manage document files",
+            "<i class=\"bi bi-file-earmark-text\"></i> ",
+            "A page for managing document files and displaying a list of document files.",
+            [
+                "Dashboard" => route('dashboard.index'),
+                "Documents" => route('documents.index'),
+                "Manage document files" => route('documents.files.index')
+            ],
+            [
+                [
+                    'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ],
+                [
+                    'href' => 'styles.css',
+                    'base_path' => asset('/resources/apps/files/css/')
+                ]
+            ],
+            [
+                [
+                    'src' => 'fileuploadmanager.js',
+                    'base_path' => asset('/resources/plugins/fileuploadmanager/js/')
+                ],
+                [
+                    'src' => 'modals.js',
+                    'base_path' => asset('/resources/apps/files/js/')
+                ]
+            ]
+        );
+        $resources['file'] = $file;
+        return view('apps.files.preview', $resources);
+    }
+    public function files($name, $filename){
+        $file = FileModel::where('encrypted_name', $name)->firstOrFail();
+        return response(Storage::get($file->path), headers:[
+            'Content-type' => $file->type
+        ]);
     }
 }
