@@ -794,7 +794,7 @@ class SchemaBuilder
         // Sort by sequence_number
         $old_table_schema = self::sort_schema_by_sequence_number($old_table_schema);
 
-        $columns = self::get_table_columns_name_from_schema_representation($table_name, $old_table_schema, true);
+        $columns = self::get_table_columns_name_from_schema_representation($table_name, $old_table_schema); // delete attribute id and file_id from list of column array
 
         if ($data_document_type->isNotEmpty()) {
             $no = 1;
@@ -804,13 +804,6 @@ class SchemaBuilder
 
                 $row_data = [];
                 foreach ($columns as $column) {
-                    if ($column === 'id') continue;
-
-                    if ($column === 'created_at' || $column === 'updated_at') {
-                        array_push($row_data, '<td class="text-nowrap">' . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . '</td>');
-                        continue;
-                    }
-
                     // set data to type DATE, TIME, or DATETIME and ignore format data if format does not match with type DATE, TIME, or DATETIME
                     switch ($old_table_schema[$column]['type']) {
                         case 'date':
@@ -829,15 +822,17 @@ class SchemaBuilder
                             }
                             break;
                         default:
-                            array_push($row_data, '<td class="text-nowrap">' . empty($data->$column) ? '' : $data->$column . '</td>');
+                            array_push($row_data, '<td class="text-nowrap">' . (empty($data->$column) ? '' : $data->$column) . '</td>');
                             break;
                     }
                 }
 
-                // add button to delete and edit data of document type
+                // add created_at, updated_at, button to delete and edit data of document type
                 array_push(
                     $row_data,
-                    "<td class=\"text-nowrap\">
+                    "<td class=\"text-nowrap\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
+                    <td class=\"text-nowrap\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
+                    <td class=\"text-nowrap\">
                         <a href=\"#\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$document_type_name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                     </td>"
@@ -858,79 +853,71 @@ class SchemaBuilder
             }
 
             $rows = implode("\n", $rows);
-            return <<<HTML
-                    <tbody>
-                        {$rows}
-                    </tbody>
-                    HTML;
+            return "<tbody>$rows</tbody>";
         } else {
-            $column_count = count($columns) + 1;
-
-            return <<<HTML
-                    <tbody>
-                        <tr aria-hidden="true" aria-label="No data current document type" role="row" aria-rowindex="1">
-                            <td colspan="{$column_count}" class="text-center">No data available for current document type.</td>
+            return "<tbody>
+                        <tr aria-hidden=\"true\" aria-label=\"No data current document type\" role=\"row\" aria-rowindex=\"1\">
+                            <td colspan=\"" . (count($columns) + 4) . "\" class=\"text-center\">No data available for current document type.</td>
                         </tr>
-                    </tbody>
-                    HTML;
+                    </tbody>";
         }
     }
 
-    public static function get_validation_rules_from_schema(string $table_name, array $schema, array $columns_name): mixed
+    public static function get_validation_rules_from_schema(string $table_name, array $form_schema, array $columns_name): mixed
     {
-        // Validasi kolom yang diperlukan ada dalam skema
-        $schemaNames = array_column($schema, 'name');
-        if (!empty(array_diff($columns_name, $schemaNames))) {
+        // Validate columns name
+        $schema_columns_name = array_column($form_schema, 'name');
+        if (!empty(array_diff($columns_name, $schema_columns_name))) {
             throw new \InvalidArgumentException();
         }
 
         $validation_rules = [];
 
-        foreach ($schema as $attribute) {
-            $fieldName = $attribute['name'];
+        foreach ($form_schema as $attribute) {
+            $field_name = $attribute['name'];
             $type = $attribute['type'];
             $required = $attribute['required'];
             $unique = $attribute['unique'];
-            $rulesConfig = $attribute['rules'];
+            $rules_config = $attribute['rules'];
 
-            $fieldRules = [];
+            $field_rules = [];
 
-            $fieldRules[] = $required === true ? 'required' : 'nullable';
+            $field_rules[] = $required === true ? 'required' : 'nullable';
 
-            $typeRules = match ($type) {
+            $type_rules = match ($type) {
                 'text', 'textarea' => [
                     'string',
-                    ...(isset($rulesConfig['maxLength']) ? ["max:{$rulesConfig['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
                 ],
                 'number' => [
                     'numeric',
-                    ...(isset($rulesConfig['min']) ? ["min:{$rulesConfig['min']}"] : []),
-                    ...(isset($rulesConfig['max']) ? ["max:{$rulesConfig['max']}"] : [])
+                    ...(isset($rules_config['min']) ? ["min:{$rules_config['min']}"] : []),
+                    ...(isset($rules_config['max']) ? ["max:{$rules_config['max']}"] : [])
                 ],
                 'date'       => ['date_format:Y-m-d'],
                 'time'       => ['date_format:H:i'],
                 'datetime'  => ['date_format:Y-m-d H:i:s'],
                 'email'      => [
                     'email',
-                    ...(isset($rulesConfig['maxLength']) ? ["max:{$rulesConfig['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
                 ],
                 'url'        => [
                     'url',
-                    ...(isset($rulesConfig['maxLength']) ? ["max:{$rulesConfig['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
                 ],
                 'phone'      => ['regex:/^\+?[1-9]\d{0,2}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,9}[-.\s]?\d{1,' . (int) self::FIELD_TYPE_CONFIG['phone']['maxLength'] . '}$/'],
-                'select'     => ['in:' . implode(',', $rulesConfig['options'])],
+                'select'     => ['in:' . implode(',', $rules_config['options'])],
                 default      => throw new \OutOfRangeException("Unsupported field type: {$type}", Response::HTTP_BAD_REQUEST),
             };
 
-            $fieldRules = array_merge($fieldRules, $typeRules);
+            $field_rules = array_merge($field_rules, $type_rules);
 
             // Handle unique rule if type is not select
             if ($unique && $type !== 'select') {
-                $fieldRules[] = 'unique:' . $table_name . ',' . $fieldName;
+                $field_rules[] = 'unique:' . $table_name . ',' . $field_name;
             }
 
-            $validation_rules[$fieldName] = $fieldRules;
+            $validation_rules[$field_name] = $field_rules;
         }
 
         return $validation_rules;
@@ -1104,7 +1091,7 @@ class SchemaBuilder
      */
     public static function table_exists(string $table_name): bool
     {
-        return (bool) DB::select("SELECT * FROM information_schema.tables WHERE table_name = '{$table_name}'");
+        return (bool) DB::select("SELECT * FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table_name}'");
     }
 
     /**
@@ -1128,7 +1115,7 @@ class SchemaBuilder
      */
     public static function index_exists(string $table_name, string $index_name): bool
     {
-        return (bool) DB::select("SELECT * FROM information_schema.statistics WHERE table_name = '{$table_name}' AND index_name = '{$index_name}'");
+        return (bool) DB::select("SELECT * FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table_name}' AND INDEX_NAME = '{$index_name}'");
     }
 
     /**
@@ -1478,7 +1465,7 @@ class SchemaBuilder
         }
 
         if ($including === true) {
-            array_unshift($schema_columns, ['id', 'file_id']);
+            array_unshift($schema_columns, 'id', 'file_id');
             array_push($schema_columns, 'created_at', 'updated_at');
         }
 
@@ -1814,8 +1801,12 @@ class SchemaBuilder
     public static function get_index_columns(string $table_name, string $index_name): array
     {
         return DB::select(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?",
-            [DB::getTablePrefix(), $table_name, $index_name]
+            "SELECT COLUMN_NAME 
+             FROM INFORMATION_SCHEMA.STATISTICS 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = ? 
+             AND INDEX_NAME = ?",
+            [$table_name, $index_name]
         );
     }
 

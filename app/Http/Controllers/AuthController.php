@@ -45,7 +45,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('signin.page')->with('message', toast('Invalid signin, please fill the form correctly.', 'error'))->withInput()->withErrors($validator);
+            return redirect()->route('signin.page')->with('message', toast('Invalid signin. Please fill the form correctly.', 'error'))->withInput();
         }
 
         $validated = $validator->validated();
@@ -55,7 +55,7 @@ class AuthController extends Controller
             return redirect()->intended('/dashboard')->with('message', toast('Signin was successful', 'success'));
         }
 
-        return redirect()->route('signin.page')->with('message', toast('Invalid signin, user \'' . $validated['email'] . '\' was not found. please fill the form correctly.', 'error'))->withInput();
+        return redirect()->route('signin.page')->with('message', toast('Invalid signin. Please fill the form correctly.', 'error'))->withInput();
     }
 
     /**
@@ -79,7 +79,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return redirect()->route('signup.page')->with('message', toast('Invalid signup details, please fill the form correctly.', 'error'))->withInput()->withErrors($validator);
+            return redirect()->route('signup.page')->with('message', toast('Invalid signup. Please fill the form correctly.', 'error'))->withInput();
         }
 
         $validated = $validator->validated();
