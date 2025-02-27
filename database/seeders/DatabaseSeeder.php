@@ -27,12 +27,5 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
         ]);
-
-        // for ($i = 0; $i < 1000; $i++) {
-        //     DB::table('kk')->insert([
-        //         'nama_ku_ku' => Str::random(10),
-        //         'jenis_kelamin' => Arr::random(['laki-laki', 'perempuan']),
-        //     ]);
-        // }
     }
 }

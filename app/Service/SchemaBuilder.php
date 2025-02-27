@@ -660,7 +660,7 @@ class SchemaBuilder
                                 <div class=\"meta-label\">{$rule_labels[$key]}:</div>
                                 <div class=\"meta-value\">$formatted_value</div>
                             </div>";
-                }, array_keys($data['rules'] ?? []), $data['rules'] ?? []))
+                }, array_keys($data['rules'] ?? []), $data['rules'] ?? [])) // passing key and value separately from array rules
             );
 
             $popover_id = Str::of($field)->lower()->replace(' ', '-')->toString();
@@ -757,6 +757,7 @@ class SchemaBuilder
                     <tr>
                         <th class="text-nowrap" scope="col">No</th>
                         {$header_columns}
+                        <th class="text-nowrap" scope="col">Atached File</th>
                         <th class="text-nowrap" scope="col">Created At</th>
                         <th class="text-nowrap" scope="col">Updated At</th>
                         <th class="text-nowrap" scope="col">Action</th>
@@ -773,7 +774,7 @@ class SchemaBuilder
      * value is used as a column value. Additional columns for "Created At", "Updated At",
      * and "Action" are appended at the end.
      *
-     * @param string $document_type_name The name of the document type.
+     * @param string $name The name of the document type.
      * @param string $table_name The name of the table.
      * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type list data of document type
      * @param array $old_table_schema An array representing the schema with field definitions.
@@ -781,7 +782,7 @@ class SchemaBuilder
      *
      * @return string The generated HTML for the table body.
      */
-    public static function create_table_tbody_from_schema_in_html(string $document_type_name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema)
+    public static function create_table_tbody_from_schema_in_html(string $name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema)
     {
         // Sort by sequence_number
         $old_table_schema = self::sort_schema_by_sequence_number($old_table_schema);
@@ -819,14 +820,21 @@ class SchemaBuilder
                     }
                 }
 
+                // add file link
+                $preview_file_link = '';
+                if (isset($data->file_id)) {
+                    $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" aria-label=\"Preview file {$data->file_name}.{$data->file_extension}\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\"><i class=\"bi bi-paperclip fs-5\"></i></a>";
+                }
+
                 // add created_at, updated_at, button to delete and edit data of document type
                 array_push(
                     $row_data,
-                    "<td class=\"text-nowrap\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
+                    "<td class=\"text-nowrap\">" . ($preview_file_link ?? '') . "</td>
+                    <td class=\"text-nowrap\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</>
                     <td class=\"text-nowrap\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
                     <td class=\"text-nowrap\">
                         <a href=\"#\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
-                        <a href=\"" . route('documents.data.delete', [$document_type_name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
+                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                     </td>"
                 );
 

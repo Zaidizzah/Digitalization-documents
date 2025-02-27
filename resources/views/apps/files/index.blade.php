@@ -151,27 +151,29 @@
                     <h5 class="modal-title" id="modal-files-label"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body dialog-content">
-                    <div class="dialog-content-metadata">
-                        <div class="row meta-item g-2">
-                            <span class="col-sm-2 meta-label">Name:</span>
-                            <span class="col-sm-10 meta-value" id="file-name"></span>
-                        </div>
-                        <div class="row meta-item g-2">
-                            <span class="col-sm-2 meta-label">Labeled:</span>
-                            <span class="col-sm-10 meta-value" id="file-labeled"></span>
-                        </div>
-                        <div class="row meta-item g-2">
-                            <span class="col-sm-2 meta-label">Size:</span>
-                            <span class="col-sm-10 meta-value" id="file-size"></span>
-                        </div>
-                        <div class="row meta-item g-2">
-                            <span class="col-sm-2 meta-label">Uploaded at:</span>
-                            <span class="col-sm-10 meta-value" id="file-uploaded-at"></span>
-                        </div>
-                        <div class="row meta-item g-2">
-                            <span class="col-sm-2 meta-label">Modified at:</span>
-                            <span class="col-sm-10 meta-value" id="file-modified-at"></span>
+                <div class="modal-body">
+                    <div class="dialog-content">
+                        <div class="dialog-content-metadata">
+                            <div class="row meta-item g-2">
+                                <span class="col-sm-2 meta-label">Name:</span>
+                                <span class="col-sm-10 meta-value" id="file-name"></span>
+                            </div>
+                            <div class="row meta-item g-2">
+                                <span class="col-sm-2 meta-label">Labeled:</span>
+                                <span class="col-sm-10 meta-value" id="file-labeled"></span>
+                            </div>
+                            <div class="row meta-item g-2">
+                                <span class="col-sm-2 meta-label">Size:</span>
+                                <span class="col-sm-10 meta-value" id="file-size"></span>
+                            </div>
+                            <div class="row meta-item g-2">
+                                <span class="col-sm-2 meta-label">Uploaded at:</span>
+                                <span class="col-sm-10 meta-value" id="file-uploaded-at"></span>
+                            </div>
+                            <div class="row meta-item g-2">
+                                <span class="col-sm-2 meta-label">Modified at:</span>
+                                <span class="col-sm-10 meta-value" id="file-modified-at"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -189,24 +191,26 @@
                 </div>
                 <form action="{{ route('documents.files.root.rename') }}" method="post">
                     @csrf
-                    <div class="modal-body dialog-content">
-                        <div class="dialog-content-metadata">
-                            <div class="row meta-item g-2">
-                                <label for="name" class="col-sm-1 meta-label">Name:</label>
-                                <div class="col-sm-11 meta-value">
-                                    <input type="text" name="name" class="form-control" id="name" placeholder="Enter name">
-                                    <input type="hidden" name="id">
+                    <div class="modal-body">
+                        <div class="dialog-content">
+                            <div class="dialog-content-metadata">
+                                <div class="row meta-item g-2">
+                                    <label for="name" class="col-sm-1 meta-label">Name:</label>
+                                    <div class="col-sm-11 meta-value">
+                                        <input type="text" name="name" class="form-control" id="name" placeholder="Enter name">
+                                        <input type="hidden" name="id">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="row meta-item g-2">
-                                <label for="document-type-id" class="col-sm-1 meta-label">Labeled:</label>
-                                <div class="col-sm-11 meta-value">
-                                    <select name="document_type_id" id="document-type-id" class="form-control">
-                                        <option value="" disabled selected>Choose...</option>
-                                        @foreach ($document as $d)
-                                            <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="row meta-item g-2">
+                                    <label for="document-type-id" class="col-sm-1 meta-label">Labeled:</label>
+                                    <div class="col-sm-11 meta-value">
+                                        <select name="document_type_id" id="document-type-id" class="form-control">
+                                            <option value="" disabled selected>Choose...</option>
+                                            @foreach ($document as $d)
+                                                <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>

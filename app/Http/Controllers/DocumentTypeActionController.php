@@ -49,7 +49,10 @@ class DocumentTypeActionController extends Controller
                 throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
             }
 
-            $document_type_data = DB::table($document_type->table_name)->paginate(25)->appends(request()->query());
+            $document_type_data = DB::table($document_type->table_name)
+                ->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
+                ->select("$document_type->table_name.*", 'files.name as file_name', 'files.extension as file_extension', 'files.encrypted_name as file_encrypted_name')
+                ->paginate(25)->appends(request()->query());
 
             $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table);
         } catch (\Exception $e) {
@@ -306,6 +309,18 @@ class DocumentTypeActionController extends Controller
         }
 
         $validated = $validator->validated();
+
+        // compare list attribute rule with validated data
+        foreach ($document_type->schema_form as $attribute) {
+            $key = $attribute['name'];
+            if (Arr::has($validated, $key)) {
+                if ($attribute['type'] === 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
+                    $validated[$key] = $attribute['rules']['defaultValue'];
+                } elseif ($attribute['type'] !== 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
+                    $validated[$key] = $attribute['rules']['defaultValue'];
+                }
+            }
+        }
 
         // insert data to table document type
         $result = DB::table($document_type->table_name)->insert($validated);

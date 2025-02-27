@@ -443,7 +443,7 @@ class DocumentTypeController extends Controller
         if ($document_type->long_name) $document_type->abbr = $document_type->long_name ? '<abbr title="' . $document_type->long_name . '">' . $name . '</abbr>' : $document_type->name;
 
         // create link to load schema attributes
-        $load_schema_link = route('documents.schema.load.document', [$name, $attribute_id]);
+        $load_schema_link = route('documents.schema.load', [$name, $attribute_id]);
 
         // get schema attributes from table
         $except_attributes_name = SchemaBuilder::get_table_columns_name_from_schema_representation($document_type->table_name);

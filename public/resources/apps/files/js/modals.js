@@ -91,7 +91,7 @@
                         <li>
                             <a class="dropdown-item" href="javascript:void(0)"
                                 aria-label="Browse file ${file.name}.${file.extension}" title="Button: to browse file ${file.name}.${file.extension}" 
-                                data-bs-toggle="modal" data-bs-target="#modal_files"
+                                data-bs-toggle="modal" data-bs-target="#modal-files"
                                 data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" 
                                 data-file-size="${file.size}"
                                 data-file-uploaded-at="${file.uploaded_at}" data-file-modified-at="${file.modified_at}" 
@@ -107,7 +107,7 @@
                             <a href="${file.download_uri}" role="button" class="dropdown-item" aria-label="Download file ${file.name}" title="Button: to download file ${file.name}"><i class="bi bi-download fs-5"></i> Download</a>
                         </li>
                         <li>    
-                            <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file ${file.name}" title="Button: to edit file ${file.name}" data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" data-file-document-id="${file.document_type_id}"><i class="bi bi-pencil-square fs-5"></i> Edit</a>
+                            <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file ${file.name}" title="Button: to edit file ${file.name}" data-bs-toggle="modal" data-bs-target="#modal-files-edit" data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" data-file-document-id="${file.document_type_id}"><i class="bi bi-pencil-square fs-5"></i> Edit</a>
                         </li>
                         <li>
                             <a href="${file.delete_uri}" role="button" class="dropdown-item" aria-label="Delete file ${file.name}" title="Button: to delete file ${file.name}" onclick="return confirm('Are you sure to delete this file?')"><i class="bi bi-trash fs-5"></i> Delete</a>
