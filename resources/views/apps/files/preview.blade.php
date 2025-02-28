@@ -11,16 +11,16 @@
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
                         <h3 class="title" id="tile-files-list-label"><i class="bi bi-files"></i> File Preview</h3>
-                        <small class="caption small font-italic fs-5">{{ $file->name.'.'.$file->extension }}</small>
+                        <small class="caption small font-italic fs-5">{{ "{$file->name}.{$file->extension}" }}</small>
                     </div>
                 </div>
                 <div class="tile-body">
                     <!-- File list section -->
                     <div class="file-list" id="file-list" aria-label="File list container" style="overflow-y: unset">
                         @if (strpos($file->type, 'image') === 0)
-                            <img src="{{ route('files_iframe', [$file->encrypted_name, $file->name.'.'.$file->extension]) }}" alt="">
+                            <img src="{{ route('files_iframe', [$file->encrypted_name, "{$file->name}.{$file->extension}"]) }}" alt="">
                         @else
-                            <iframe src="{{ route('files_iframe', [$file->encrypted_name, $file->name.'.'.$file->extension]) }}" frameborder="0" class="w-100 h-100"></iframe>
+                            <iframe src="{{ route('files_iframe', [$file->encrypted_name, "{$file->name}.{$file->extension}"]) }}" frameborder="0" class="w-100 h-100"></iframe>
                         @endif
                     </div>
                 </div>

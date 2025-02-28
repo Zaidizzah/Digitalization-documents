@@ -88,6 +88,7 @@
                         <i class="bi bi-three-dots-vertical"></i>
                     </button>
                     <ul class="dropdown-menu">
+                    
                         <li>
                             <a class="dropdown-item" href="javascript:void(0)"
                                 aria-label="Browse file ${file.name}.${file.extension}" title="Button: to browse file ${file.name}.${file.extension}" 

@@ -3,9 +3,10 @@
     top: calc(53px + 1rem);
 }
 
-.file-list {
+.file-list,
+.folder-list {
     height: calc(100vh - 2rem);
-    overflow-y: auto;
+    overflow-y: scroll;
     border: 1px solid var(--primary-color);
 }
 
@@ -105,12 +106,36 @@
     display: none;
 }
 
+.file-item .file-info-wrapper .file-info div:first-child span {
+    text-wrap: balance;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
 .search-file form {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
     margin-bottom: 1rem;
+}
+
+#row-file-zone .note-container {
+    height: 100%;
+}
+
+#row-file-zone .note-container .note-content {
+    height: 100%;
+}
+
+@media screen and (min-width: 769px) {
+    #row-file-list .col-md-8 .tile {
+        margin-bottom: 0;
+    }
 }
 
 @media screen and (max-width: 768px) {

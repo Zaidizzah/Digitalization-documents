@@ -4,7 +4,51 @@
 
     @include('partials.document-menu')
 
-    <div class="row flex-wrap-reverse" id="row-file-list" aria-label="File list container">
+    <div class="row" id="row-file-zone" aria-label="File upload zone container">
+        <!-- Note section --> 
+        <div class="col-md-4">
+            <!-- Note for uploading files -->
+            {!! note(
+                "You can upload multiple files at once but the <u>duplicate files will be renamed automatically</u>. The file size limit is 20MB. And the allowed file types are PDF, PNG, JPG, JPEG, and WEBP.
+                If your <span class=\"text-danger\">image faces the wrong way</span>, rotate it before you upload it to the system."
+            ) !!}
+        </div>
+        <!-- Upload zone section -->
+        <div class="col-md-8">
+            <div class="tile shadow-none" id="tile-upload-file" tabindex="1" aria-label="Tile section of upload files" aria-labelledby="tile-upload-file-label">
+                <div class="tile-title-w-btn flex-wrap">  
+                    <div class="tile-title flex-nowrap">
+                        <h3 class="title" id="tile-upload-file-label"><i class="bi bi-upload"></i> Upload files</h3>
+                        <small class="caption small font-italic fs-5">Upload files zone.</small>
+                    </div>
+                </div>
+                <div class="tile-body">
+                    <div
+                        class="upload-zone"
+                        id="upload-zone"
+                        aria-label="Upload zone"
+                        title="Drag and drop files here or click to browse"
+                    >
+                        <input
+                        type="file"
+                        name="file[]"
+                        id="file-input"
+                        class="d-none"
+                        multiple
+                        accept="image/png, image/jpg, image/jpeg, image/webp, application/pdf"
+                        />
+                        <i
+                        class="bi bi-cloud-upload text-primary mb-3"
+                        ></i>
+                        <p class="mb-1">Drag and drop files here</p>
+                        <p class="small text-muted mb-0">or click to browse</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3" id="row-file-list" aria-label="File list container">
         <!-- File List -->
         <div class="col-md-8">
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
@@ -81,7 +125,7 @@
                                                 <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $f->name }}" 
                                                     title="Button: to edit file {{ $f->name }}"
                                                     data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" data-file-document-id="{{ $f->document_type_id }}"
-                                                    data-bs-toggle="modal" data-bs-target="#modal-files-edit">
+                                                        >
                                                     <i class="bi bi-pencil-square fs-5"></i> Edit
                                                 </a>
                                             </li>
@@ -103,39 +147,16 @@
         <!-- Upload Section -->
         <div class="col-md-4">
             <div class="sticky-panel">
-                <!-- Note for uploading files -->
-                {!! note(
-                    "You can upload multiple files at once but the <u>duplicate files will be renamed automatically</u>. The file size limit is 20MB. And the allowed file types are PDF, PNG, JPG, JPEG, and WEBP.
-                    If your <span class=\"text-danger\">image faces the wrong way</span>, rotate it before you upload it to the system."
-                ) !!}
-
-                <div class="tile shadow-none" id="tile-upload-file" tabindex="1" aria-label="Tile section of upload files" aria-labelledby="tile-upload-file-label">
+                <div class="tile shadow-none" id="tile-folder-list" tabindex="1" aria-label="Tile section of folder list" aria-labelledby="tile-folder-list-label">
                     <div class="tile-title-w-btn flex-wrap">  
                         <div class="tile-title flex-nowrap">
-                            <h3 class="title" id="tile-upload-file-label"><i class="bi bi-upload"></i> Upload files</h3>
-                            <small class="caption small font-italic fs-5">Upload files zone.</small>
+                            <h3 class="title" id="tile-folder-list-label"><i class="bi bi-folder"></i> List of folder</h3>
+                            <small class="caption small font-italic fs-5">Displaying list of folders.</small>
                         </div>
                     </div>
                     <div class="tile-body">
-                        <div
-                            class="upload-zone"
-                            id="upload-zone"
-                            aria-label="Upload zone"
-                            title="Drag and drop files here or click to browse"
-                        >
-                            <input
-                            type="file"
-                            name="file[]"
-                            id="file-input"
-                            class="d-none"
-                            multiple
-                            accept="image/png, image/jpg, image/jpeg, image/webp, application/pdf"
-                            />
-                            <i
-                            class="bi bi-cloud-upload text-primary mb-3"
-                            ></i>
-                            <p class="mb-1">Drag and drop files here</p>
-                            <p class="small text-muted mb-0">or click to browse</p>
+                        <div class="folder-list" id="folder-list" aria-label="Folder list container">
+
                         </div>
                     </div>
                 </div>
