@@ -65,6 +65,8 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/documents/{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
         Route::post('/documents/{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
+        Route::get('/documents/{name}/edit/{id}', [DocumentTypeActionController::class, 'edit'])->name('documents.data.edit');
+        Route::post('/documents/{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
         Route::get('/documents/{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
         Route::get('/documents/{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
 

@@ -332,6 +332,137 @@ class DocumentTypeActionController extends Controller
         }
     }
 
+    //edit (tulung gawekna dokumentasine :) )
+    public function edit(Request $request, string $name, $id)
+    {
+        // get document type by name
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        // check if table exists
+        if (!SchemaBuilder::table_exists($document_type->table_name)) {
+            return redirect()->route('documents.index')->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table for document type '$name' and try again.", 'error'));
+        }
+
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+
+        // check if document type has schema attributes and table
+        if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
+            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+        }
+
+        $file_data = DB::table($document_type->table_name)->where('id', $id)->get()->firstOrFail();
+
+        $form_html = SchemaBuilder::create_form_html($document_type->schema_form, $file_data);
+        try {
+            // dd($file_data);
+        } catch (\Exception $e) {
+            return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
+        }
+
+        //check if data long_name is not empty set new properti 'abbr'
+        $document_type->abbr = $document_type->long_name ? '<abbr title="' . $document_type->long_name . '">' . $name . '</abbr>' : $document_type->name;
+
+        // List of data for the page
+        $resources = build_resource_array(
+            "Edit data to document type $name " . ($document_type->long_name ? ' (' . $document_type->long_name . ')' : ''),
+            "Edit data to document type $document_type->abbr",
+            "<i class=\"bi bi-file-earmark-text\"></i> ",
+            "A page for Editing data to document type $document_type->abbr.",
+            [
+                "Dashboard" => route('dashboard.index'),
+                "Documents" => route('documents.index'),
+                "Document type $name",
+                "Edit data to document type $name" => route('documents.data.create', $name)
+            ],
+            [
+                [
+                    'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ]
+            ]
+        );
+
+        $resources['id'] = $id;
+        $resources['document_type'] = $document_type;
+        $resources['form_html'] = $form_html;
+
+        return view('apps.documents.edit', $resources);
+    }
+
+    // Be caution unstable!!!
+    public function update(Request $request, string $name, $id)
+    {
+        // get document type by name
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        // check if table exists
+        if (!SchemaBuilder::table_exists($document_type->table_name)) {
+            return redirect()->route('documents.index')->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table for document type '$name' and try again.", 'error'));
+        }
+
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+
+        // check if document type has schema attributes and table
+        if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
+            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+        }
+
+        $columns_name = array_column($document_type->schema_form, 'name');
+
+        // check if schema not corrupted by compare list column in table and schema
+        if (
+            !empty(array_diff($columns_name, array_keys($request->all()))) &&
+            !empty(array_diff($columns_name, SchemaBuilder::get_table_columns_name_from_schema_representation($document_type->table_name, $document_type->schema_table)))
+        ) {
+            return redirect()->back()->with('message', toast("Sorry, schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", 'error'));
+        }
+
+        try {
+            $validation_rules = SchemaBuilder::get_validation_rules_from_schema($document_type->table_name, $document_type->schema_form, $columns_name);
+        } catch (\Exception $e) {
+            return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
+        }
+
+        if (is_bool($validation_rules) && !$validation_rules) {
+            return redirect()->back()->with('message', toast("Sorry, schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", 'error'));
+        }
+
+        // add validation rules for file_id
+        $validation_rules['file_id'] = 'nullable|exists:files,id';
+
+        // get and validate data from table document type
+        $validator = Validator::make($request->only([...$columns_name, 'file_id']), $validation_rules);
+
+        if ($validator->fails()) {
+            return redirect()->back()->with('message', toast("Invalid creating document type '$name' data, please fill the form correctly.", 'error'))->withInput()->withErrors($validator);
+        }
+
+        $validated = $validator->validated();
+
+        // compare list attribute rule with validated data
+        foreach ($document_type->schema_form as $attribute) {
+            $key = $attribute['name'];
+            if (Arr::has($validated, $key)) {
+                if ($attribute['type'] === 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
+                    $validated[$key] = $attribute['rules']['defaultValue'];
+                } elseif ($attribute['type'] !== 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
+                    $validated[$key] = $attribute['rules']['defaultValue'];
+                }
+            }
+        }
+
+        // insert data to table document type
+        $result = DB::table($document_type->table_name)->where('id', $id)->update($validated);
+
+        if ($result) {
+            return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
+        } else {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
+        }
+    }
+
     /**
      * Delete the specified data in a document type.
      *

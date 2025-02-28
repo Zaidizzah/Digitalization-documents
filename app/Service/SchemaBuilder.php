@@ -467,7 +467,7 @@ class SchemaBuilder
      * @throws InvalidArgumentException When schema is empty
      * @throws OutOfBoundsException When field type is invalid
      */
-    public static function create_form_html(array $schema_form, int|array|null $file_ids)
+    public static function create_form_html(array $schema_form, $file_data = null)
     {
         // Check if schema is empty
         if (empty($schema_form)) throw new \InvalidArgumentException("Sorry, we couldn't find any of your schema. Please try again and create a valid schema.", Response::HTTP_BAD_REQUEST);
@@ -513,7 +513,12 @@ class SchemaBuilder
 
         $form_html = '';
 
+        $field_name = '';
         foreach ($schema_form as $field => $data) {
+            // Getting the value if exists
+            $field_name = $data['name'];
+            $field_value = $file_data ? $file_data->$field_name : old($field_name);
+
             // Validate field type
             $type_config = self::FIELD_TYPE_CONFIG[$data['type']] ?? null;
             if (!$type_config)
@@ -542,17 +547,27 @@ class SchemaBuilder
             // Field type handling
             switch ($data['type']) {
                 case 'textarea':
-                    $default_value = $data['rules']['defaultValue'] ?? '';
                     $form_html .= <<<HTML
-                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" {$title} placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$default_value}</textarea>
+                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" {$title} placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$field_value}</textarea>
                     HTML;
                     break;
 
                 case 'select':
-                    $options = array_reduce($data['rules']['options'] ?? [], fn($html, $option) => $html .= "<option value=\"{$option}\">{$option}</option>", '');
+                    $options = "<option value=\"\" disabled " . ($file_data === null ? 'selected' : '') . ">Choose...</option>" 
+                    .array_reduce($data['rules']['options'] ?? [], 
+                        function($html, $option) use ($file_data, $field_value) {
+                            if($file_data != null){
+                                $_selected = $field_value == $option ? 'selected' : '';
+                                $html .= "<option value=\"{$option}\" $_selected>{$option}</option>";
+                            }else{
+                                $html .= "<option value=\"{$option}\">{$option}</option>";
+                            }
+                            return $html;
+                        }
+                    , '');
+
                     $form_html .= <<<HTML
                     <select class="form-select" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="{$data['name']}" {$attributes}>
-                        <option value="" disabled selected>Choose...</option>
                         {$options}
                     </select>
                     HTML;
@@ -561,7 +576,7 @@ class SchemaBuilder
                 default:
                     $input_type = $data['type'] === 'datetime' ? 'datetime-local' : $data['type'];
                     $form_html .= <<<HTML
-                    <input type="{$input_type}" class="form-control" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
+                    <input type="{$input_type}" value="{$field_value}" class="form-control" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
                     HTML;
             }
 
@@ -833,7 +848,7 @@ class SchemaBuilder
                     <td class=\"text-nowrap\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</>
                     <td class=\"text-nowrap\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
                     <td class=\"text-nowrap\">
-                        <a href=\"#\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
+                        <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                     </td>"
                 );
