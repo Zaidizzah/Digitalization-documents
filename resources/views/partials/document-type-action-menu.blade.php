@@ -17,7 +17,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" aria-label="Manage files for documents {{ $document_type->name }}" title="Manage files for documents {{ $document_type->name }}">
+            <a href="{{ route('documents.files.index', $document_type->name) }}" class="nav-link" aria-label="Manage files for documents {{ $document_type->name }}" title="Manage files for documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z"/>
                 </svg>

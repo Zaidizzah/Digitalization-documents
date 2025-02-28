@@ -195,6 +195,7 @@ class UploadQueueManager {
     async uploadFile(url, file) {
         // create object form data for file uploading
         const formData = new FormData();
+        formData.append("document_type", $('#document_name').val())
         formData.append("file", file, file.name);
 
         const response = await fetch(url, {

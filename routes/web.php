@@ -91,24 +91,17 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/documents/{name}/files', [FileController::class, 'index'])->name('documents.files.index');
-    Route::get('/documents/files', [FileController::class, 'index'])->name('documents.files.index');
+    Route::get('/documents/files', [FileController::class, 'index'])->name('documents.files.root.index');
+
     Route::post('/documents/files/upload', [FileController::class, 'upload'])->name('documents.files.upload');
-
-    Route::post('/documents/{name}/files/upload', [FileController::class, 'upload'])->name('documents.files.upload');
-
-    Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.root.download');
-    Route::get('/documents/{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
-
-    Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
-    Route::get('/documents/{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
-
-    Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
-    Route::get('/documents/{name}/files/delete', [FileController::class, 'destroy'])->name('documents.files.delete');
-
-    Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.root.rename');
-    Route::post('/documents/{name}/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
+    Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.download');
+    Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.delete');
+    Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
     //iframe
     Route::get('/files/index/{name}/{filename}', [FileController::class, 'files'])->name('files_iframe');
+    
+    Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
+    Route::get('/documents/{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
 });
 
 Route::middleware(['guest'])->group(function () {

@@ -23,23 +23,10 @@
                     </div>
                 </div>
                 <div class="tile-body">
-                    <div
-                        class="upload-zone"
-                        id="upload-zone"
-                        aria-label="Upload zone"
-                        title="Drag and drop files here or click to browse"
-                    >
-                        <input
-                        type="file"
-                        name="file[]"
-                        id="file-input"
-                        class="d-none"
-                        multiple
-                        accept="image/png, image/jpg, image/jpeg, image/webp, application/pdf"
-                        />
-                        <i
-                        class="bi bi-cloud-upload text-primary mb-3"
-                        ></i>
+                    <div class="upload-zone" id="upload-zone" aria-label="Upload zone" title="Drag and drop files here or click to browse" >
+                        <input type="file" name="file[]" id="file-input" class="d-none" multiple accept="image/png, image/jpg, image/jpeg, image/webp, application/pdf" />
+                        <input type="hidden" id="document_name" value="{{ $type }}">
+                        <i class="bi bi-cloud-upload text-primary mb-3" ></i>
                         <p class="mb-1">Drag and drop files here</p>
                         <p class="small text-muted mb-0">or click to browse</p>
                     </div>
@@ -61,7 +48,7 @@
                 <div class="tile-body">
                     <!-- Search file section -->
                     <div class="search-file" id="search-file" aria-label="Search file container">
-                        <form action="{{ route('documents.files.index') }}" method="get">
+                        <form action="" method="get">
                             <div class="input-group">
                                 <label for="type-file" class="input-group-text">Type</label>
                                 <select name="type" class="form-control" id="type-file">
@@ -119,18 +106,18 @@
                                                 <a href="{{ route('documents.files.root.preview', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $f->name }}" title="Button: to preview file {{ $f->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('documents.files.root.download', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
+                                                <a href="{{ route('documents.files.download', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
                                             </li>
                                             <li>    
                                                 <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $f->name }}" 
-                                                    title="Button: to edit file {{ $f->name }}"
-                                                    data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" data-file-document-id="{{ $f->document_type_id }}"
-                                                        >
+                                                    title="Button: to edit file {{ $f->name }}" data-bs-toggle="modal" data-bs-target="#modal-files-edit"
+                                                    data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}"
+                                                    data-file-document-id="{{ $f->document_type_id }}">
                                                     <i class="bi bi-pencil-square fs-5"></i> Edit
                                                 </a>
                                             </li>
                                             <li>
-                                                <a href="{{ route('documents.files.root.delete', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}" onclick="return confirm('Are you sure to delete this file?')">
+                                                <a href="{{ route('documents.files.delete', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}" onclick="return confirm('Are you sure to delete this file?')">
                                                     <i class="bi bi-trash fs-5"></i> Delete
                                                 </a>
                                             </li>
@@ -156,7 +143,20 @@
                     </div>
                     <div class="tile-body">
                         <div class="folder-list" id="folder-list" aria-label="Folder list container">
-
+                            @foreach ($document as $d)
+                                <a href="{{ $type != $d->name ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" @class(['active' => $type == $d->name])>
+                                    <div class="file-item p-3" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
+                                        <div class="file-info-wrapper d-flex align-items-center">
+                                            <div class="file-info" aria-label="Info for file {{ $d->name }}">
+                                                <div class="fw-semibold"><span>{{ $d->name }}</span></div>
+                                                <div class="small text-muted">
+                                                    <span>Created on {{ date('d F Y, H:i A', strtotime($d->created_at)) }}.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -210,7 +210,7 @@
                     <h5 class="modal-title" id="modal-files-edit-label"></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('documents.files.root.rename') }}" method="post">
+                <form action="{{ route('documents.files.rename') }}" method="post">
                     @csrf
                     <div class="modal-body">
                         <div class="dialog-content">

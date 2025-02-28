@@ -30,12 +30,39 @@
             const response = await uploadQueue.addToQueue(validFiles);
 
             if (response.fileSuccessMetadata.length > 0) {
-                renderFiles(response.fileSuccessMetadata);
-            }
-
-            if (response.fileErrorsMetadata.length > 0) {
+                var list = response.fileSuccessMetadata.join(''); 
+                fileList.insertAdjacentHTML("afterbegin", list);
             }
         }
+    }
+
+    var page = 1;
+    var scrolling = false;
+    $('#file-list').scroll(function() {
+        var container = $(this);
+        if ((container.scrollTop() + container.innerHeight() >= container[0].scrollHeight - 50) && !scrolling) {
+            loadMoreFiles();
+            scrolling = true;
+        }
+    });
+
+    function loadMoreFiles() {
+        page++;
+        // LOADER.show()
+        $.ajax({
+            url: "?page=" + page,
+            type: "get",
+            success: function(data) {
+                console.log(data.trim() === "");
+                if (data.trim() === "") {
+                    $(window).off("scroll"); // Hentikan scroll jika tidak ada data lagi
+                } else {
+                    $("#file-list").append(data);
+                }
+                scrolling = false;
+                // LOADER.hide();
+            }
+        });
     }
 
     // Upload zone functionality
@@ -69,58 +96,6 @@
         // Reset file input
         fileInput.value = "";
     });
-
-    function renderFiles(files) {
-        let list = files
-            .map(
-                (file) => `
-            <div class="file-item uploaded-file-item p-3" aria-label="File ${file.name}.${file.extension}" title="File ${file.name}.${file.extension}">
-                <div class="file-info-wrapper d-flex align-items-center">
-                    <div class="file-info" aria-label="Info for file ${file.name}.${file.extension}">
-                        <div class="fw-semibold"><span>${file.name}.${file.extension}</span></div>
-                        <div class="small text-muted">
-                            <span>${file.size} - Uploaded on ${file.uploaded_at}.</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button class="file-browse btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions button for file ${file.name}.${file.extension}" title="Actions button for file ${file.name}.${file.extension}">
-                        <i class="bi bi-three-dots-vertical"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                    
-                        <li>
-                            <a class="dropdown-item" href="javascript:void(0)"
-                                aria-label="Browse file ${file.name}.${file.extension}" title="Button: to browse file ${file.name}.${file.extension}" 
-                                data-bs-toggle="modal" data-bs-target="#modal-files"
-                                data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" 
-                                data-file-size="${file.size}"
-                                data-file-uploaded-at="${file.uploaded_at}" data-file-modified-at="${file.modified_at}" 
-                                data-file-labeled="kk" data-file-abbr="kartu kaluarga"
-                                aria-label="File ${file.name}" title="File ${file.name}.${file.extension}">
-                                <i class="bi bi-search fs-5"></i>Info
-                            </a>
-                        </li>
-                        <li>
-                            <a href="${file.preview_uri}" role="button" class="dropdown-item" aria-label="Preview file ${file.name}" title="Button: to preview file ${file.name}"><i class="bi bi-eye fs-5"></i> Preview</a>
-                        </li>
-                        <li>
-                            <a href="${file.download_uri}" role="button" class="dropdown-item" aria-label="Download file ${file.name}" title="Button: to download file ${file.name}"><i class="bi bi-download fs-5"></i> Download</a>
-                        </li>
-                        <li>    
-                            <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file ${file.name}" title="Button: to edit file ${file.name}" data-bs-toggle="modal" data-bs-target="#modal-files-edit" data-file-id="${file.id}" data-file-name="${file.name}" data-file-extension="${file.extension}" data-file-document-id="${file.document_type_id}"><i class="bi bi-pencil-square fs-5"></i> Edit</a>
-                        </li>
-                        <li>
-                            <a href="${file.delete_uri}" role="button" class="dropdown-item" aria-label="Delete file ${file.name}" title="Button: to delete file ${file.name}" onclick="return confirm('Are you sure to delete this file?')"><i class="bi bi-trash fs-5"></i> Delete</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        `
-            )
-            .join("");
-        fileList.insertAdjacentHTML("afterbegin", list);
-    }
 
     // files action
     $("#modal-files").on("shown.bs.modal", (event) => {

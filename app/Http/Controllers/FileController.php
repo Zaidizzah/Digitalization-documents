@@ -48,7 +48,7 @@ class FileController extends Controller
             [
                 "Dashboard" => route('dashboard.index'),
                 "Documents" => route('documents.index'),
-                "Manage document files" => route('documents.files.index')
+                "Manage document files" => route('documents.files.root.index')
             ],
             [
                 [
@@ -71,24 +71,21 @@ class FileController extends Controller
                 ]
             ]
         );
+
+        $file_data = FileModel::filesWithFilter($req->search, $req->type, $name);
         $inputs = [
-            'type' => null,
-            'search' => null,
+            'type' => $req->type,
+            'search' => $req->search,
         ];
 
-        $files = FileModel::where([]);
-        if($req->search){
-            $inputs['search'] = $req->search;
-            $files->where('name', 'like', '%'.$req->search.'%');
-        }
-        if($req->type){
-            $inputs['type'] = $req->type;
-            $files->where('extension', $req->type);
+        if ($req->ajax()) {
+            return view('apps.files.list', compact('file_data'))->render();
         }
         
+        $resources['type'] = $name;
         $resources['input'] = $inputs;
-        $resources['files'] = $files->get();
-        $resources['document'] = DocumentType::all();
+        $resources['files'] = $file_data;
+        $resources['document'] = DocumentType::where('is_active', 1)->get();
 
         return view('apps.files.index', $resources);
     }
@@ -106,9 +103,9 @@ class FileController extends Controller
     public function rename(Request $req)
     {
         $req->validate([
-            'name' => 'required|unique:files,name',
+            'name' => 'required|unique:files,name,'.$req->id.',id',
             'id' => 'required|exists:files,id',
-            'document_type_id' => 'required|exists:document_types,id',
+            'document_type_id' => 'exists:document_types,id',
         ]);
 
         $file = FileModel::find($req->id);
@@ -146,14 +143,14 @@ class FileController extends Controller
             );
         }
 
-        if ($name) {
-            $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
+        if ($request->document_type) {
+            $document_type = DocumentType::where('name', $request->document_type)->where('is_active', 1)->first();
 
-            if (empty($document_type)) return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", null, Response::HTTP_NOT_FOUND);
+            if (empty($document_type)) return $this->error_response("Sorry, we couldn't find a document type with the name '$request->document_type'. Please try again.", null, Response::HTTP_NOT_FOUND);
 
             // check if directory exist 
-            if (!Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
-                Storage::disk('local')->makeDirectory(self::PARENT_OF_FILES_DIRECTORY . "/{$name}");
+            if (!Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$request->document_type}")) {
+                Storage::disk('local')->makeDirectory(self::PARENT_OF_FILES_DIRECTORY . "/{$request->document_type}");
             }
         }
 
@@ -167,7 +164,7 @@ class FileController extends Controller
             $file = $request->file('file');
 
             // store file with encrypted name
-            $stored_file = Storage::disk('local')->put($name ? self::PARENT_OF_FILES_DIRECTORY . "/{$name}" : self::PARENT_OF_TEMP_FILES_DIRECTORY, $file);
+            $stored_file = Storage::disk('local')->put($request->document_type ? self::PARENT_OF_FILES_DIRECTORY . "/{$request->document_type}" : self::PARENT_OF_TEMP_FILES_DIRECTORY, $file);
 
             DB::beginTransaction();
             if (is_bool($stored_file) && $stored_file === false) {
@@ -206,19 +203,7 @@ class FileController extends Controller
             $uploaded_file->save();
 
             // metadata to return to client
-            $metadata_uploaded_file = [
-                'id' => $uploaded_file->id,
-                'document_type_id' => $uploaded_file->document_type_id,
-                'name' => $uploaded_file->name,
-                'extension' => $uploaded_file->extension,
-                'size' => format_size_file($uploaded_file->size),
-                'preview_uri' => route('documents.files.root.preview', ['file' => $uploaded_file->encrypted_name]),
-                'delete_uri' => route('documents.files.root.delete', ['file' => $uploaded_file->encrypted_name]),
-                'download_uri' => route('documents.files.root.download', ['file' => $uploaded_file->encrypted_name]),
-                'rename_uri' => route('documents.files.root.rename', ['file' => $uploaded_file->encrypted_name]),
-                'uploaded_at' => $uploaded_file->created_at->format('d F Y, H:i A'),
-                'modified_at' => $uploaded_file->updated_at->format('d F Y, H:i A'),
-            ];
+            $metadata_uploaded_file = view('apps.files.list', array('file_data' => array($uploaded_file)))->render();
 
             DB::commit();
 
