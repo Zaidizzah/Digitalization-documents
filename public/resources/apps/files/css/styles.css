@@ -124,14 +124,6 @@
     margin-bottom: 1rem;
 }
 
-#row-file-zone .note-container {
-    height: 100%;
-}
-
-#row-file-zone .note-container .note-content {
-    height: 100%;
-}
-
 @media screen and (min-width: 769px) {
     #row-file-list .col-md-8 .tile {
         margin-bottom: 0;

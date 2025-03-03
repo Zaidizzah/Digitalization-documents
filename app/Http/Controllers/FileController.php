@@ -81,8 +81,18 @@ class FileController extends Controller
         if ($req->ajax()) {
             return view('apps.files.list', compact('file_data'))->render();
         }
-        
+
         $resources['type'] = $name;
+        $files = FileModel::where([]);
+        if ($req->search) {
+            $inputs['search'] = $req->search;
+            $files->where('name', 'like', '%' . $req->search . '%');
+        }
+        if ($req->type) {
+            $inputs['type'] = $req->type;
+            $files->where('extension', $req->type);
+        }
+
         $resources['input'] = $inputs;
         $resources['files'] = $file_data;
         $resources['document'] = DocumentType::where('is_active', 1)->get();
@@ -103,7 +113,7 @@ class FileController extends Controller
     public function rename(Request $req)
     {
         $req->validate([
-            'name' => 'required|unique:files,name,'.$req->id.',id',
+            'name' => 'required|unique:files,name,' . $req->id . ',id',
             'id' => 'required|exists:files,id',
             'document_type_id' => 'exists:document_types,id',
         ]);
@@ -220,7 +230,8 @@ class FileController extends Controller
         }
     }
 
-    public function destroy(Request $req, $name = null){
+    public function destroy(Request $req, $name = null)
+    {
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
 
@@ -232,14 +243,15 @@ class FileController extends Controller
         try {
             $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
             Storage::delete($file->path);
-    
+
             FileModel::destroy($file->id);
             return redirect()->back()->with('message', toast("File {$file->name}.{$file->extension} has deleted successfully"));
         } catch (\Throwable $th) {
-            return redirect()->back()->with('message', toast("Sorry, we have trouble while deleting this file: ".$th->getMessage(), 'error'));
+            return redirect()->back()->with('message', toast("Sorry, we have trouble while deleting this file: " . $th->getMessage(), 'error'));
         }
     }
-    public function download(Request $req, $name = null){
+    public function download(Request $req, $name = null)
+    {
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
 
@@ -250,12 +262,13 @@ class FileController extends Controller
 
         try {
             $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
-            return Storage::download($file->path, $file->name.'.'.$file->extension);
+            return Storage::download($file->path, $file->name . '.' . $file->extension);
         } catch (\Throwable $th) {
-            return redirect()->back()->with('message', toast("Sorry, we have trouble while downloading this file: ".$th->getMessage(), 'error'));
+            return redirect()->back()->with('message', toast("Sorry, we have trouble while downloading this file: " . $th->getMessage(), 'error'));
         }
     }
-    public function preview(Request $req, $name = null){
+    public function preview(Request $req, $name = null)
+    {
         $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
         $resources = build_resource_array(
             "Manage document files",
@@ -265,7 +278,8 @@ class FileController extends Controller
             [
                 "Dashboard" => route('dashboard.index'),
                 "Documents" => route('documents.index'),
-                "Manage document files" => route('documents.files.index')
+                "Manage document files" => route('documents.files.root.index'),
+                "$file->name.$file->extension"
             ],
             [
                 [
@@ -279,11 +293,10 @@ class FileController extends Controller
             ],
             [
                 [
-                    'src' => 'fileuploadmanager.js',
-                    'base_path' => asset('/resources/plugins/fileuploadmanager/js/')
+                    'src' => 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.111/pdf.min.js'
                 ],
                 [
-                    'src' => 'modals.js',
+                    'src' => 'preview.js',
                     'base_path' => asset('/resources/apps/files/js/')
                 ]
             ]
@@ -291,10 +304,14 @@ class FileController extends Controller
         $resources['file'] = $file;
         return view('apps.files.preview', $resources);
     }
-    public function files($name, $filename){
+    public function files($name)
+    {
         $file = FileModel::where('encrypted_name', $name)->firstOrFail();
-        return response(Storage::get($file->path), headers:[
-            'Content-type' => $file->type
+        return response()->stream(function () use ($file) {
+            echo Storage::get($file->path);
+        }, 200, [
+            'Content-Type' => $file->type,
+            'Content-Disposition' => 'inline; filename="pengarsipan.pdf"',
         ]);
     }
 }

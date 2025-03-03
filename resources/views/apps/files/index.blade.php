@@ -4,17 +4,15 @@
 
     @include('partials.document-menu')
 
+    <!-- Note for uploading files -->
+    {!! note(
+        "You can upload multiple files at once but the <u>duplicate files will be renamed automatically</u>. The file size limit is 20MB. And the allowed file types are PDF, PNG, JPG, JPEG, and WEBP.
+        If your <span class=\"text-danger\">image faces the wrong way</span>, rotate it before you upload it to the system."
+    ) !!}
+
     <div class="row" id="row-file-zone" aria-label="File upload zone container">
-        <!-- Note section --> 
-        <div class="col-md-4">
-            <!-- Note for uploading files -->
-            {!! note(
-                "You can upload multiple files at once but the <u>duplicate files will be renamed automatically</u>. The file size limit is 20MB. And the allowed file types are PDF, PNG, JPG, JPEG, and WEBP.
-                If your <span class=\"text-danger\">image faces the wrong way</span>, rotate it before you upload it to the system."
-            ) !!}
-        </div>
         <!-- Upload zone section -->
-        <div class="col-md-8">
+        <div class="col-md-12">
             <div class="tile shadow-none" id="tile-upload-file" tabindex="1" aria-label="Tile section of upload files" aria-labelledby="tile-upload-file-label">
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
@@ -36,6 +34,38 @@
     </div>
 
     <div class="row g-3" id="row-file-list" aria-label="File list container">
+        <!-- Upload Section -->
+        <div class="col-md-4">
+            <div class="sticky-panel">
+                <div class="tile shadow-none" id="tile-folder-list" tabindex="1" aria-label="Tile section of folder list" aria-labelledby="tile-folder-list-label">
+                    <div class="tile-title-w-btn flex-wrap">  
+                        <div class="tile-title flex-nowrap">
+                            <h3 class="title" id="tile-folder-list-label"><i class="bi bi-folder"></i> List of folder</h3>
+                            <small class="caption small font-italic fs-5">Displaying list of folders.</small>
+                        </div>
+                    </div>
+                    <div class="tile-body">
+                        <div class="folder-list" id="folder-list" aria-label="Folder list container">
+                            @foreach ($document as $d)
+                                <a href="{{ $type != $d->name ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" @class(['active' => $type == $d->name])>
+                                    <div class="file-item p-3" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
+                                        <div class="file-info-wrapper d-flex align-items-center">
+                                            <div class="file-info" aria-label="Info for file {{ $d->name }}">
+                                                <div class="fw-semibold"><span>{{ $d->name }}</span></div>
+                                                <div class="small text-muted">
+                                                    <span>Created on {{ date('d F Y, H:i A', strtotime($d->created_at)) }}.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- File List -->
         <div class="col-md-8">
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
@@ -126,38 +156,6 @@
                                 </div>
                             @endforeach
                         @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upload Section -->
-        <div class="col-md-4">
-            <div class="sticky-panel">
-                <div class="tile shadow-none" id="tile-folder-list" tabindex="1" aria-label="Tile section of folder list" aria-labelledby="tile-folder-list-label">
-                    <div class="tile-title-w-btn flex-wrap">  
-                        <div class="tile-title flex-nowrap">
-                            <h3 class="title" id="tile-folder-list-label"><i class="bi bi-folder"></i> List of folder</h3>
-                            <small class="caption small font-italic fs-5">Displaying list of folders.</small>
-                        </div>
-                    </div>
-                    <div class="tile-body">
-                        <div class="folder-list" id="folder-list" aria-label="Folder list container">
-                            @foreach ($document as $d)
-                                <a href="{{ $type != $d->name ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" @class(['active' => $type == $d->name])>
-                                    <div class="file-item p-3" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
-                                        <div class="file-info-wrapper d-flex align-items-center">
-                                            <div class="file-info" aria-label="Info for file {{ $d->name }}">
-                                                <div class="fw-semibold"><span>{{ $d->name }}</span></div>
-                                                <div class="small text-muted">
-                                                    <span>Created on {{ date('d F Y, H:i A', strtotime($d->created_at)) }}.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
                     </div>
                 </div>
             </div>
