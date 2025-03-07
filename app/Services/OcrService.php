@@ -66,7 +66,7 @@ class OcrService
             case 'pdf':
                 $pdf_pages = self::get_pdf_pages($file_path, $file_name);
 
-                return self::ocrwebservice_extract($file_path, $file_name);
+                // return self::ocrwebservice_extract($file_path, $file_name);
                 if (Storage::size($file_path) <= self::OCRSPACE_MAX_FILE_SIZE && $pdf_pages <= self::OCRSPACE_MAX_PDF_PAGES_PROCESSED) {
                     return self::ocrspace_extract($file_path, $file_name);
                 } else if (Storage::size($file_path) <= self::ILOVEAPI_MAX_FILE_SIZE && $pdf_pages <= self::ILOVEAPI_MAX_PDF_PAGES_PROCESSED) {
@@ -150,6 +150,14 @@ class OcrService
         }
 
         // This dependency is motherf*ck*r broken, don't try anything to fix it
+        // $myTask = new PdfocrTask($iloveapi_secret_key,$iloveapi_public_key);
+        // $file = $myTask->addFile(Storage::path($file_path));
+        $ilovepdf = new Ilovepdf($iloveapi_public_key,$iloveapi_secret_key);
+        $myTask = $ilovepdf->newTask('pdfocr');
+        $file1 = $myTask->addFile(Storage::path($file_path));
+        $myTask->execute();
+        $hh = $myTask->download();
+        dd($hh);
     }
 
     private static function ocrwebservice_extract(string $file_path, string $file_name)

@@ -231,11 +231,11 @@ class DocumentTypeActionController extends Controller
             return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
-        // $file_attachment = FileModel::where('encrypted_name', $request->file[0])->first();
+        $file_attachment = FileModel::where('encrypted_name', $request->file[0])->first();
 
         // dd(Storage::exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}"));
 
-        // OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
+        OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
         try {
 
             $form_html = SchemaBuilder::create_form_html($document_type->schema_form, null);
