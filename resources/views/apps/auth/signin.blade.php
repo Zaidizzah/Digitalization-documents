@@ -14,7 +14,7 @@
         <!-- Styles CSS -->
         <link rel="stylesheet" type="text/css" href="{{ asset('resources/apps/main/css/styles.css') }}">
 
-        <title>Signin - Document Digitalization</title>
+        <title>{{ config('app.name') }} | Signin</title>
 
         <!-- Custom Style -->
         <style type="text/css" aria-label="style">
@@ -55,7 +55,7 @@
                     <h3 class="login-head"><i class="bi bi-person me-2"></i>SIGN IN</h3>
                     <div class="mb-3">
                         <label class="form-label">EMAIL</label>
-                        <input class="form-control" type="text" name="email" placeholder="Email" aria-invalid="true" value="{{ old('email') }}" autofocus required>
+                        <input class="form-control" type="text" name="email" inputmode="email" placeholder="Email" aria-invalid="true" value="{{ old('email') }}" autofocus required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">PASSWORD</label>

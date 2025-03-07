@@ -17,7 +17,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('documents.files.index', $document_type->name) }}" class="nav-link" aria-label="Manage files for documents {{ $document_type->name }}" title="Manage files for documents {{ $document_type->name }}">
+            <a href="{{ route('documents.files.index', $document_type->name) }}" class="nav-link {{ set_active('documents.files.*') }}" aria-label="Manage files for documents {{ $document_type->name }}" title="Manage files for documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z"/>
                 </svg>
@@ -30,14 +30,6 @@
                     <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 5h2v3h3v2h-3v3h-2v-3H9v-2h3V8z"/>
                 </svg>
                 Insert
-            </a>
-        </li>
-        <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" aria-label="Search data for documents {{ $document_type->name }}" title="Search data for documents {{ $document_type->name }}">
-                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/>
-                </svg>
-                Search
             </a>
         </li>
         <li class="nav-item">

@@ -164,6 +164,7 @@ class DocumentSchemaBuilder {
             const response = await fetch(url, {
                 method: "GET",
                 headers: {
+                    Accept: "application/json",
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": this.csrf_token,
                 },
@@ -259,6 +260,7 @@ class DocumentSchemaBuilder {
             const response = await fetch(url, {
                 method: "POST",
                 headers: {
+                    Accept: "application/json",
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": this.csrf_token,
                 },

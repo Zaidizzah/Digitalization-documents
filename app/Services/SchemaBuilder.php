@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Services;
 
 use App\Models\DocumentType;
 use Carbon\Carbon;
@@ -553,18 +553,20 @@ class SchemaBuilder
                     break;
 
                 case 'select':
-                    $options = "<option value=\"\" disabled " . ($file_data === null ? 'selected' : '') . ">Choose...</option>" 
-                    .array_reduce($data['rules']['options'] ?? [], 
-                        function($html, $option) use ($file_data, $field_value) {
-                            if($file_data != null){
-                                $_selected = $field_value == $option ? 'selected' : '';
-                                $html .= "<option value=\"{$option}\" $_selected>{$option}</option>";
-                            }else{
-                                $html .= "<option value=\"{$option}\">{$option}</option>";
-                            }
-                            return $html;
-                        }
-                    , '');
+                    $options = "<option value=\"\" disabled " . ($file_data === null ? 'selected' : '') . ">Choose...</option>"
+                        . array_reduce(
+                            $data['rules']['options'] ?? [],
+                            function ($html, $option) use ($file_data, $field_value) {
+                                if ($file_data != null) {
+                                    $_selected = $field_value == $option ? 'selected' : '';
+                                    $html .= "<option value=\"{$option}\" $_selected>{$option}</option>";
+                                } else {
+                                    $html .= "<option value=\"{$option}\">{$option}</option>";
+                                }
+                                return $html;
+                            },
+                            ''
+                        );
 
                     $form_html .= <<<HTML
                     <select class="form-select" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="{$data['name']}" {$attributes}>
@@ -700,8 +702,8 @@ class SchemaBuilder
                         <td class=\"text-nowrap\" translate=\"no\">{$data['type']}</td>
                         <td class=\"text-nowrap\">{$data['required']}</td>
                         <td class=\"text-nowrap\">{$data['unique']}</td>
-                        <td class=\"text-nowrap\">{$data['created_at']}</td>
-                        <td class=\"text-nowrap\">{$data['updated_at']}</td>
+                        <td class=\"text-nowrap\"><time datetime=\"{$data['created_at']}\">{$data['created_at']}</time></td>
+                        <td class=\"text-nowrap\"><time datetime=\"{$data['updated_at']}\">{$data['updated_at']}</time></td>
                         <td class=\"text-nowrap\">
                             <a href=\"" . route('documents.edit.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-warning btn-sm btn-edit-attribute\" title=\"Button: to edit attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\"><i class=\"bi bi-pencil fs-5\"></i></a>
                             <a href=\"" . route('documents.delete.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\" onclick=\"return confirm('Are you sure you want to delete attribute $field?')\"><i class=\"bi bi-trash fs-5\"></i></a>
@@ -816,17 +818,17 @@ class SchemaBuilder
                     switch ($old_table_schema[$column]['type']) {
                         case 'date':
                             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data->$column)) {
-                                array_push($row_data, '<td class="text-nowrap">' . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . '</td>');
+                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time></td>");
                             }
                             break;
                         case 'time':
                             if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $data->$column)) {
-                                array_push($row_data, '<td class="text-nowrap">' . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . '</td>');
+                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time></td>");
                             }
                             break;
                         case 'datetime':
                             if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $data->$column)) {
-                                array_push($row_data, '<td class="text-nowrap">' . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . '</td>');
+                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>");
                             }
                             break;
                         default:
@@ -845,8 +847,8 @@ class SchemaBuilder
                 array_push(
                     $row_data,
                     "<td class=\"text-nowrap\">" . ($preview_file_link ?? '') . "</td>
-                    <td class=\"text-nowrap\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</>
-                    <td class=\"text-nowrap\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</td>
+                    <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
+                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
                     <td class=\"text-nowrap\">
                         <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>

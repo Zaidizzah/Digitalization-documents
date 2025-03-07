@@ -36,8 +36,21 @@
 
                 const noPage = document.createElement("span");
                 noPage.classList.add("no-page");
+                noPage.id = `no-page-${pageNumber}`;
                 noPage.textContent = `Page ${pageNumber}`;
                 canvas.appendChild(noPage);
+
+                // adding some accebilitas like aria and title for page number
+                canvas.setAttribute(
+                    "aria-label",
+                    `${pdfTitle} - Page ${pageNumber} of ${pdf.numPages}`
+                );
+                canvas.setAttribute(
+                    "title",
+                    `${pdfTitle} - Page ${pageNumber} of ${pdf.numPages}`
+                );
+                canvas.setAttribute("aria-labelledby", `no-page-${pageNumber}`);
+                canvas.setAttribute("role", "img");
 
                 page.render(renderContext);
                 pdfContainer.appendChild(canvas);

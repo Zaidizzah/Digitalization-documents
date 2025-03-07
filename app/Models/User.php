@@ -33,16 +33,16 @@ class User extends Authenticatable
 
     public function document_type()
     {
-        return $this->hasMany(DocumentType::class);
+        return $this->hasMany(DocumentType::class, 'document_type_id', 'id');
     }
 
     public function file()
     {
-        return $this->hasMany(File::class);
+        return $this->hasMany(File::class, 'user_id', 'id');
     }
 
     public function temp_schema()
     {
-        return $this->hasMany(TempSchema::class);
+        return $this->hasMany(TempSchema::class, 'user_id', 'id');
     }
 }

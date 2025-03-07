@@ -1,0 +1,125 @@
+.extraction-container {
+    width: 100%;
+    margin: 2rem auto 1rem;
+    background-color: #fff;
+    border: 1px solid #2b6cb0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.extraction-container:first-child {
+    margin-top: 0;
+}
+
+.extraction-container .extraction-header {
+    background-color: #2b6cb0;
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.extraction-container .extraction-header .ex-h-title {
+    font-weight: 500;
+    font-size: 18px;
+}
+
+.extraction-container .extraction-header .ex-h-icon {
+    width: 24px;
+    height: 24px;
+    background-color: #fff;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2b6cb0;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.extraction-container .extraction-body {
+    padding: 20px 24px;
+}
+
+.extraction-container .extraction-body .ex-b-result {
+    border: 1px solid #e2e8f0;
+    min-height: 200px;
+    max-height: 500px;
+    max-width: 100%;
+    padding: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    background-color: #fcfcfc;
+    overflow-y: auto;
+    resize: both;
+}
+
+.extraction-container .extraction-body .ex-b-result .empty-state {
+    color: #718096;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 0;
+}
+
+.extraction-container .extraction-body .ex-b-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+    gap: 10px;
+}
+
+.extraction-container .extraction-body .ex-b-actions .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s;
+}
+
+.extraction-container .extraction-body .ex-b-actions .btn-primary {
+    background-color: #2b6cb0;
+    color: #fff;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s;
+}
+
+.extraction-container .extraction-body .ex-b-actions .btn-primary:hover {
+    border: 2px solid #000;
+    background-color: #2c5282;
+}
+
+.extraction-container .extraction-body .ex-b-actions .btn-secondary {
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s;
+}
+
+.extraction-container .extraction-body .ex-b-actions .btn-secondary:hover {
+    border: 2px solid #000;
+    background-color: #cbd5e0;
+}
+
+@media (max-width: 640px) {
+    .extraction-container {
+        border-radius: 6px;
+    }
+
+    .extraction-container .extraction-header {
+        padding: 14px 16px;
+    }
+
+    .extraction-container .extraction-body {
+        padding: 16px;
+    }
+
+    .extraction-container .extraction-body .ex-b-result {
+        font-size: 14px;
+    }
+}

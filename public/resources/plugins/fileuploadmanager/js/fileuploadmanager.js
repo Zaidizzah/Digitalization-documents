@@ -87,7 +87,7 @@ class UploadQueueManager {
         if (file.size > this.maxFileSize) {
             errors.push(
                 `File: "${file.name}" size exceeds ${
-                    maxFileSize / (1024 * 1024)
+                    this.maxFileSize / (1024 * 1024)
                 }MB limit.`
             );
         }
@@ -152,10 +152,10 @@ class UploadQueueManager {
                 );
 
                 if (response.success) {
-                    fileSuccessMetadata.push(response.file);
+                    fileSuccessMetadata.unshift(response.files);
                 } else {
                     // Handle error and add to failed uploads list
-                    fileErrorsMetadata.push({
+                    fileErrorsMetadata.unshift({
                         name: file.name,
                         error: response.message,
                     });
@@ -165,7 +165,7 @@ class UploadQueueManager {
                 toast(error.message, "error", false);
 
                 // Handle error and add to failed uploads list
-                fileErrorsMetadata.push({
+                fileErrorsMetadata.unshift({
                     name: file.name,
                     error: error.message,
                 });
@@ -195,12 +195,12 @@ class UploadQueueManager {
     async uploadFile(url, file) {
         // create object form data for file uploading
         const formData = new FormData();
-        formData.append("document_type", $('#document_name').val())
         formData.append("file", file, file.name);
 
         const response = await fetch(url, {
             method: "POST",
             headers: {
+                Accept: "application/json",
                 "X-CSRF-TOKEN": this.csrf_token,
             },
             body: formData,

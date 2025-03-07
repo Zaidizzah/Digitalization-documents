@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DocumentType;
+use App\Models\File as FileModel;
 use App\Traits\ApiResponse;
-use App\Service\SchemaBuilder;
+use App\Services\SchemaBuilder;
+use App\Services\OcrService;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +20,10 @@ use Illuminate\Support\Arr;
 
 class DocumentTypeActionController extends Controller
 {
+    private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
+    private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
+    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp';
+
     /**
      * Display the specified resource.
      *
@@ -222,13 +228,19 @@ class DocumentTypeActionController extends Controller
 
         // check if document type has schema attributes and table
         if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
+        // $file_attachment = FileModel::where('encrypted_name', $request->file[0])->first();
+
+        // dd(Storage::exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}"));
+
+        // OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
         try {
+
             $form_html = SchemaBuilder::create_form_html($document_type->schema_form, null);
         } catch (\Exception $e) {
-            return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
+            return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
 
         //check if data long_name is not empty set new properti 'abbr'
@@ -249,6 +261,10 @@ class DocumentTypeActionController extends Controller
             [
                 [
                     'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ],
+                [
+                    'href' => 'insert.data.css',
                     'base_path' => asset('/resources/apps/documents/css/')
                 ]
             ]

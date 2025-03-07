@@ -1,0 +1,10 @@
+Intalasi FDPI menggunakan composer
+-
+-> composer require setasign/fpdf
+-> composer require setasign/fpdi
+-> composer require ilovepdf/ilovepdf-php
+-
+
+Penggunaan namespace: 'use setasign\Fpdf\Fpdf;'
+Penggunaan namespace: 'use setasign\Fpdi\Fpdi;'
+Penggunaan namespace: 'use Ilovepdf\Ilovepdf;'

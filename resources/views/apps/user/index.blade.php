@@ -108,8 +108,8 @@
                                     <td class="text-nowrap">{{ $user->name }}</td>
                                     <td class="text-nowrap">{{ $user->email }}</td>
                                     <td class="text-nowrap">{{ $user->role }}</td>
-                                    <td class="text-nowrap">{{ $user->created_at->format('d F Y, H:i A') }}</td>
-                                    <td class="text-nowrap">{{ $user->updated_at->format('d F Y, H:i A') }}</td>
+                                    <td class="text-nowrap"><time datetime="{{ $user->created_at }}">{{ $user->created_at->format('d F Y, H:i A') }}</time></td>
+                                    <td class="text-nowrap"><time datetime="{{ $user->updated_at }}">{{ $user->updated_at->format('d F Y, H:i A') }}</time></td>
                                     <td class="text-nowrap">
                                         <button type="button" class="btn btn-warning btn-sm btn-edit" role="button" title="Button: to edit user" data-id="{{ $user->id }}"><i class="bi bi-pencil-square fs-5"></i></button>
                                         <a href="{{ route('users.delete', $user->id) }}" class="btn btn-danger btn-sm btn-delete" role="button" title="Button: to delete user" data-id="{{ $user->id }}"><i class="bi bi-trash fs-5"></i></a>

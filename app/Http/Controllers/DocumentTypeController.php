@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\DocumentType;
 use App\Models\TempSchema;
 use App\Traits\ApiResponse;
-use App\Service\SchemaBuilder;
+use App\Services\SchemaBuilder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -226,7 +226,12 @@ class DocumentTypeController extends Controller
         // Checking schema has stored/saved before or not.
         $temp_schema = TempSchema::where('user_id', auth()->user()->id)->firstOrFail();
 
-        $temp_schema->schema = json_decode($temp_schema->schema, true);
+        $temp_schema->schema = json_decode($temp_schema->schema, true) ?? null;
+
+        // check if saved schema is empty or not
+        if (empty($temp_schema->schema)) {
+            return redirect()->route('documents.create')->with('message', toast('Sorry, we couldn\'t find your saved schema in temporary storage, please try again.', 'error'));
+        }
 
         $validator = Validator::make(
             $request->only(['name', 'description', 'long_name']),
@@ -241,14 +246,23 @@ class DocumentTypeController extends Controller
 
         $name = $validated['name'];
 
-        // initialize new document type
+        // initialize new document type model
         $document_type = new DocumentType();
 
         try {
             $schema = SchemaBuilder::handle_schema_for_table_and_form($temp_schema->schema);
 
             // after all process success, create folder for document type
-            throw_unless(Storage::disk('local')->makeDirectory(self::PARENT_OF_FILES_DIRECTORY . "/$name"), \RuntimeException::class, "Failed to make directory in '" . self::PARENT_OF_FILES_DIRECTORY . "/$name' for document type '$name'.");
+            if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/$name")) {
+                Storage::disk('local')->deleteDirectory(self::PARENT_OF_FILES_DIRECTORY . "/$name");
+            }
+
+            if (!Storage::disk('local')->makeDirectory(self::PARENT_OF_FILES_DIRECTORY . "/$name")) {
+                throw new \RuntimeException(
+                    "Failed to make directory in '" . self::PARENT_OF_FILES_DIRECTORY . "/$name' for document type '$name'.",
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
 
             // create a table 
             $table = SchemaBuilder::create_table($name, $schema['table'], $schema['form']);
@@ -413,7 +427,12 @@ class DocumentTypeController extends Controller
 
             // rename existing directory
             if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
-                throw_unless(Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/$new_table_name"), \RuntimeException::class, "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.");
+                if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/$new_table_name")) {
+                    throw new \RuntimeException(
+                        "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.",
+                        Response::HTTP_INTERNAL_SERVER_ERROR
+                    );
+                }
             }
 
             DB::commit();

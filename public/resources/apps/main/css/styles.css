@@ -5,6 +5,11 @@
     --primary-color: #00695c;
 }
 
+body {
+    box-sizing: border-box;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
 .border-success {
     border-color: var(--primary-color) !important;
 }

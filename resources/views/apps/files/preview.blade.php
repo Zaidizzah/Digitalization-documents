@@ -2,50 +2,11 @@
 
 @section("content")
 
-    @include('partials.document-menu')
-
-    <style>
-        .file-preview-wrapper {
-            height: calc(100vh - 2rem);
-            overflow-y: auto;
-            border: 1px solid var(--primary-color);
-        }
-        #file-preview-pdf {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        #file-preview-pdf canvas {
-            border: 1px solid var(--bs-border-color);
-            background-color: #fff;
-            max-width: 100%;
-            width: auto;
-            height: auto;
-        }
-
-        #file-preview-image {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-            border: 1px solid var(--bs-border-color);
-            padding: 5px;
-        }
-
-        #file-preview-pdf canvas:last-child {
-            border-bottom: none
-        }
-
-        @media screen and (max-width: 768px) {
-            #file-preview-pdf canvas {
-                max-height: 95vh;
-            }
-        }
-    </style>
+    @if ($document_type !== null)
+        @include('partials.document-type-action-menu', ['document_type' => $document_type])
+    @else
+        @include('partials.document-menu')
+    @endif
 
     <div class="row flex-wrap-reverse" id="row-preview-file" aria-label="File preview container">
         <!-- File Preview Section -->
@@ -54,7 +15,7 @@
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
                         <h3 class="title" id="tile-preview-file-label"><i class="bi bi-files"></i> File Preview</h3>
-                        <small class="caption small font-italic fs-5">{{ "{$file->name}.{$file->extension}" }}</small>
+                        <small class="caption small font-italic fs-5 text-break">{{ "{$file->name}.{$file->extension}" }}</small>
                     </div>
                 </div>
                 <div class="tile-body">
@@ -63,13 +24,16 @@
 
                         @if (in_array($file->extension, ['jpg', 'jpeg', 'png', 'webp']))
                             <!-- Image preview -->
-                            <img src="{{ route('documents.files.preview.content', $file->encrypted_name) }}" id="file-preview-image" class="file-preview-image img-fluid" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" loading="lazy" alt="{{ "{$file->name}.{$file->extension}" }}">
+                            <img src="{{ route('documents.files.content', $file->encrypted_name) }}" id="file-preview-image" class="file-preview-image img-fluid" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" loading="lazy" alt="{{ "{$file->name}.{$file->extension}" }}">
                         @else
                             <!-- PDF preview -->
-                            <div id="file-preview-pdf" class="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" data-title="{{ "{$file->name}.{$file->extension}" }}" data-url-preview="{{ route('documents.files.preview.content', $file->encrypted_name) }}"></div>
+                            <div id="file-preview-pdf" class="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" data-title="{{ "{$file->name}.{$file->extension}" }}" data-url-preview="{{ route('documents.files.content', $file->encrypted_name) }}"></div>
                         @endif
 
                     </div>
+                </div>
+                <div class="tile-footer">
+                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.download', ['file' => $file->encrypted_name]) }}" role="button" class="btn btn-primary btn-sm" aria-label="Button: to download file {{ "{$file->name}.{$file->extension}" }}" title="Button: to download file {{ "{$file->name}.{$file->extension}" }}"><i class="bi bi-download fs-5"></i> Download</a>
                 </div>
             </div>
         </div>
@@ -81,7 +45,7 @@
                     <div class="tile-title-w-btn flex-wrap">  
                         <div class="tile-title flex-nowrap">
                             <h3 class="title" id="tile-info-file-label">File Info</h3>
-                            <small class="caption small font-italic fs-5">{{ "{$file->name}.{$file->extension}" }}</small>
+                            <small class="caption small font-italic fs-5 text-break">{{ "{$file->name}.{$file->extension}" }}</small>
                         </div>
                     </div>
                     <div class="tile-body">
@@ -90,7 +54,7 @@
                             <tbody>
                                 <tr>
                                     <td>Name</td>
-                                    <td>{{ "{$file->name}.{$file->extension}" }}</td>
+                                    <td class="text-break">{{ "{$file->name}.{$file->extension}" }}</td>
                                 </tr>
                                 <tr>
                                     <td>Type</td>
@@ -102,11 +66,11 @@
                                 </tr>
                                 <tr>
                                     <td>Last Modified</td>
-                                    <td>{{ $file->updated_at->format('d F Y H:i A') }}</td>
+                                    <td><time datetime="{{ $file->updated_at }}">{{ $file->updated_at->format('d F Y H:i A') }}</time></td>
                                 </tr>
                                 <tr>
                                     <td>Uploaded At</td>
-                                    <td>{{ $file->created_at->format('d F Y H:i A') }}</td>
+                                    <td><time datetime="{{ $file->created_at }}">{{ $file->created_at->format('d F Y H:i A') }}</time></td>
                                 </tr>
                             </tbody>
                         </table>

@@ -14,7 +14,7 @@
         <!-- Styles CSS -->
         <link rel="stylesheet" type="text/css" href="{{ asset('resources/apps/main/css/styles.css') }}">
 
-        <title>Signup - Document Digitalization</title>
+        <title>{{ config('app.name') }} | Signup</title>
 
         <!-- Custom Style -->
         <style type="text/css" aria-label="style">
@@ -59,7 +59,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email<span aria-label="required">*</span></label>
-                        <input type="email" class="form-control" id="email" name="email" minlength="6" maxlength="76" title="Please enter a valid email address, and enter a value between 6 and 76." placeholder="Email" aria-label="Email" aria-required="true" autocomplete="email" value="{{ old('email') }}" required>
+                        <input type="email" class="form-control" id="email" name="email" inputmode="email" minlength="6" maxlength="76" title="Please enter a valid email address, and enter a value between 6 and 76." placeholder="Email" aria-label="Email" aria-required="true" autocomplete="email" value="{{ old('email') }}" required>
                     </div>
                     <div class="mb-3">  
                         <label for="password" class="form-label">Password<span aria-label="required">*</span></label>

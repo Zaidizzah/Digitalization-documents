@@ -37,8 +37,8 @@
                                     <th scope="row" data-id="{{ $document_type->id }}">{{ ($document_types->currentPage() - 1) * $document_types->perPage() + $loop->iteration }}</th>
                                     <td class="text-nowrap">{!! (!empty($document_type->long_name) ? '<abbr title="' . $document_type->long_name . '">' . $document_type->name . '</abbr>' : $document_type->name ) !!}</td>
                                     <td class="text-nowrap">{!! $document_type->is_active ? '<span class="badge bg-success">active</span>' : '<span class="badge bg-danger">inactive</span>' !!}</td>
-                                    <td class="text-nowrap">{{ $document_type->created_at->format('d F Y, H:i A') }}</td>
-                                    <td class="text-nowrap">{{ $document_type->updated_at->format('d F Y, H:i A') }}</td>
+                                    <td class="text-nowrap"><time datetime="{{ $document_type->created_at }}">{{ $document_type->created_at->format('d F Y, H:i A') }}</time></td>
+                                    <td class="text-nowrap"><time datetime="{{ $document_type->updated_at }}">{{ $document_type->updated_at->format('d F Y, H:i A') }}</time></td>
                                     <td class="text-nowrap">
                                         @if ($document_type->is_active)
                                             <a href="{{ route('documents.browse', $document_type->name) }}" type="button" class="btn btn-info btn-sm btn-browse" role="button" title="Button: to browse data of document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}"><i class="bi bi-search fs-5"></i></a>

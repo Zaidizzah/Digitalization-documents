@@ -25,33 +25,26 @@ class File extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function document_type()
     {
-        return $this->belongsTo(DocumentType::class);
+        return $this->belongsTo(DocumentType::class, 'document_type_id', 'id');
     }
 
-    public static function filesWithFilter($name = null, $ext = null, $type = null){
-        $inputs = [];
-
-        $files = DB::table('files');
-        if($name){
-            $inputs['search'] = $name;
-            $files->where('name', 'like', '%'.$name.'%');
-        }
-        if($ext){
-            $inputs['type'] = $ext;
-            $files->where('extension', $ext);
-        }
-        if($type){
-            $document = DB::table('document_types')->where('name', $type)->first('id');
-            $files->where('document_type_id', $document->id);
-        }else{
-            $files->where('document_type_id', null);
-        }
-
-        return $files->orderBy('created_at', 'desc')->paginate(25)->appends($inputs);
+    public static function scopeFilesWithFilter($query, $filters, $name = null)
+    {
+        $query->when($filters['search'] ?? false, function ($query, $search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        })->when($filters['type'] ?? false, function ($query, $type) {
+            $query->where('extension', $type);
+        })->when($name !== null, function ($query) use ($name) {
+            $query->whereHas('document_type', function ($query) use ($name) {
+                $query->where('name', $name);
+            });
+        }, function ($query) {
+            $query->whereNull('document_type_id');
+        });
     }
 }
