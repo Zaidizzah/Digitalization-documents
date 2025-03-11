@@ -47,38 +47,48 @@ const uploadQueue = new UploadQueueManager({
         }
     }
 
-    // var page = 1;
-    // var scrolling = false;
-    // $("#file-list").scroll(function () {
-    //     var container = $(this);
-    //     if (
-    //         container.scrollTop() + container.innerHeight() >=
-    //             container[0].scrollHeight - 50 &&
-    //         !scrolling
-    //     ) {
-    //         loadMoreFiles();
-    //         scrolling = true;
-    //     }
-    // });
+    var page = $('#current_page').val();
+    var max_page = $('#last_page').val();
+    var scrolling = false;
+    var scroll_diff_before = 0;
+    $("#file-container").scroll(function () {
+        var container = $(this);
+        var scroll_diff = container.scrollTop() + container.innerHeight();
+        var scroll_area = container[0].scrollHeight;
 
-    // function loadMoreFiles() {
-    //     page++;
-    //     // LOADER.show()
-    //     $.ajax({
-    //         url: "?page=" + page,
-    //         type: "get",
-    //         success: function (data) {
-    //             console.log(data.trim() === "");
-    //             if (data.trim() === "") {
-    //                 $(window).off("scroll"); // Hentikan scroll jika tidak ada data lagi
-    //             } else {
-    //                 $("#file-list").append(data);
-    //             }
-    //             scrolling = false;
-    //             // LOADER.hide();
-    //         },
-    //     });
-    // }
+        if(scroll_diff > scroll_diff_before){
+            scroll_area = container[0].scrollHeight - 50;
+        }
+        scroll_diff_before = scroll_diff;
+        
+        if (scroll_diff >= scroll_area && !scrolling ) {
+            if(page < max_page){
+                page++;
+                loadMoreFiles();
+                scrolling = true;
+            }
+        }
+    });
+
+    function loadMoreFiles() {
+        $('#loading_file').removeClass('d-none');
+        $.ajax({
+            url: "?page=" + page,
+            type: "get",
+            success: function (data) {
+                if (!data) {
+                    $(window).off("scroll"); // Hentikan scroll jika tidak ada data
+                } else {
+                    $("#file-list").append(data.files);
+                }
+                scrolling = false;
+                $('#loading_file').addClass('d-none');
+            },
+            error: function (data) {
+                page--
+            },
+        });
+    }
 
     const paginationFileWarapper = document.querySelector(
         ".pagination-file-wrapper"
@@ -255,4 +265,16 @@ const uploadQueue = new UploadQueueManager({
             }
         });
     }
+
+    $('#delete_option').on('show.bs.modal', function(e){
+        var button = $(e.relatedTarget);
+        var keep_btn = $(this).find('#keep-btn');
+        var erase_btn = $(this).find('#erase-btn');
+    
+        var link_keep = `${keep_btn.data('url')}?file=${button.data('file')}`
+        var link_erase = `${erase_btn.data('url')}?file=${button.data('file')}`
+    
+        keep_btn.attr('href', link_keep)
+        erase_btn.attr('href', link_erase)
+    })
 })();

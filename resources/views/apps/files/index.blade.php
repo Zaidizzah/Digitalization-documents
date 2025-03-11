@@ -50,31 +50,35 @@
                     <div class="tile-body">
                         <div class="folder-list" id="folder-list" aria-label="Folder list container">
                             <!-- Link for to main folder -->
-                            <div class="folder-item p-3 main-folder {{ $document_type === null ? 'active' : '' }}" aria-label="Main folder" title="Main folder">
-                                <div class="folder-info-wrapper d-flex align-items-center">
-                                    <div class="folder-info" aria-label="Info for main folder">
-                                        <div class="fw-semibold">
-                                            <a href="{{ route('documents.files.root.index') }}" role="button" class="text-decoration-none">Main</a>
-                                        </div>
-                                        <div class="small text-muted">
-                                            <span>Main folder.</span>
+                            <a href="{{ route('documents.files.root.index') }}" role="button" class="text-decoration-none">
+                                <div class="folder-item p-3 {{ $document_type === null ? 'main-folder' : '' }}" aria-label="Main folder" title="Main folder">
+                                    <div class="folder-info-wrapper d-flex align-items-center">
+                                        <div class="folder-info" aria-label="Info for main folder">
+                                            <div class="fw-semibold">
+                                                Main
+                                            </div>
+                                            <div class="small text-muted">
+                                                <span>Main folder.</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
 
                             <!-- List of folders -->
                             @foreach ($document_types as $d)
-                                <div class="folder-item p-3 {{ $document_type !== null && $document_type->name === $d->name ? 'active' : '' }}" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
-                                    <div class="folder-info" aria-label="Info for folder {{ $d->name }}">
-                                        <div class="fw-semibold">
-                                            <a href="{{ $document_type === null ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" role="button" class="text-decoration-none">{{ $d->name }}</a>
-                                        </div>
-                                        <div class="small text-muted">
-                                            <span>Created on <time datetime="{{ $d->created_at }}">{{ date('d F Y, H:i A', strtotime($d->created_at)) }}</time>.</span>
+                                <a href="{{ $document_type === null ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" role="button" class="text-decoration-none">
+                                    <div class="folder-item p-3 {{ $document_type !== null && $document_type->name === $d->name ? 'main-folder' : '' }}" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
+                                        <div class="folder-info" aria-label="Info for folder {{ $d->name }}">
+                                            <div class="fw-semibold">
+                                                {{ $d->name }}
+                                            </div>
+                                            <div class="small text-muted">
+                                                <span>Created on <time datetime="{{ $d->created_at }}">{{ date('d F Y, H:i A', strtotime($d->created_at)) }}</time>.</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
                             @endforeach
                         </div>
                     </div>
@@ -87,7 +91,13 @@
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
-                        <h3 class="title" id="tile-files-list-label"><i class="bi bi-files"></i> List of files</h3>
+                        <h3 class="title" id="tile-files-list-label">
+                            <i class="bi bi-files">
+                                <input type="hidden" id="last_page" value="{{ $files->lastPage() }}">
+                                <input type="hidden" id="current_page" value="{{ $files->currentPage() }}">
+                            </i> 
+                            List of files
+                        </h3>
                         <small class="caption small font-italic fs-5">Manage and displaying a list of files.</small>
                     </div>
                 </div>
@@ -120,107 +130,122 @@
                     @endif
 
                         <!-- File list section -->
-                        <div class="file-list" id="file-list" aria-label="File list container">
-                            @if ($files->isEmpty())
-                                <div class="no-file-available" id="no-file-available" aria-label="No file available" title="No file available">
-                                    <div class="text-center">
-                                        <h5 class="mb-3">
-                                            @if (request('search'))
-                                                No file found for <mark>{{ request('search') }}</mark> @if (request('type')) with type <mark>{{ request('type') }}</mark> @endif.
-                                            @elseif (request('type'))
-                                                No file found with type <mark>{{ request('type') }}</mark>.
-                                            @else
-                                                No file found.
-                                            @endif
-                                        </h5>
+                        <div class="file-list" id="file-container" aria-label="File list container">
+                            <div id="file-list">
+                                @if ($files->isEmpty())
+                                    <div class="no-file-available" id="no-file-available" aria-label="No file available" title="No file available">
+                                        <div class="text-center">
+                                            <h5 class="mb-3">
+                                                @if (request('search'))
+                                                    No file found for <mark>{{ request('search') }}</mark> @if (request('type')) with type <mark>{{ request('type') }}</mark> @endif.
+                                                @elseif (request('type'))
+                                                    No file found with type <mark>{{ request('type') }}</mark>.
+                                                @else
+                                                    No file found.
+                                                @endif
+                                            </h5>
+                                        </div>
                                     </div>
-                                </div>
-                            @else
-                                @foreach ($files as $f)
-                                    <div class="file-item p-3" aria-label="File {{ "$f->name.$f->extension" }}" title="File {{ "$f->name.$f->extension" }}">
-                                        <div class="file-content">
-                                            @if ($document_type !== null) 
-                                                <!-- Checkbox to select file and actions -->
-                                                <div class="checkbox-wrapper">
-                                                    <div class="cbx">
-                                                        <input type="checkbox" name="file[]" class="cbx-file-id" id="cbx-{{ $loop->index }}" value="{{ $f->encrypted_name }}">
-                                                        <label for="cbx-{{ $loop->index }}"></label>
-                                                        <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
-                                                            <path d="M2 8.36364L6.23077 12L13 2"></path>
+                                @else
+                                    @foreach ($files as $f)
+                                        <div class="file-item p-3" aria-label="File {{ "$f->name.$f->extension" }}" title="File {{ "$f->name.$f->extension" }}">
+                                            <div class="file-content">
+                                                @if ($document_type !== null) 
+                                                    <!-- Checkbox to select file and actions -->
+                                                    <div class="checkbox-wrapper">
+                                                        <div class="cbx">
+                                                            <input type="checkbox" name="file[]" class="cbx-file-id" id="cbx-{{ $loop->index }}" value="{{ $f->encrypted_name }}">
+                                                            <label for="cbx-{{ $loop->index }}"></label>
+                                                            <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
+                                                                <path d="M2 8.36364L6.23077 12L13 2"></path>
+                                                            </svg>
+                                                        </div>
+                                                        
+                                                        <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                                            <defs>
+                                                                <filter id="goo-{{ $loop->index }}">
+                                                                <feGaussianBlur result="blur" stdDeviation="4" in="SourceGraphic"></feGaussianBlur>
+                                                                <feColorMatrix result="goo-{{ $loop->index }}" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -7" mode="matrix" in="blur"></feColorMatrix>
+                                                                <feBlend in2="goo-{{ $loop->index }}" in="SourceGraphic"></feBlend>
+                                                                </filter>
+                                                            </defs>
                                                         </svg>
                                                     </div>
-                                                    
-                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
-                                                        <defs>
-                                                            <filter id="goo-{{ $loop->index }}">
-                                                            <feGaussianBlur result="blur" stdDeviation="4" in="SourceGraphic"></feGaussianBlur>
-                                                            <feColorMatrix result="goo-{{ $loop->index }}" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -7" mode="matrix" in="blur"></feColorMatrix>
-                                                            <feBlend in2="goo-{{ $loop->index }}" in="SourceGraphic"></feBlend>
-                                                            </filter>
-                                                        </defs>
-                                                    </svg>
-                                                </div>
-                                            @endif
-        
-                                            <div class="file-info" aria-label="Info for file {{ "$f->name.$f->extension" }}">
-                                                <div class="fw-semibold">
-                                                    @if (request('search') || request('type'))
-                                                        {!! str_replace(
-                                                            [request('search'), request('type') ? ".$f->extension" : ''],
-                                                            ['<mark>' . request('search') . '</mark>', request('type') ? '<mark>.' . request('type') . '</mark>' : ''],
-                                                            "$f->name.$f->extension"
-                                                        ) !!}
-                                                    @else
-                                                        {{ "$f->name.$f->extension" }}
-                                                    @endif
-                                                </div>
-                                                <div class="small text-muted">
-                                                    <span>{{ format_size_file($f->size) }} - Uploaded on <time datetime="{{ $f->created_at }}">{{ date('d F Y, H:i A', strtotime($f->created_at)) }}</time>.</span>
+                                                @endif
+            
+                                                <div class="file-info" aria-label="Info for file {{ "$f->name.$f->extension" }}">
+                                                    <div class="fw-semibold">
+                                                        @if (request('search') || request('type'))
+                                                            {!! str_replace(
+                                                                [request('search'), request('type') ? ".$f->extension" : ''],
+                                                                ['<mark>' . request('search') . '</mark>', request('type') ? '<mark>.' . request('type') . '</mark>' : ''],
+                                                                "$f->name.$f->extension"
+                                                            ) !!}
+                                                        @else
+                                                            {{ "$f->name.$f->extension" }}
+                                                        @endif
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        <span>{{ format_size_file($f->size) }} - Uploaded on <time datetime="{{ $f->created_at }}">{{ date('d F Y, H:i A', strtotime($f->created_at)) }}</time>.</span>
+                                                    </div>
                                                 </div>
                                             </div>
+    
+                                            <div class="dropdown">
+                                                <button class="file-browse btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions button for file {{ "$f->name.$f->extension" }}" title="Actions button for file {{ "$f->name.$f->extension" }}">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="javascript:void(0)"
+                                                            aria-label="Browse file {{ "$f->name.$f->extension" }}" title="Button: to browse file {{ "$f->name.$f->extension" }}" 
+                                                            data-bs-toggle="modal" data-bs-target="#modal-files"
+                                                            data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" 
+                                                            data-file-size="{{ format_size_file($f->size) }}"
+                                                            data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($f->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($f->updated_at)) }}" 
+                                                            data-file-document-name="{{ $f->document_type->name ?? '' }}" data-file-document-long-name="{{ $f->document_type->long_name ?? '' }}"
+                                                            aria-label="File {{ $f->name }}" title="File {{ "$f->name.$f->extension" }}">
+                                                            <i class="bi bi-search fs-5"></i>Info
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.preview', [$document_type->name, 'file' => $f->encrypted_name]) : route('documents.files.root.preview', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $f->name }}" title="Button: to preview file {{ $f->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
+                                                    </li>
+                                                    <li>
+                                                        <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $f->encrypted_name]) : route('documents.files.root.download', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
+                                                    </li>
+                                                    <li>    
+                                                        <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $f->name }}" 
+                                                            title="Button: to edit file {{ $f->name }}" data-bs-toggle="modal" data-bs-target="#modal-files-edit"
+                                                            data-file-id="{{ $f->encrypted_name }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}"
+                                                            data-file-document-id="{{ $f->document_type_id }}">
+                                                            <i class="bi bi-pencil-square fs-5"></i> Edit
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        @if ($document_type === null)
+                                                            <a href="{{ route('documents.files.root.delete', ['file' => $f->encrypted_name]) }}" class="dropdown-item" 
+                                                                aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}"
+                                                                onclick="return confirm('Are you sure to delete this file?')">
+                                                                <i class="bi bi-trash fs-5"></i> Delete
+                                                            </a>
+                                                        @else
+                                                            <a href="javascript:void(0);" data-file="{{ $f->encrypted_name }}" data-bs-toggle="modal"
+                                                                data-bs-target="#delete_option" role="button" class="dropdown-item" 
+                                                                aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}">
+                                                                <i class="bi bi-trash fs-5"></i> Delete
+                                                            </a>
+                                                        @endif
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </div>
-
-                                        <div class="dropdown">
-                                            <button class="file-browse btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions button for file {{ "$f->name.$f->extension" }}" title="Actions button for file {{ "$f->name.$f->extension" }}">
-                                                <i class="bi bi-three-dots-vertical"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item" href="javascript:void(0)"
-                                                        aria-label="Browse file {{ "$f->name.$f->extension" }}" title="Button: to browse file {{ "$f->name.$f->extension" }}" 
-                                                        data-bs-toggle="modal" data-bs-target="#modal-files"
-                                                        data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" 
-                                                        data-file-size="{{ format_size_file($f->size) }}"
-                                                        data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($f->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($f->updated_at)) }}" 
-                                                        data-file-document-name="{{ $f->document_type->name ?? '' }}" data-file-document-long-name="{{ $f->document_type->long_name ?? '' }}"
-                                                        aria-label="File {{ $f->name }}" title="File {{ "$f->name.$f->extension" }}">
-                                                        <i class="bi bi-search fs-5"></i>Info
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.preview', [$document_type->name, 'file' => $f->encrypted_name]) : route('documents.files.root.preview', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $f->name }}" title="Button: to preview file {{ $f->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
-                                                </li>
-                                                <li>
-                                                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $f->encrypted_name]) : route('documents.files.root.download', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $f->name }}" title="Button: to download file {{ $f->name }}"><i class="bi bi-download fs-5"></i> Download</a>
-                                                </li>
-                                                <li>    
-                                                    <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $f->name }}" 
-                                                        title="Button: to edit file {{ $f->name }}" data-bs-toggle="modal" data-bs-target="#modal-files-edit"
-                                                        data-file-id="{{ $f->encrypted_name }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}"
-                                                        data-file-document-id="{{ $f->document_type_id }}">
-                                                        <i class="bi bi-pencil-square fs-5"></i> Edit
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a href="{{ route('documents.files.delete', ['file' => $f->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}" onclick="return confirm('Are you sure to delete this file?')">
-                                                        <i class="bi bi-trash fs-5"></i> Delete
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            @endif
+                                    @endforeach
+                                @endif
+                            </div>
+                            <div class="text-center d-none" id="loading_file">
+                                <h5 class="mb-3">Loading...</h5>
+                            </div>
                         </div>
 
                     @if ($document_type !== null)
@@ -230,13 +255,6 @@
                         </form>
                     @endif
                 </div>
-                @if ($files->hasPages())
-                    <div class="tile-footer">
-                        <div class="pagination-file-wrapper">
-                            {{ $files->onEachSide(2)->links('vendors.pagination.custom') }}
-                        </div>
-                    </div>
-                @endif
             </div>
         </div>
     </div>
@@ -320,4 +338,25 @@
             </div>
         </div>
     </div>
+    @isset($document_type)
+        <div class="modal fade" id="delete_option" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-label="Modal edit files" aria-labelledby="delete_option-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="delete_option-label"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Would you like to keep the data that attached to this file? or erase it?
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <a href="#" class="btn btn-danger" id="erase-btn" onclick="return confirm('Are you sure to delete this file and erase all the data?')" data-url="{{ route('documents.files.delete', [$document_type->name, 'erase']) }}">Erase</a>
+                        <a href="#" class="btn btn-warning" id="keep-btn" onclick="return confirm('Are you sure to delete this file?')" data-url="{{ route('documents.files.delete', [$document_type->name, 'keep']) }}">Keep</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endisset
+
 @endsection

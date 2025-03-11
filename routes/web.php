@@ -35,6 +35,9 @@ Route::middleware(['auth'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
+    Route::post('/profile/change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
+    Route::post('/profile/change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
 
     Route::middleware(['auth', 'role:Admin'])->group(function () {
         /*
@@ -99,7 +102,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/documents/files/{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
     Route::get('/documents/{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
     Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.root.download');
-    Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.delete');
+    Route::get('/documents/files/{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
+    Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
     Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
 
     Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');

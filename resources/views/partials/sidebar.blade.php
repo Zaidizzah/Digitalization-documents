@@ -1,7 +1,7 @@
 <!-- Sidebar menu-->
 <div class="app-sidebar__overlay" data-toggle="sidebar" aria-label="Close Sidebar"></div>
 <aside class="app-sidebar" aria-label="Sidebar Section of Navigation">
-  <div class="app-sidebar__user" aria-label="User Information"><img class="app-sidebar__user-avatar" src="{{ asset('resources/images/dummys/April O\'Neil from the 1987 TMNT Series.png') }}" loading="lazy" title="User Image" alt="User Image">
+  <div class="app-sidebar__user" aria-label="User Information"><img class="app-sidebar__user-avatar" src="https://placehold.co/500x600/{{ substr(fake()->hexColor(), 1, 6) }}/FFF?text={{ substr(auth()->user()->name, 0, 1) }}" loading="lazy" title="User Image" alt="User Image">
     <div>
       <p class="app-sidebar__user-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</p>
       <p class="app-sidebar__user-designation" title="{{ auth()->user()->role === "Admin" ? "Administrator" : "User" }}">{{ auth()->user()->role === "Admin" ? "Administrator" : "User" }}</p>

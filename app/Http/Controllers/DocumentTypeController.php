@@ -63,11 +63,8 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        if (is_admin()) {
-            $resources['document_types'] = DocumentType::where('is_active', 1)->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
-        } else {
-            $resources['document_types'] = DocumentType::where('is_active', 1)->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
-        }
+        $document_type = DocumentType::where('is_active', 1)->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
+        $resources['document_types'] = $document_type;
 
         return view('apps.documents.index', $resources);
     }

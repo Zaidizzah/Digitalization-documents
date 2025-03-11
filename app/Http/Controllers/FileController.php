@@ -97,10 +97,9 @@ class FileController extends Controller
         }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(25)->appends($req->all());
 
         // If request is Fetch request send paginating files data to client
-        if ($req->expectsJson()) {
+        if ($req->ajax()) {
             return $this->success_response("Files loaded successfully.", [
                 'files' => view('apps.files.list', ['on_upload' => false, 'files' => $files, 'document_type' => $document_type ?? null])->render(),
-                'links' => $files->onEachSide(2)->links('vendors.pagination.custom')->render()
             ]);
         }
 
@@ -313,12 +312,18 @@ class FileController extends Controller
      * @param ?string $name
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Request $req, ?string $name = null)
+    public function destroy(Request $req, ?string $name = null, $keep = 'keep')
     {
         $file = FileModel::where('encrypted_name', $req->file)->firstOrFail();
 
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+            $data = DB::table($document_type->table_name)->where('file_id', $file->id);
+            if($keep == 'erase'){
+                $data->delete();
+            }else{
+                $data->update(['file_id' => null]);
+            }
         }
 
         Storage::delete($file->path);
