@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TableExport;
 use Illuminate\Http\Request;
 use App\Models\DocumentType;
 use App\Models\File as FileModel;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Arr;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DocumentTypeActionController extends Controller
 {
@@ -536,5 +538,12 @@ class DocumentTypeActionController extends Controller
         } else {
             return redirect()->route('documents.browse', $name)->with('message', toast("No data deleted in document type '$name'.", 'error'));
         }
+    }
+
+    public function export(Request $req, $document){
+        $table = DocumentType::where('name', $document)->firstOrFail();
+        if(!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
+        
+        return Excel::download(new TableExport($table->table_name), $table->name.'_'.date('Y_m_d_His').'.'.$req->format);
     }
 }

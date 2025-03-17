@@ -49,12 +49,19 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="javascript:void(0)" class="nav-link" aria-label="Export data of documents {{ $document_type->name }}" title="Export data of documents {{ $document_type->name }}">
-                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z"/>
-                </svg>
-                Export
-            </a>
+            <div class="dropdown">
+                <a href="javascript:void(0)" class="nav-link" data-bs-toggle="dropdown" aria-label="Export data of documents {{ $document_type->name }}" title="Export data of documents {{ $document_type->name }}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z"/>
+                    </svg>
+                    Export
+                </a>
+                <div class="dropdown-menu border border-primary">
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'xlsx']) }}" class="dropdown-item">Excel</a>
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'csv']) }}" class="dropdown-item">CSV</a>
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'pdf']) }}" class="dropdown-item">PDF</a>
+                </div>
+            </div>
         </li>
     </ul>
 </nav>

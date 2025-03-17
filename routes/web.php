@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/documents/{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
         Route::get('/documents/{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
         Route::get('/documents/{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
+        Route::get('/documents/{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
 
         Route::get('/documents/{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
         Route::post('/documents/{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
