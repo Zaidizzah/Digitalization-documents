@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TableExport;
+use App\Imports\TableImport;
 use Illuminate\Http\Request;
 use App\Models\DocumentType;
 use App\Models\File as FileModel;
@@ -545,5 +546,19 @@ class DocumentTypeActionController extends Controller
         if(!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
         
         return Excel::download(new TableExport($table->table_name), $table->name.'_'.date('Y_m_d_His').'.'.$req->format);
+    }
+
+    public function import(Request $req, $document){
+        $table = DocumentType::where('name', $document)->firstOrFail();
+        
+        $import = new TableImport($table->table_name, $table->schema_form);
+        Excel::import($import, $req->file('data'));
+        
+        if($import->success){
+            return redirect()->back()->with('message', toast('Import Success'));
+        }else{
+            return redirect()->back()->withErrors($import->messages);
+        }
+
     }
 }

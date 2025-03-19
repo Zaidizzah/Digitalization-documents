@@ -10,7 +10,9 @@
                 <h3 class="title" id="tile-document-types-label">List of document types</h3>
                 <small class="caption small font-italic fs-5">Displaying a list of document types.</small>
             </div>
-            <a href="/documents/create" type="link" class="btn btn-primary btn-sm" role="link" id="btn-add-document-type" title="Button: to add new document type"><i class="bi bi-plus-square fs-5"></i> Add</a>
+            @can('role-access', 'Admin')
+                <a href="{{ route('documents.create') }}" type="link" class="btn btn-primary btn-sm" role="link" id="btn-add-document-type" title="Button: to add new document type"><i class="bi bi-plus-square fs-5"></i> Add</a>
+            @endcan
         </div>
         <div class="tile-body">
             <div class="table-responsive">
@@ -42,10 +44,12 @@
                                     <td class="text-nowrap">
                                         @if ($document_type->is_active)
                                             <a href="{{ route('documents.browse', $document_type->name) }}" type="button" class="btn btn-info btn-sm btn-browse" role="button" title="Button: to browse data of document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}"><i class="bi bi-search fs-5"></i></a>
-                                            <a href="{{ route("documents.insert.schema.page", $document_type->name) }}" type="button" class="btn btn-primary btn-sm" id="btn-insert-schema-attributes-document-type" title="Button: to insert new schema attributes for document type {{ $document_type->name }}"><i class="bi bi-plus-square fs-5"></i></a>
-                                            <a href="{{ route('documents.delete', $document_type->name) }}" type="button" class="btn btn-danger btn-sm btn-delete" role="button" title="Button: to delete document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}" onclick="return confirm('Are you sure you want to delete this document type?')"><i class="bi bi-trash fs-5"></i></a>
+                                            @can('role-access', 'Admin')
+                                                <a href="{{ route("documents.insert.schema.page", $document_type->name) }}" type="button" class="btn btn-primary btn-sm" id="btn-insert-schema-attributes-document-type" title="Button: to insert new schema attributes for document type {{ $document_type->name }}"><i class="bi bi-plus-square fs-5"></i></a>
+                                                <a href="{{ route('documents.delete', $document_type->name) }}" type="button" class="btn btn-danger btn-sm btn-delete" role="button" title="Button: to delete document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}" onclick="return confirm('Are you sure you want to delete this document type?')"><i class="bi bi-trash fs-5"></i></a>
+                                            @endcan
                                         @else
-                                            <a href="javascript:void(0)" type="button" class="btn btn-secondary btn-sm" role="button" title="Button: to restore or activate document type '{{ $document_type->name }}'"><i class="bi bi-arrow-counterclockwise fs-5"></i></a>
+                                            <a href="{{ route('documents.restore', $document_type->name) }}" type="button" class="btn btn-secondary btn-sm" role="button" title="Button: to restore or activate document type '{{ $document_type->name }}'"><i class="bi bi-arrow-counterclockwise fs-5"></i></a>
                                         @endif
                                     </td>
                                 </tr>

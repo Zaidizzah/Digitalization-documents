@@ -754,6 +754,7 @@ class SchemaBuilder
      */
     public static function create_table_thead_from_schema_in_html(string $table_name, array $schema_form)
     {
+        $is_admin = auth()->user()->role === 'Admin';
         // Check if schema is empty
         if (empty($schema_form)) throw new \InvalidArgumentException("Schema attribute for document type '$table_name' is empty. Please add at least one attribute to the schema.", Response::HTTP_BAD_REQUEST);
 
@@ -768,6 +769,9 @@ class SchemaBuilder
         foreach ($schema_form as $attribute_name => $attribute_value) {
             $header_columns .= sprintf('<th class="text-nowrap" scope="col">%s</th>', ucwords($attribute_name));
         }
+        
+        $action_column = '';
+        if($is_admin) $action_column = '<th class="text-nowrap" scope="col">Action</th>';
 
         return <<<HTML
                 <thead>
@@ -777,7 +781,7 @@ class SchemaBuilder
                         <th class="text-nowrap" scope="col">Atached File</th>
                         <th class="text-nowrap" scope="col">Created At</th>
                         <th class="text-nowrap" scope="col">Updated At</th>
-                        <th class="text-nowrap" scope="col">Action</th>
+                        {$action_column}
                     </tr>
                 </thead>
                 HTML;
@@ -843,16 +847,23 @@ class SchemaBuilder
                     $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" aria-label=\"Preview file {$data->file_name}.{$data->file_extension}\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\"><i class=\"bi bi-paperclip fs-5\"></i></a>";
                 }
 
+                $is_admin = auth()->user()->role === 'Admin';
+
                 // add created_at, updated_at, button to delete and edit data of document type
-                array_push(
-                    $row_data,
-                    "<td class=\"text-nowrap\">" . ($preview_file_link ?? '') . "</td>
+                $meta_column = "<td class=\"text-nowrap\">" . ($preview_file_link ?? '') . "</td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
-                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
-                    <td class=\"text-nowrap\">
+                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>";
+
+                if($is_admin){
+                    $meta_column .= "<td class=\"text-nowrap\">
                         <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
-                    </td>"
+                    </td>";
+                }
+                    
+                array_push(
+                    $row_data,
+                    $meta_column
                 );
 
                 array_push($rows, sprintf(
@@ -1502,7 +1513,7 @@ class SchemaBuilder
     public static function get_form_columns_name_from_schema_representation(string $table_name, ?array $old_form_schema = null, bool $including = false): array
     {
         $schema_columns = array_values(array_column(self::get_table_columns($table_name), 'Field'));
-        $schema_columns = array_diff($schema_columns, ['id', 'created_at', 'updated_at']);
+        $schema_columns = array_diff($schema_columns, ['id', 'file_id', 'created_at', 'updated_at']);
 
         // reindex from index 0 
         $schema_columns = array_values($schema_columns);
@@ -1526,7 +1537,7 @@ class SchemaBuilder
         }
 
         if ($including === true) {
-            array_unshift($schema_columns, 'id');
+            array_unshift($schema_columns, 'id', 'file_id');
             array_push($schema_columns, 'created_at', 'updated_at');
         }
 

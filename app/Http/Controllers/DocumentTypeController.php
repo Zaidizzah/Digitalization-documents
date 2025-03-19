@@ -34,7 +34,7 @@ class DocumentTypeController extends Controller
                 'string',
                 'max:' . SchemaBuilder::__get_max_length_for_field_name(),
                 'regex:/^(?!.* {2})[a-zA-Z][a-zA-Z0-9_\s]{0,63}$/',
-                Rule::unique('document_types', 'name')->where('is_active', 1)
+                'unique:document_types,name'
             ],
             'description' => 'nullable|string',
             'long_name' => 'nullable|string|max:125',
@@ -63,8 +63,11 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        $document_type = DocumentType::where('is_active', 1)->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
-        $resources['document_types'] = $document_type;
+        $document_type = DocumentType::orderBy('created_at', 'desc');
+        if(auth()->user()->role !== 'Admin'){
+            $document_type->where('is_active', 1);
+        }
+        $resources['document_types'] = $document_type->paginate(25)->withQueryString();
 
         return view('apps.documents.index', $resources);
     }
@@ -776,7 +779,7 @@ class DocumentTypeController extends Controller
             $document_type->is_active = false;
             $document_type->save();
 
-            $document_type_trashed_name = now('Asia/Jakarta')->format('Y_m_d_His') . "_{$name}_trash";
+            $document_type_trashed_name = "{$name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
 
             // rename document type and folder to trash
             Storage::disk('local')->move(
@@ -787,7 +790,7 @@ class DocumentTypeController extends Controller
             SchemaBuilder::rename_table($document_type->table_name, $document_type_trashed_name);
 
             // add name of document type to list of trashed document type
-            DB::table('document_types_trash')->insert([
+            DB::table('document_types_trashed')->insert([
                 'user_id' => auth()->user()->id,
                 'document_type_id' => $document_type->id,
                 'trashed_name' => $document_type_trashed_name,
@@ -805,5 +808,28 @@ class DocumentTypeController extends Controller
 
             return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been deleted successfully.", 'success'));
         }
+    }
+
+    public function restore(string $name){
+        $document_type = DocumentType::where('name', $name)->where('is_active', 0)->firstOrFail();
+        
+        $document_type_trashed_query = DB::table('document_types_trashed')->where('document_type_id', $document_type->id);
+        $document_type_trashed = $document_type_trashed_query->first();
+
+        // make document type
+        $document_type->is_active = 1;
+        $document_type->save();
+
+        // rename document folder
+        Storage::disk('local')->move(
+            self::PARENT_OF_FILES_DIRECTORY . "/$document_type_trashed->trashed_name",
+            self::PARENT_OF_FILES_DIRECTORY . "/$name",
+        );
+
+        SchemaBuilder::rename_table($document_type_trashed->trashed_table_name, $document_type->table_name);
+        $document_type_trashed_query->delete();
+
+        return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been restored successfully.", 'success'));
+    
     }
 }

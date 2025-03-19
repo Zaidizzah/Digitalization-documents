@@ -65,7 +65,7 @@
                         </div>
                     </div>
                     <div class="modal-footer bg-light-subtle">
-                        <button type="reset" role="button" class="btn btn-secondary" title="Button: to cancel this action" data-bs-dismiss="modal" onclick="return confirm('Are you sure you want to cancel this action?')"><i class="bi bi-dash-square fs-5"></i> Cancel</button>
+                        <button type="reset" role="button" class="btn btn-secondary" title="Button: to cancel this action" data-bs-dismiss="modal"><i class="bi bi-dash-square fs-5"></i> Cancel</button>
                         <button type="submit" role="button" class="btn btn-primary" title="Button: to save new user"><i class="bi bi-save fs-5"></i> Save</button>
                     </div>
                 </form>

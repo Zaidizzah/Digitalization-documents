@@ -55,17 +55,16 @@ Route::middleware(['auth'])->group(function () {
         | Document Type Routes
         |--------------------------------------------------------------------------
         */
-        Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
         Route::get('/documents/create', [DocumentTypeController::class, 'create'])->name('documents.create');
         Route::post('/documents/store', [DocumentTypeController::class, 'store'])->name('documents.store');
 
         Route::post('/documents/update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
         Route::get('/documents/delete/{name}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
+        Route::get('/documents/restore/{name}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
 
-        Route::get('/documents/{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
         Route::get('/documents/{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
         Route::get('/documents/{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
-        Route::get('/documents/{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
+        Route::post('/documents/{name}/import', [DocumentTypeActionController::class, 'import'])->name('documents.import');
 
         Route::get('/documents/{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
         Route::post('/documents/{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
@@ -73,6 +72,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/documents/{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
         Route::get('/documents/{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
         Route::get('/documents/{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
+
+        //doument files admin only
+        Route::post('/documents/files/upload', [FileController::class, 'upload'])->name('documents.files.root.upload');
+        Route::post('/documents/files/{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
+        Route::get('/documents/files/{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
+        Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
+        Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
 
         /*
         |--------------------------------------------------------------------------
@@ -91,6 +97,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/documents/{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load');
     });
 
+    Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
+    Route::get('/documents/{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
+
     /*
     |--------------------------------------------------------------------------
     | Documents files routes
@@ -99,13 +109,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/documents/{name}/files', [FileController::class, 'index'])->name('documents.files.index');
     Route::get('/documents/files', [FileController::class, 'index'])->name('documents.files.root.index');
 
-    Route::post('/documents/files/upload', [FileController::class, 'upload'])->name('documents.files.root.upload');
-    Route::post('/documents/files/{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
     Route::get('/documents/{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
     Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.root.download');
-    Route::get('/documents/files/{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
-    Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
-    Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
 
     Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
     Route::get('/documents/{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
