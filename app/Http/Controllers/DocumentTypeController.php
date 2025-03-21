@@ -144,7 +144,9 @@ class DocumentTypeController extends Controller
 
             if ($validator->fails()) return $this->validation_error(
                 "Sorry, value of schema is invalid. Please try again.",
-                error_validation_response_custom($validator->errors())
+                [
+                    'errors' => error_validation_response_custom($validator->errors())
+                ]
             );
 
             $validated = $validator->validated();

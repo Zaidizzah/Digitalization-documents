@@ -170,13 +170,13 @@ class DocumentSchemaBuilder {
                 },
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
                 throw new Error(
                     `Failed to load saved schema. Please try again.`
                 );
             }
+
+            const data = await response.json();
 
             toast(data.message, data.success ? "success" : "error");
 
@@ -222,8 +222,10 @@ class DocumentSchemaBuilder {
                 return false;
             }
         } catch (error) {
+            // Display error
             toast(error.message, "error");
 
+            console.error(error);
             return false;
         } finally {
             LOADER.hide();
@@ -267,12 +269,13 @@ class DocumentSchemaBuilder {
                 body: JSON.stringify({ schema: schema }),
             });
 
-            const data = await response.json();
             if (!response.ok) {
                 throw new Error(
                     `Failed to save schema attributes, details: ${data.message}. please try again.`
                 );
             }
+
+            const data = await response.json();
 
             toast(data.message, data.success ? "success" : "error");
 
@@ -306,6 +309,7 @@ class DocumentSchemaBuilder {
             // Display the error message
             toast(error.message, "error");
 
+            console.error(error);
             return false;
         } finally {
             LOADER.hide();

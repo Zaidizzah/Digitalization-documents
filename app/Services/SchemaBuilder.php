@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use stdClass;
 
 class SchemaBuilder
 {
@@ -462,12 +463,16 @@ class SchemaBuilder
      * values.
      *
      * @param array $schema_form The array containing field definitions for the form.
-     * @return string 
+     * @param ?object $document_type_data The data object for the document type (if any).
+     * @param string $action The action of the form, either 'create', 'update', or 'insert'.
+     *               'create' is for creating a new form, 'update' is for updating an existing form, and 'insert' is for inserting a new data/collecting data from file.
+     * @param ?string $file_id The id of file data that will be inserted, this is required when action is 'insert'
+     * @return string The generated HTML form.
      * 
      * @throws InvalidArgumentException When schema is empty
      * @throws OutOfBoundsException When field type is invalid
      */
-    public static function create_form_html(array $schema_form, $file_data = null)
+    public static function create_form_html(array $schema_form, ?object $document_type_data = null, string $action = 'create', $file_id = null)
     {
         // Check if schema is empty
         if (empty($schema_form)) throw new \InvalidArgumentException("Sorry, we couldn't find any of your schema. Please try again and create a valid schema.", Response::HTTP_BAD_REQUEST);
@@ -511,13 +516,20 @@ class SchemaBuilder
             default => '',
         };
 
-        $form_html = '';
+        $FORM_HTML = '';
+        if ($action === 'insert') {
+            // insert input hidden for file attachment id
+            $FORM_HTML .= "<input type=\"hidden\" name=\"file_id[]\" value=\"{$file_id}\" aria-hidden=\"true\" />";
+        } else if ($action === 'update') {
+            // insert input hidden for data id
+            $FORM_HTML .= "<input type=\"hidden\" name=\"id[]\" value=\"{$document_type_data->id}\" aria-hidden=\"true\" />";
+        }
 
         $field_name = '';
         foreach ($schema_form as $field => $data) {
             // Getting the value if exists
             $field_name = $data['name'];
-            $field_value = $file_data ? $file_data->$field_name : old($field_name);
+            $field_value = $document_type_data ? $document_type_data->$field_name : old($field_name);
 
             // Validate field type
             $type_config = self::FIELD_TYPE_CONFIG[$data['type']] ?? null;
@@ -538,26 +550,22 @@ class SchemaBuilder
             $title = $data['rules']['instructions'] ? "title=\"{$data['rules']['instructions']}\"" : '';
 
             // Form group wrapper
-            $form_html .= <<<HTML
-                <div class="form-group row g-1 mb-3">
-                    <label class="form-label col-sm-sm-3" for="{$data['name']}">{$label}</label>
-                <div class="col-sm-sm-9">
-                HTML;
+            $FORM_HTML .= "<div class=\"form-group row g-1 mb-3\">
+                    <label class=\"form-label col-sm-sm-3\" for=\"$field_name\">$label</label>
+                    <div class=\"col-sm-sm-9\">";
 
             // Field type handling
             switch ($data['type']) {
                 case 'textarea':
-                    $form_html .= <<<HTML
-                    <textarea class="form-control" name="{$data['name']}" id="{$data['name']}" rows="3" {$title} placeholder="Enter {$field}" aria-label="Input {$field}" {$attributes}>{$field_value}</textarea>
-                    HTML;
+                    $FORM_HTML .= "<textarea class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\" rows=\"3\" $title placeholder=\"Enter $field\" $attributes>$field_value</textarea>";
                     break;
 
                 case 'select':
-                    $options = "<option value=\"\" disabled " . ($file_data === null ? 'selected' : '') . ">Choose...</option>"
+                    $options = "<option value=\"\" disabled " . ($document_type_data === null ? 'selected' : '') . ">Choose...</option>"
                         . array_reduce(
                             $data['rules']['options'] ?? [],
-                            function ($html, $option) use ($file_data, $field_value) {
-                                if ($file_data != null) {
+                            function ($html, $option) use ($document_type_data, $field_value) {
+                                if ($document_type_data != null) {
                                     $_selected = $field_value == $option ? 'selected' : '';
                                     $html .= "<option value=\"{$option}\" $_selected>{$option}</option>";
                                 } else {
@@ -568,29 +576,23 @@ class SchemaBuilder
                             ''
                         );
 
-                    $form_html .= <<<HTML
-                    <select class="form-select" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="{$data['name']}" {$attributes}>
-                        {$options}
-                    </select>
-                    HTML;
+                    $FORM_HTML .= "<select class=\"form-select\" name=\"{$field_name}[]\" id=\"$field_name\" $title $attributes>$options</select>";
                     break;
 
                 default:
                     $input_type = $data['type'] === 'datetime' ? 'datetime-local' : $data['type'];
-                    $form_html .= <<<HTML
-                    <input type="{$input_type}" value="{$field_value}" class="form-control" name="{$data['name']}" id="{$data['name']}" {$title} aria-label="Input {$field}" {$inputMode} placeholder="Enter {$field}" {$attributes}>
-                    HTML;
+                    $FORM_HTML .= "<input type=\"$input_type\" value=\"$field_value\" class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\" $title $inputMode placeholder=\"Enter $field\" $attributes />";
             }
 
             // Add instructions if present
             if ($data['rules']['instructions']) {
-                $form_html .= "<p class=\"form-text text-muted\">{$data['rules']['instructions']}</p>";
+                $FORM_HTML .= "<p class=\"form-text text-muted\">{$data['rules']['instructions']}</p>";
             }
 
-            $form_html .= '</div></div>';
+            $FORM_HTML .= "</div></div>";
         }
 
-        return $form_html;
+        return $FORM_HTML;
     }
 
     /**
@@ -769,9 +771,9 @@ class SchemaBuilder
         foreach ($schema_form as $attribute_name => $attribute_value) {
             $header_columns .= sprintf('<th class="text-nowrap" scope="col">%s</th>', ucwords($attribute_name));
         }
-        
+
         $action_column = '';
-        if($is_admin) $action_column = '<th class="text-nowrap" scope="col">Action</th>';
+        if ($is_admin) $action_column = '<th class="text-nowrap" scope="col">Action</th>';
 
         return <<<HTML
                 <thead>
@@ -844,23 +846,23 @@ class SchemaBuilder
                 // add file link
                 $preview_file_link = '';
                 if (isset($data->file_id)) {
-                    $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" aria-label=\"Preview file {$data->file_name}.{$data->file_extension}\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\"><i class=\"bi bi-paperclip fs-5\"></i></a>";
+                    $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\">{$data->file_name}.{$data->file_extension}</a>";
                 }
 
                 $is_admin = auth()->user()->role === 'Admin';
 
                 // add created_at, updated_at, button to delete and edit data of document type
-                $meta_column = "<td class=\"text-nowrap\">" . ($preview_file_link ?? '') . "</td>
+                $meta_column = "<td class=\"permalink-file\">" . ($preview_file_link ?? '') . "</td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>";
 
-                if($is_admin){
+                if ($is_admin) {
                     $meta_column .= "<td class=\"text-nowrap\">
                         <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                     </td>";
                 }
-                    
+
                 array_push(
                     $row_data,
                     $meta_column
@@ -891,7 +893,7 @@ class SchemaBuilder
         }
     }
 
-    public static function get_validation_rules_from_schema(string $table_name, array $form_schema, array $columns_name): mixed
+    public static function get_validation_rules_from_schema(string $table_name, array $form_schema, array $columns_name, string|int|null $update_id = null): mixed
     {
         // Validate columns name
         $schema_columns_name = array_column($form_schema, 'name');
@@ -909,7 +911,6 @@ class SchemaBuilder
             $rules_config = $attribute['rules'];
 
             $field_rules = [];
-
             $field_rules[] = $required === true ? 'required' : 'nullable';
 
             $type_rules = match ($type) {
@@ -942,7 +943,7 @@ class SchemaBuilder
 
             // Handle unique rule if type is not select
             if ($unique && $type !== 'select') {
-                $field_rules[] = 'unique:' . $table_name . ',' . $field_name;
+                $field_rules[] = "unique:$table_name,$field_name" . ($update_id ? ",$update_id" : '');
             }
 
             $validation_rules[$field_name] = $field_rules;

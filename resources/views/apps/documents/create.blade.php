@@ -69,24 +69,24 @@
                 data-bs-toggle="tooltip" data-bs-placement="bottom"
                 data-bs-custom-class="custom-tooltip" 
                 data-bs-title="Button: to add new attribute."
-                class="btn btn-primary btn-sm" aria-label="Button: add new attribute"><i class="bi bi-plus-circle fs-5"></i> New Attribute</button>
+                class="btn btn-primary btn-sm"><i class="bi bi-plus-circle fs-5"></i> New Attribute</button>
                 <button type="button" role="button"
                 id="btn-reset-attributes"
                 data-bs-toggle="tooltip" data-bs-placement="bottom"
                 data-bs-custom-class="custom-tooltip" 
                 data-bs-title="Button: to reset all attribute."
-                class="btn btn-secondary btn-sm" aria-label="Button: reset all attribute"><i class="bi bi-dash-circle fs-5"></i> Reset Attribute</button>
+                class="btn btn-secondary btn-sm"><i class="bi bi-dash-circle fs-5"></i> Reset Attribute</button>
                 <button type="button" role="button"
                 id="btn-save-schema-attributes"
                 data-bs-toggle="tooltip" data-bs-placement="bottom"
                 data-bs-custom-class="custom-tooltip" 
                 data-bs-title="Button: to save schema attributes."
-                class="btn btn-primary btn-sm" aria-label="Button: save schema attributes"><i class="bi bi-save fs-5"></i> Save Schema</button>
+                class="btn btn-primary btn-sm"><i class="bi bi-save fs-5"></i> Save Schema</button>
                 <button type="button" role="button"
                 data-bs-toggle="tooltip" data-bs-placement="bottom"
                 data-bs-custom-class="custom-tooltip" 
                 data-bs-title="Button: to load previous schema attributes or get schema attributes from previous saving if available."
-                id="btn-load-schema-attributes" class="btn btn-primary btn-sm" aria-label="Button: load schema attributes"><i class="bi bi-arrow-clockwise fs-5"></i> Load Schema</button>
+                id="btn-load-schema-attributes" class="btn btn-primary btn-sm"><i class="bi bi-arrow-clockwise fs-5"></i> Load Schema</button>
             </div>
         </div>
         <!-- \Attributes Section/ -->

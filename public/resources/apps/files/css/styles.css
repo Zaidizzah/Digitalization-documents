@@ -4,12 +4,14 @@
 }
 
 .file-list {
+    position: relative;
     height: calc(100vh - 2rem);
     overflow-y: scroll;
     border: 1px solid var(--primary-color);
 }
 
 .folder-list {
+    position: relative;
     max-height: calc(100vh - 2rem);
     height: auto;
     overflow-y: scroll;
@@ -104,7 +106,7 @@
 
 .file-item .dropdown-menu,
 .folder-item .dropdown-menu {
-    border: 1px solid #00695c;
+    border: 1px solid var(--primary-color);
     box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
 }
 
@@ -141,6 +143,18 @@
     gap: 0.5rem;
     flex-wrap: wrap;
     margin-bottom: 1rem;
+}
+
+.file-list .selected-counter {
+    position: sticky;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    padding: 0.5rem;
+    background-color: #fff;
+    border-bottom: var(--bs-border-width) solid var(--primary-color);
+    z-index: 5;
 }
 
 /* Checkbox */

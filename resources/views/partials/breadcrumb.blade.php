@@ -7,13 +7,13 @@
         <li class="breadcrumb-item" aria-current="page" aria-label="Home" title="Home"><i class="bi bi-house-door fs-6"></i></li>
         @foreach ($breadcrumb as $key => $value)
             @if (is_string($key) && is_string($value))
-                <li class="breadcrumb-item"><a href="{{ $value }}" aria-current="page" aria-label="{{ $key }}" title="{{ $key }}">{{ $key }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ $value }}" aria-current="page" title="{{ $key }}">{{ $key }}</a></li>
             @elseif (is_string($key) && is_array($value))
                 @foreach ($value as $file)
-                    <li class="breadcrumb-item"><a href="{{ $file }}" aria-current="page" aria-label="{{ $key }}" title="{{ $key }}">{{ $key }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ $file }}" aria-current="page" title="{{ $key }}">{{ $key }}</a></li>
                 @endforeach
             @elseif (is_numeric($key) && is_string($value))
-                <li class="breadcrumb-item active"><a href="javascript:void(0)" aria-current="page" aria-label="{{ $value }}" title="{{ $value }}">{{ $value }}</a></li>
+                <li class="breadcrumb-item active"><a href="javascript:void(0)" aria-current="page" title="{{ $value }}">{{ $value }}</a></li>
             @endif
         @endforeach
     </ul>

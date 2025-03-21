@@ -431,3 +431,31 @@ if (!function_exists('format_size_file')) {
         return sprintf("%.2f", (int) $size / pow(1024, $factor)) . $units[$factor];
     }
 }
+
+if (!function_exists('rename_array_keys')) {
+    /**
+     * Renames multiple keys in a multidimensional associative array.
+     *
+     * @param array $array The array to process.
+     * @param array $rename_map An associative array mapping old keys to new keys.
+     * @return array The array with renamed keys.
+     */
+    function rename_array_keys($array, $rename_map)
+    {
+        $new_array = [];
+
+        foreach ($array as $key => $value) {
+            // Rename key if it exists in the mapping
+            $new_key = array_key_exists($key, $rename_map) ? $rename_map[$key] : $key;
+
+            // Recursive call for nested arrays
+            if (is_array($value)) {
+                $new_array[$new_key] = rename_array_keys($value, $rename_map);
+            } else {
+                $new_array[$new_key] = $value;
+            }
+        }
+
+        return $new_array;
+    }
+}

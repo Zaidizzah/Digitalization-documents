@@ -8,3 +8,10 @@ Intalasi FDPI menggunakan composer
 Penggunaan namespace: 'use setasign\Fpdf\Fpdf;'
 Penggunaan namespace: 'use setasign\Fpdi\Fpdi;'
 Penggunaan namespace: 'use Ilovepdf\Ilovepdf;'
+
+--- 
+Tesseract implementasion: for extracing text from image 
+---
+
+install tesseract dependency into windows by installing from: 'https://github.com/UB-Mannheim/tesseract/wiki'
+install library python: 'pip install pdf2image pytesseract pillow' in console

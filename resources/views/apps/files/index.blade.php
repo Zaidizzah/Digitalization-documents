@@ -90,14 +90,13 @@
 
         <!-- File List -->
         <div class="col-md-8">
+            {!! note("If too many files are selected, it may take a little or a lot of time to process text extraction through OCR from each file.") !!}
+
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
                         <h3 class="title" id="tile-files-list-label">
-                            <i class="bi bi-files">
-                                <input type="hidden" id="last_page" value="{{ $files->lastPage() }}">
-                                <input type="hidden" id="current_page" value="{{ $files->currentPage() }}">
-                            </i> 
+                            <i class="bi bi-files"></i> 
                             List of files
                         </h3>
                         <small class="caption small font-italic fs-5">Manage and displaying a list of files.</small>
@@ -132,8 +131,15 @@
                     @endif
 
                         <!-- File list section -->
-                        <div class="file-list" id="file-container" aria-label="File list container">
-                            <div id="file-list">
+                        <div class="file-list-container" id="file-list-container" aria-label="File list container">
+                            <div class="file-list" id="file-list" data-current-page="{{ $files->currentPage() }}" data-last-page="{{ $files->lastPage() }}" aria-label="File list">
+                                @if ($document_type !== null)
+                                    <!-- Selected counter status -->
+                                    <div class="selected-counter" id="selected-counter" aria-label="Selected counter" title="Selected counter">
+                                        <span>Selected file 0 out of 15 (maximum for inserting data)</span>
+                                    </div>
+                                @endif
+
                                 @if ($files->isEmpty())
                                     <div class="no-file-available" id="no-file-available" aria-label="No file available" title="No file available">
                                         <div class="text-center">
@@ -249,7 +255,7 @@
                                     @endforeach
                                 @endif
                             </div>
-                            <div class="text-center d-none" id="loading_file">
+                            <div class="text-center d-none" id="loading-files">
                                 <h5 class="mb-3">Loading...</h5>
                             </div>
                         </div>

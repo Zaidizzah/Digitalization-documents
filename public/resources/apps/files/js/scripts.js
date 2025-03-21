@@ -42,52 +42,64 @@ const uploadQueue = new UploadQueueManager({
                     noFileAvailable.remove();
                 }
 
-                fileList.insertAdjacentHTML("afterbegin", list);
+                // Append list
+                document
+                    .querySelector("#file-list #selected-counter")
+                    .insertAdjacentHTML("afterend", list);
             }
         }
     }
 
-    var page = $('#current_page').val();
-    var max_page = $('#last_page').val();
-    var scrolling = false;
-    var scroll_diff_before = 0;
-    $("#file-container").scroll(function () {
-        var container = $(this);
-        var scroll_diff = container.scrollTop() + container.innerHeight();
-        var scroll_area = container[0].scrollHeight;
+    /**
+     * Handles the scroll event on the file list container.
+     * Loads more files when the user scrolls to the bottom of the container.
+     */
+    let scrolling = false,
+        scrollDiffBefore = 0;
+    $("#file-list-container").scroll(function () {
+        const container = $(this),
+            maxPage = fileList.getAttribute("data-last-page"),
+            scrollDiff = container.scrollTop() + container.innerHeight();
 
-        if(scroll_diff > scroll_diff_before){
-            scroll_area = container[0].scrollHeight - 50;
+        let page = fileList.getAttribute("data-current-page"),
+            scrollArea = container[0].scrollHeight;
+
+        if (scrollDiff > scrollDiffBefore) {
+            scrollArea = container[0].scrollHeight - 50;
         }
-        scroll_diff_before = scroll_diff;
-        
-        if (scroll_diff >= scroll_area && !scrolling ) {
-            if(page < max_page){
+        scrollDiffBefore = scrollDiff;
+
+        if (scrollDiff >= scrollArea && !scrolling) {
+            if (page < maxPage) {
                 page++;
-                loadMoreFiles();
+
+                // Assign new page
+                page = loadMoreFiles(page);
                 scrolling = true;
             }
         }
     });
 
-    function loadMoreFiles() {
-        $('#loading_file').removeClass('d-none');
+    function loadMoreFiles(page) {
+        const loadingFilesElement = $("#loading-files");
+        loadingFilesElement.removeClass("d-none");
+
         $.ajax({
-            url: "?page=" + page,
+            url: `?page=${page}`,
             type: "get",
             success: function (data) {
                 if (!data) {
-                    $(window).off("scroll"); // Hentikan scroll jika tidak ada data
+                    $(window).off("scroll");
                 } else {
                     $("#file-list").append(data.files);
                 }
                 scrolling = false;
-                $('#loading_file').addClass('d-none');
+                loadingFilesElement.addClass("d-none");
             },
-            error: function (data) {
-                page--
-            },
+            error: () => page--,
         });
+
+        return page;
     }
 
     const paginationFileWarapper = document.querySelector(
@@ -163,35 +175,33 @@ const uploadQueue = new UploadQueueManager({
     const uploadZone = document.getElementById("upload-zone");
     const fileInput = document.getElementById("file-input");
 
-    if(uploadZone && fileInput){
-        uploadZone.addEventListener("click", () => fileInput.click());
-    
-        uploadZone.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = "var(--primary-color)";
-            uploadZone.style.backgroundColor = "rgba(13, 110, 253, 0.05)";
-        });
-    
-        uploadZone.addEventListener("dragleave", (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = "#dee2e6";
-            uploadZone.style.backgroundColor = "transparent";
-        });
-    
-        uploadZone.addEventListener("drop", (e) => {
-            e.preventDefault();
-            uploadZone.style.borderColor = "#dee2e6";
-            uploadZone.style.backgroundColor = "transparent";
-            handleFiles(e.dataTransfer.files);
-        });
-    
-        fileInput.addEventListener("change", (e) => {
-            handleFiles(e.target.files);
-    
-            // Reset file input
-            fileInput.value = "";
-        });
-    }
+    uploadZone.addEventListener("click", () => fileInput.click());
+
+    uploadZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = "var(--primary-color)";
+        uploadZone.style.backgroundColor = "rgba(13, 110, 253, 0.05)";
+    });
+
+    uploadZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = "#dee2e6";
+        uploadZone.style.backgroundColor = "transparent";
+    });
+
+    uploadZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = "#dee2e6";
+        uploadZone.style.backgroundColor = "transparent";
+        handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        handleFiles(e.target.files);
+
+        // Reset file input
+        fileInput.value = "";
+    });
 
     // files action
     $("#modal-files").on("shown.bs.modal", (event) => {
@@ -242,41 +252,66 @@ const uploadQueue = new UploadQueueManager({
     );
 
     if (formCollectingData) {
+        const MAX_SELECTED_FILE_TO_INSERTING = 15;
         const btnCollectingData = formCollectingData.querySelector(
             "button[type=submit]"
+        );
+
+        const selectedStatus = formCollectingData.querySelector(
+            ".file-list .selected-counter span"
         );
 
         fileList.addEventListener("change", function (event) {
             const element = event.target;
 
             if (
-                element.classList.contains("cbx-file-id") &&
+                element.classList.contains("cbx-file") &&
                 element.tagName === "INPUT" &&
                 element.type === "checkbox" &&
                 element.closest("#file-list")
             ) {
-                const checkboxList = fileList.querySelectorAll(
-                    ".cbx-file-id:checked"
+                const checkboxCheckedList =
+                    fileList.querySelectorAll(".cbx-file:checked");
+                const checkboxUnCheckedList = fileList.querySelectorAll(
+                    ".cbx-file:not(:checked)"
                 );
 
-                if (checkboxList.length > 0) {
+                const updateSelectedStatus = (numberOfElements) =>
+                    (selectedStatus.textContent = `Selected file ${numberOfElements} out of 15 (maximum for inserting data)`);
+
+                // Disable all checkbox if selected file is reached 15
+                if (checkboxCheckedList.length === 15) {
+                    checkboxUnCheckedList.forEach((element) => {
+                        element.disabled = true;
+                    });
+                } else {
+                    checkboxUnCheckedList.forEach((element) => {
+                        element.disabled = false;
+                    });
+                }
+
+                if (checkboxCheckedList.length > 0) {
                     btnCollectingData.disabled = false;
+
+                    updateSelectedStatus(checkboxCheckedList.length);
                 } else {
                     btnCollectingData.disabled = true;
+
+                    updateSelectedStatus(checkboxCheckedList.length);
                 }
             }
         });
     }
 
-    $('#delete_option').on('show.bs.modal', function(e){
+    $("#delete_option").on("show.bs.modal", function (e) {
         var button = $(e.relatedTarget);
-        var keep_btn = $(this).find('#keep-btn');
-        var erase_btn = $(this).find('#erase-btn');
-    
-        var link_keep = `${keep_btn.data('url')}?file=${button.data('file')}`
-        var link_erase = `${erase_btn.data('url')}?file=${button.data('file')}`
-    
-        keep_btn.attr('href', link_keep)
-        erase_btn.attr('href', link_erase)
-    })
+        var keep_btn = $(this).find("#keep-btn");
+        var erase_btn = $(this).find("#erase-btn");
+
+        var link_keep = `${keep_btn.data("url")}?file=${button.data("file")}`;
+        var link_erase = `${erase_btn.data("url")}?file=${button.data("file")}`;
+
+        keep_btn.attr("href", link_keep);
+        erase_btn.attr("href", link_erase);
+    });
 })();

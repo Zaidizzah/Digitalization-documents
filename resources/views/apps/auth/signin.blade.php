@@ -80,10 +80,8 @@
         <script src="{{ asset('assets/vali-admin-master/js/jquery-3.7.0.min.js') }}"></script>
         <script src="{{ asset('assets/vali-admin-master/js/bootstrap.min.js') }}"></script>
         <script src="{{ asset('assets/vali-admin-master/js/main.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('resources/plugins/imgpreview/js/imgpreview.js') }}"></script>
         <!-- The Application javascripts -->
         <script type="text/javascript" src="{{ asset('resources/apps/main/js/scripts.js') }}"></script>
-        <script type="text/javascript">
-            INITIALIZE_TOOLTIPS();
-        </script>
     </body>
 </html>

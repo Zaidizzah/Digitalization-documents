@@ -1,7 +1,7 @@
 <nav class="nav-container mb-3" id="document-menu">
     <ul class="nav-menu">
         <li class="nav-item">
-            <a href="{{ route('documents.browse', $document_type->name) }}" class="nav-link {{ set_active('documents.browse') }}" aria-label="Browse data of documents {{ $document_type->name }}" title="Browse data of documents {{ $document_type->name }}">
+            <a href="{{ route('documents.browse', $document_type->name) }}" class="nav-link {{ set_active('documents.browse', 'documents.data.edit') }}" title="Browse data of documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
                 </svg>
@@ -19,7 +19,7 @@
             </li>
         @endcan
         <li class="nav-item">
-            <a href="{{ route('documents.files.index', $document_type->name) }}" class="nav-link {{ set_active('documents.files.*') }}" aria-label="Manage files for documents {{ $document_type->name }}" title="Manage files for documents {{ $document_type->name }}">
+            <a href="{{ route('documents.files.index', $document_type->name) }}" class="nav-link {{ set_active('documents.files.*') }}" title="Manage files for documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z"/>
                 </svg>

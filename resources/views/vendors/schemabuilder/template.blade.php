@@ -57,6 +57,7 @@
                     role="button"
                     tabindex="-1"
                     class="btn btn-outline-primary btn-sm btn-icon toggle-rules"
+                    title="Button: to toggle display of attribute section"
                     >
                     <i class="bi bi-gear"></i>
                     </button>
@@ -65,6 +66,7 @@
                     role="button"
                     tabindex="-1"
                     class="btn btn-outline-danger btn-sm btn-icon delete-attribute"
+                    title="Button: to delete attribute section"
                     >
                     <i class="bi bi-trash"></i>
                     </button>

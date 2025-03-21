@@ -80,6 +80,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
         Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
 
+        // Get result of file content in create action
+        Route::post('/documents/{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize');
+
         /*
         |--------------------------------------------------------------------------
         | Route for handle the schema attributes

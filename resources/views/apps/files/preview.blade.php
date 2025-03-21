@@ -24,16 +24,16 @@
 
                         @if (in_array($file->extension, ['jpg', 'jpeg', 'png', 'webp']))
                             <!-- Image preview -->
-                            <img src="{{ route('documents.files.content', $file->encrypted_name) }}" id="file-preview-image" class="file-preview-image img-fluid" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" loading="lazy" alt="{{ "{$file->name}.{$file->extension}" }}">
+                            <img src="{{ route('documents.files.content', $file->encrypted_name) }}" class="file-preview-image img-fluid" id="file-preview-image" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" loading="lazy" alt="{{ "{$file->name}.{$file->extension}" }}">
                         @else
                             <!-- PDF preview -->
-                            <div id="file-preview-pdf" class="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" data-title="{{ "{$file->name}.{$file->extension}" }}" data-url-preview="{{ route('documents.files.content', $file->encrypted_name) }}"></div>
+                            <div class="file-preview-pdf" id="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" data-title="{{ "{$file->name}.{$file->extension}" }}" data-url-preview="{{ route('documents.files.content', $file->encrypted_name) }}"></div>
                         @endif
 
                     </div>
                 </div>
                 <div class="tile-footer">
-                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.download', ['file' => $file->encrypted_name]) }}" role="button" class="btn btn-primary btn-sm" aria-label="Button: to download file {{ "{$file->name}.{$file->extension}" }}" title="Button: to download file {{ "{$file->name}.{$file->extension}" }}"><i class="bi bi-download fs-5"></i> Download</a>
+                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.download', ['file' => $file->encrypted_name]) }}" role="button" class="btn btn-primary btn-sm" title="Button: to download file {{ "{$file->name}.{$file->extension}" }}"><i class="bi bi-download fs-5"></i> Download</a>
                 </div>
             </div>
         </div>

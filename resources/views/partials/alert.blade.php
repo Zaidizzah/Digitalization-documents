@@ -4,7 +4,7 @@
             <div class="toast bs-shadow error fade show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="15000">
                 <div class="toast-header">
                     <strong class="me-auto">Error!</strong>
-                    <button type="button" class="btn-close bg-light-subtle" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <button type="button" class="btn-close bg-light-subtle" title="Close toast" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body">
                     <p class="paragraph">{!! $error !!}</p>

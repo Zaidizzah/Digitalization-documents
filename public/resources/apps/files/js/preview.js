@@ -1,7 +1,33 @@
 (() => {
     "use strict";
 
-    const pdfContainer = document.getElementById("file-preview-pdf");
+    const filePreviewWrapper = document.getElementById("file-preview-wrapper"),
+        filePreviewImage = document.querySelector(
+            "#file-preview-wrapper #file-preview-image"
+        ),
+        pdfContainer = document.getElementById("file-preview-pdf"),
+        panzoom = Panzoom(filePreviewWrapper, {
+            maxScale: 5,
+            minScale: 0.5,
+            contain: "outside",
+        });
+
+    if (filePreviewWrapper) {
+        if (filePreviewImage) {
+            panzoom.pan(10, 10);
+            filePreviewImage.addEventListener(
+                "wheel",
+                function (event) {
+                    event.preventDefault();
+                    panzoom.zoomWithWheel(event);
+                },
+                { passive: false }
+            );
+        } else {
+            panzoom.destroy();
+            panzoom.setStyle("cursor", "default");
+        }
+    }
 
     if (pdfContainer) {
         const pdfPreviewUrl = pdfContainer.getAttribute("data-url-preview"),

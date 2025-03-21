@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Exports\TableExport;
 use App\Imports\TableImport;
 use Illuminate\Http\Request;
+use App\Http\Controllers\FileController;
 use App\Models\DocumentType;
 use App\Models\File as FileModel;
 use App\Traits\ApiResponse;
 use App\Services\SchemaBuilder;
 use App\Services\OcrService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -20,12 +22,58 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Validation\Rules\File as FileRule;
 
-class DocumentTypeActionController extends Controller
+class DocumentTypeActionController extends FileController
 {
+    use ApiResponse;
+
     private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
     private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
     private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp';
+
+    /**
+     * Handle file upload and recognition using OCR.
+     *
+     * This function receives a file from the request, uploads it temporarily to the server,
+     * processes it using OCR to extract text, and then deletes the temporary file.
+     * If the upload or OCR process fails, an error response is returned.
+     *
+     * @param \Illuminate\Http\Request $req The HTTP request containing the file to be recognized.
+     * @return \Illuminate\Http\Response A JSON response with recognition results or an error message.
+     */
+    public function recognize_file_client(Request $req)
+    {
+        if (!$req->hasFile('file') || empty($req->file('file'))) {
+            return $this->error_response("File not found", null, Response::HTTP_NOT_FOUND);
+        }
+
+        $file = $req->file('file');
+
+        // This process only: store the file temporarily on the server then the file enters the recognizing / OCR process after completion delete the related file and send the results
+        $file_name = $file->getClientOriginalName();
+        $stored_file = Storage::disk('local')->put(self::PARENT_OF_TEMP_FILES_DIRECTORY, $file);
+
+        if (is_bool($stored_file) && $stored_file === false) {
+            return $this->error_response("Sorry, we couldn't upload file: '{$file_name}'. Please try again.", null, Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        try {
+            $OCR_result = OcrService::process_file($stored_file, $file_name);
+
+            // delete uploaded file
+            if (Storage::disk('local')->exists($stored_file)) Storage::disk('local')->delete($stored_file);
+
+            return $this->success_response("File: {$file_name} has been recognized successfully.", [
+                'result' => $OCR_result
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            // delete uploaded file
+            if (Storage::disk('local')->exists($stored_file)) Storage::disk('local')->delete($stored_file);
+
+            return $this->error_response($e->getMessage(), null, Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 
     /**
      * Display the specified resource.
@@ -85,6 +133,10 @@ class DocumentTypeActionController extends Controller
             [
                 [
                     'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ],
+                [
+                    'href' => 'browse.css',
                     'base_path' => asset('/resources/apps/documents/css/')
                 ]
             ]
@@ -216,6 +268,71 @@ class DocumentTypeActionController extends Controller
         return view('apps.documents.settings', $resources);
     }
 
+    /**
+     * Creates an HTML element for displaying the extraction result of a file.
+     *
+     * This function creates an HTML element that displays the extraction result of a file.
+     * The element consists of a header with the file name and the extraction result.
+     * The extraction result is wrapped in a paragraph element and escaped using htmlspecialchars.
+     * The element also includes a copy button that copies the extraction result to the clipboard.
+     *
+     * @param string $file_name The name of the file to display.
+     * @param string $OCR_result The extraction result of the file.
+     * @return string The HTML element for displaying the extraction result of the file.
+     */
+    private function create_atachment_file_element(string $file_name, string $OCR_result)
+    {
+        if (empty($OCR_result)) {
+            $OCR_result = '<div class="empty-state">No text detected.</div>';
+        } else {
+            $OCR_result = nl2br(htmlspecialchars($OCR_result, ENT_QUOTES, 'UTF-8'));
+        }
+
+        return <<<HTML
+                <!-- Atachment file -->
+                <div class="extraction-container" aria-label="Atachment file extraction container" aria-labelledby="extraction-container-label">
+                    <div class="extraction-header">
+                        <div class="ex-h-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z"/>
+                                <path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0zm0 1v2A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                            </svg>
+                        </div>
+                        <h2 class="ex-h-title" id="extraction-container-label">Result of extraction document <span class="visually-hidden">file: {$file_name}</span></h2>
+                    </div>
+                    <div class="extraction-body">
+                        <div class="ex-b-title">
+                            <h5>File: {$file_name}</h5>
+                        </div>
+                        <div class="ex-b-result">
+                            {$OCR_result}
+                        </div>
+                        <div class="ex-b-actions">
+                            <button class="btn btn-secondary btn-copy-ex-result" type="button" role="button" title="Button: to copy extraction texts/result from file: {$file_name}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M3.5 2a.5.5 0 0 0-.5.5v12a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-12a.5.5 0 0 0-.5-.5H12a.5.5 0 0 1 0-1h.5A1.5 1.5 0 0 1 14 2.5v12a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 14.5v-12A1.5 1.5 0 0 1 3.5 1H4a.5.5 0 0 1 0 1h-.5Z"/>
+                                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Z"/>
+                                </svg>
+                                Copy to clipboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            HTML;
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * This function handles the creation form for a specified document type. It verifies the existence of the document type
+     * and its associated table and schema. If valid, it prepares the form and necessary resources for rendering the view.
+     * The function also processes file attachments if provided and integrates OCR results into the form.
+     * Appropriate error messages are returned for any validation failures.
+     *
+     * @param Request $request The incoming request object containing form data.
+     * @param string $name The name of the document type.
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     */
     public function create(Request $request, string $name)
     {
         // get document type by name
@@ -234,14 +351,124 @@ class DocumentTypeActionController extends Controller
             return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
-        // $file_attachment = FileModel::where('encrypted_name', $request->file[0])->first();
-
-        // dd(Storage::exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}"));
-
-        // OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$request->file[0]}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
         try {
+            if (!$request->has('file') || empty($request->file)) {
+                // initialze action
+                $action = 'create';
 
-            $form_html = SchemaBuilder::create_form_html($document_type->schema_form, null);
+                $INPUT_FORM_ELEMENT = SchemaBuilder::create_form_html($document_type->schema_form, null, $action);
+
+                $FORM_HTML = "<div class=\"divider\">
+                        <span class=\"divider-text\">File: Not Initialized</span>
+                    </div>
+
+                    <!-- Input field template -->
+                    <template id=\"input-field-template\" aria-label=\"Input field template\" aria-hidden=\"true\">
+                        <div class=\"input-field-wrapper\" id=\"input-field-1\" aria-label=\"Input field 1\">
+                            <span class=\"input-field-title\" aria-labelledby=\"input-field-1\">Input field 1</span>
+                            $INPUT_FORM_ELEMENT
+                        </div>
+                    </template>
+
+                    <!-- Input field template attached file -->
+                    <template id=\"input-field-attached-file-template\" aria-label=\"Input field attached file template\" aria-hidden=\"true\">
+                        <div class=\"input-field-wrapper attached-file\" id=\"input-field-attached-file-1\" aria-label=\"Input field attached file 1\">
+                            <span class=\"input-field-title\" aria-labelledby=\"input-field-attached-file-1\">Input field attached file 1</span>
+                            <div class=\"form-group g-3 mb-3\">
+                                <label for=\"attached-file-1\" class=\"form-label\">File <span class=\"text-danger\">*</span></label>
+                                <div class=\"input-group flex-nowrap\">
+                                    <input type=\"file\" class=\"form-control\" id=\"attached-file-1\" aria-label=\"File\" accept=\"image/png, image/jpg, image/jpeg, image/webp, application/pdf\">
+                                    <button class=\"btn btn-outline-primary btn-ocr-content-file\" type=\"button\" role=\"button\" title=\"Button: to get content result from file (OCR)\"><i class=\"bi bi-file-earmark-text fs-5\"></i> OCR</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class=\"input-fields-container\" id=\"input-field-container-1\" aria-label=\"Input fields container\">
+                        <!-- Input field for file -->
+                        <div class=\"input-field-wrapper attached-file\" id=\"input-field-attached-file-1\" aria-label=\"Input field attached file 1\">
+                            <span class=\"input-field-title\" aria-labelledby=\"input-field-attached-file-1\">Input field attached file 1</span>
+
+                            <!-- Checkbox for ignoring attached file -->
+                            <div class=\"form-check form-switch mb-3\">
+                                <input class=\"form-check-input\" type=\"checkbox\" id=\"ignore-attached-file-1\" aria-label=\"Ignore attached file 1\" aria-required=\"false\">
+                                <label class=\"form-check-label\" for=\"ignore-attached-file-1\">Ignore attached file</label>
+                            </div>
+
+                            <div class=\"attached-file-wrapper form-group g-3 mb-3\">
+                                <label for=\"attached-file-1\" class=\"form-label\">File <span class=\"text-danger\">*</span></label>
+                                <div class=\"input-group flex-nowrap\">
+                                    <input type=\"file\" class=\"form-control attached-file\" name=\"attached_file\" id=\"attached-file-1\" aria-label=\"File\" data-attached-file-id=\"1\" accept=\"image/png, image/jpg, image/jpeg, image/webp, application/pdf\">
+                                    <button class=\"btn btn-outline-primary btn-ocr-content-file\" type=\"button\" role=\"button\" disabled title=\"Button: to get content result from file (OCR)\"><i class=\"bi bi-file-earmark-text fs-5\"></i> OCR</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class=\"input-field-wrapper\" id=\"input-field-1\" aria-label=\"Input field 1\">
+                            <span class=\"input-field-title\" aria-labelledby=\"input-field-1\">Input field 1</span>
+
+                            <!-- Input for initializing relation to attached file for upcoming feature -->
+                            <input type=\"hidden\" name=\"attached_file_id\" disable value=\"1\">
+
+                            $INPUT_FORM_ELEMENT
+                        </div>
+
+                        <div class=\"button-actions\" aria-label=\"Button actions for input field 1 container\">
+                            <!-- Button for adding new input field for data file -->
+                            <button type=\"button\" role=\"button\" class=\"btn btn-primary btn-sm float-end btn-add-input-field\" data-template-id=\"input-field-template\" title=\"Button: to adding new input field\"><i class=\"bi bi-plus-square fs-5\"></i> New</button> 
+                        </div>
+                    </div>"; // TODO: Upcoming feature is user can added multiple files and multiple data's from each file, TODO: first action is remove disable attribut form input file at top this code.
+            } else {
+                // initialze action
+                $action = 'insert';
+
+                $file_attachment = FileModel::without('document_type')->whereIn('encrypted_name', $request->file)->get();
+
+                if ($file_attachment->isEmpty()) throw new \InvalidArgumentException("Sorry, we couldn't find file for document type '$name', please upload file for this document type and try again.", Response::HTTP_NOT_FOUND);
+
+                // create an element of from with input field and atachement file extraction result
+                $index = 1;
+                $FORM_HTML = "";
+                foreach ($file_attachment as $file) {
+                    $INPUT_FORM_ELEMENT = SchemaBuilder::create_form_html($document_type->schema_form, null, $action, $file->id);
+                    $TEMPLATE_FORM_ELEMENT = preg_replace_callback(
+                        '/\sname=["\']?([^"\']+)["\']?/i',
+                        function ($matches) {
+                            // $matches[1] is the value of name before
+                            return ' data-name="' . $matches[1] . '" disabled';
+                        },
+                        $INPUT_FORM_ELEMENT
+                    );
+                    $FORM_HTML .= "<div class=\"divider\">
+                            <span class=\"divider-text\">File: {$file->name}.{$file->extension}</span>
+                        </div>";
+
+                    $response = OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$file->encrypted_name}.{$file->extension}", "{$file->name}.{$file->extension}");
+
+                    $FORM_HTML .= $this->create_atachment_file_element("{$file->name}.{$file->extension}", $response['text']);
+                    $FORM_HTML .= "<div class=\"input-fields-container\" id=\"input-field-container-$index\" aria-label=\"Input fields container\">
+                            <!-- Input field template -->
+                            <template id=\"input-field-$index-template\" aria-label=\"Input field $index template\" aria-hidden=\"true\">
+                                <div class=\"input-field-wrapper\" aria-label=\"Input field $index\">
+                                    <span class=\"input-field-title\">Input field $index</span>
+                                    $TEMPLATE_FORM_ELEMENT
+                                </div>
+                            </template>
+
+                            <div class=\"input-field-wrapper\" id=\"input-field-$index\" aria-label=\"Input field $index\">
+                                <span class=\"input-field-title\">Input field $index</span>
+                                $INPUT_FORM_ELEMENT
+                            </div>
+
+                            <!-- Button for adding new input field for data file -->
+                            <div class=\"button-actions\" aria-label=\"Button actions for input field $index container\">
+                                <button type=\"button\" role=\"button\" class=\"btn btn-primary btn-sm float-end btn-add-input-field\" data-template-id=\"input-field-$index-template\" title=\"Button: to adding new input field\"><i class=\"bi bi-plus-square fs-5\"></i> New</button>
+                            </div>
+                        </div>";
+
+                    $index++;
+                }
+            }
         } catch (\Exception $e) {
             return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
@@ -267,18 +494,49 @@ class DocumentTypeActionController extends Controller
                     'base_path' => asset('/resources/apps/documents/css/')
                 ],
                 [
-                    'href' => 'insert.data.css',
+                    'href' => 'insert-update-data.css',
                     'base_path' => asset('/resources/apps/documents/css/')
+                ]
+            ],
+            [
+                [
+                    'src' => 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs'
+                ],
+                [
+                    'src' => 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.111/pdf.min.js'
+                ],
+                [
+                    'src' => 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js'
+                ],
+                [
+                    'src' => 'insert-data.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
                 ]
             ]
         );
 
         $resources['document_type'] = $document_type;
-        $resources['form_html'] = $form_html;
+        $resources['form_html'] = $FORM_HTML;
+        $resources['action'] = $action;
+        $resources['recognize_url'] = route('documents.data.recognize', $name);
 
         return view('apps.documents.insert', $resources);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * This function validates the request data and retrieves the document type by its name.
+     * It checks if the table for the document type exists and if the schema for the document type is not corrupted.
+     * The function also handles potential exceptions and provides appropriate error messages.
+     * The function validates the request data and checks if the schema for the document type is not corrupted.
+     * It inserts the validated data to the table for the document type and provides a success message.
+     *
+     * @param \Illuminate\Http\Request $request The HTTP request containing document type data.
+     * @param string $name The name of the document type.
+     * @return \Illuminate\Http\RedirectResponse Redirects to the document types index or creation page
+     *                                           with an appropriate message based on the outcome.
+     */
     public function store(Request $request, string $name)
     {
         // get document type by name
@@ -308,50 +566,126 @@ class DocumentTypeActionController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+            $request_data = $request->only([...$columns_name, 'file_id']);
             $validation_rules = SchemaBuilder::get_validation_rules_from_schema($document_type->table_name, $document_type->schema_form, $columns_name);
-        } catch (\Exception $e) {
-            return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
-        }
 
-        if (is_bool($validation_rules) && !$validation_rules) {
-            return redirect()->back()->with('message', toast("Sorry, schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", 'error'));
-        }
+            if (is_bool($validation_rules) && !$validation_rules) {
+                throw new \RuntimeException("schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", Response::HTTP_PRECONDITION_FAILED);
+            }
 
-        // add validation rules for file_id
-        $validation_rules['file_id'] = 'nullable|exists:files,id';
+            // add validation rules for file_id
+            $validation_rules['file_id.*'] = 'nullable|exists:files,id';
 
-        // get and validate data from table document type
-        $validator = Validator::make($request->only([...$columns_name, 'file_id']), $validation_rules);
-
-        if ($validator->fails()) {
-            return redirect()->back()->with('message', toast("Invalid creating document type '$name' data, please fill the form correctly.", 'error'))->withInput()->withErrors($validator);
-        }
-
-        $validated = $validator->validated();
-
-        // compare list attribute rule with validated data
-        foreach ($document_type->schema_form as $attribute) {
-            $key = $attribute['name'];
-            if (Arr::has($validated, $key)) {
-                if ($attribute['type'] === 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
-                    $validated[$key] = $attribute['rules']['defaultValue'];
-                } elseif ($attribute['type'] !== 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
-                    $validated[$key] = $attribute['rules']['defaultValue'];
+            foreach ($validation_rules as $rule => $value) {
+                if ($rule !== 'file_id.*') {
+                    // add new array with new key name
+                    $validation_rules["$rule.*"] = $value;
+                    // delete current array
+                    unset($validation_rules[$rule]);
                 }
             }
-        }
 
-        // insert data to table document type
-        $result = DB::table($document_type->table_name)->insert($validated);
+            // Create custom attribute for better message in client side
+            $attribute_names = [];
+            foreach ($columns_name as $column) {
+                if (Arr::has($request_data, $column) && is_array($request_data[$column])) {
+                    foreach ($request_data[$column] as $index => $value) {
+                        $attribute_names["$column.$index"] = ucfirst(str_replace('_', ' ', $column)) . " Field " . ($index + 1);
+                    }
+                }
+            }
 
-        if ($result) {
+            // get and validate data from table document type
+            $validator = Validator::make($request_data, $validation_rules);
+            $validator->setAttributeNames($attribute_names);
+
+            if ($validator->fails()) {
+                return redirect()->back()->with('message', toast("Invalid creating document type '$name' data, please fill the form correctly.", 'error'))->withErrors($validator);
+            }
+
+            $validated = $validator->validated();
+
+            // compare list attribute rule with validated data
+            foreach ($document_type->schema_form as $attribute) {
+                $key = $attribute['name'];
+
+                if (Arr::has($validated, $key)) {
+                    $value = $validated[$key];
+
+                    if (is_array($value)) {
+                        foreach ($value as $index => $item) {
+                            if (!$attribute['required'] && Arr::has($attribute, 'rules.defaultValue') && (is_null($item) || $item === '')) {
+                                $value[$index] = $attribute['rules']['defaultValue'];
+                            }
+                        }
+                    } else {
+                        if (!$attribute['required'] && Arr::has($attribute, 'rules.defaultValue') && (is_null($value) || $value === '')) {
+                            $value = $attribute['rules']['defaultValue'];
+                        }
+                    }
+
+                    $validated[$key] = $value;
+                }
+            }
+
+            if ($request->hasFile('attached_file')) {
+                // validate request
+                $validator = Validator::make($request->only(['attached_file']), [
+                    'attached_file' => FileRule::types(['pdf', 'png', 'jpg', 'jpeg', 'webp'])->max(20 * 1024 * 1024)
+                ]);
+
+                if ($validator->fails()) {
+                    return redirect()->back()->with('message', toast("File is invalid value, failed to upload file. Please try again."))->withErrors($validator);
+                }
+
+                list($FILE, $STORED_PATH, $FILE_MODEL) = $this->process_file('attached_file', $request, $name, $document_type);
+            }
+
+            // insert data to table document type
+            $data = array_map(function ($index) use ($validated) {
+                return array_combine(array_keys($validated), array_column($validated, $index));
+            }, range(0, count(reset($validated)) - 1));
+
+            // For create action
+            if (isset($FILE_MODEL)) {
+                for ($i = 0; $i < count($data); $i++) {
+                    $data[$i]['file_id'] = $FILE_MODEL->id ?? null;
+                }
+            }
+
+            // Insert all data and commit transaction
+            DB::table($document_type->table_name)->insert($data);
+            DB::commit();
+
             return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
-        } else {
-            return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
+        } catch (\Exception $e) {
+            // rollback if any error occur
+            if (DB::transactionLevel() > 0) DB::rollBack();
+
+            // delete uploaded file
+            if (isset($STORED_PATH) && is_string($STORED_PATH) && Storage::disk('local')->exists($STORED_PATH)) Storage::disk('local')->delete($STORED_PATH);
+
+            return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
         }
     }
 
-    //edit (tulung gawekna dokumentasine :) )
+
+    /**
+     * Show the form for editing the specified document type data.
+     *
+     * This function retrieves and prepares the necessary data for editing a specific record
+     * of a document type. It validates the existence of the document type, ensures the
+     * associated table and schema are present, and generates the HTML form for editing
+     * the record. If any errors occur during these processes, appropriate error messages
+     * are generated.
+     *
+     * @param \Illuminate\Http\Request $request The HTTP request instance.
+     * @param string $name The name of the document type to edit.
+     * @param mixed $id The ID of the record to edit.
+     *
+     * @return \Illuminate\Contracts\View\View Returns the view with the form HTML and document type data.
+     */
     public function edit(Request $request, string $name, $id)
     {
         // get document type by name
@@ -370,11 +704,126 @@ class DocumentTypeActionController extends Controller
             return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
-        $file_data = DB::table($document_type->table_name)->where('id', $id)->get()->firstOrFail();
+        // get relevant of document type data
+        $document_type_data = DB::table($document_type->table_name)->where('id', $id)->get()->firstOrFail();
 
-        $form_html = SchemaBuilder::create_form_html($document_type->schema_form, $file_data);
+        $file_attachment = FileModel::where('id', $document_type_data->file_id)->first();
+
+        // check if file exists
+        if (empty($file_attachment)) return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find file for this document type data, please try again.", 'error'));
+
         try {
-            // dd($file_data);
+            // initialze action
+            $action = 'update';
+
+            // get form html to updating data
+            $INPUT_FORM_ELEMENT = SchemaBuilder::create_form_html($document_type->schema_form, $document_type_data, $action);
+            $TEMPLATE_FORM_ELEMENT = preg_replace_callback(
+                '/\sname=["\']?([^"\']+)["\']?/i',
+                function ($matches) {
+                    // $matches[1] is the value of name before
+                    return ' data-name="' . $matches[1] . '" disabled';
+                },
+                $INPUT_FORM_ELEMENT
+            );
+
+            // delete value of each attribute in field input 'input', 'textarea', 'select' - (If select reset option to default value or select option has empty value)
+            $RESET_FORM_ELEMENT = function ($TEMPLATE_FORM_ELEMENT) {
+                $TEMPLATE_FORM_ELEMENT = preg_replace_callback(
+                    '/(<select[^>]*>)(.*?)(<\/select>)/is',
+                    function ($matches) {
+                        $select_tag = $matches[1]; // Opening tag <select>
+                        $options = $matches[2];   // Options <select> ... </select>
+                        $closing_tag = $matches[3]; // Closing tag </select>
+
+                        // Delete selected attribute from options
+                        $options = preg_replace('/\s+selected(?:=["\']?[^"\']*["\']?)?/i', '', $options);
+
+                        if (preg_match('/<option\s+value=["\']?["\']?\s*(?!disabled)[^>]*>/i', $options)) {
+                            // Check if there is an option with an empty value (and not disabled)
+                            $options = preg_replace('/(<option\s+value=["\']?["\']?\s*(?!disabled)[^>]*)(>)/i', '$1 selected$2', $options, 1);
+                        } else {
+                            // Check if there is an option with a value and not disabled
+                            if (preg_match('/(<option[^>]*(?!disabled)[^>]*)(>)/i', $options, $first_option)) {
+                                $position = strpos($options, $first_option[0]);
+                                $replacement = str_replace('>', ' selected>', $first_option[0]);
+                                $options = substr_replace(
+                                    $options,
+                                    $replacement,
+                                    $position,
+                                    strlen($first_option[0])
+                                );
+                            }
+                        }
+
+                        return "{$select_tag}{$options}{$closing_tag}";
+                    },
+                    $TEMPLATE_FORM_ELEMENT
+                );
+                $TEMPLATE_FORM_ELEMENT = preg_replace_callback(
+                    '/<input\s+([^>]*?)(\s*\/?>)/is',
+                    function ($matches) {
+                        $attributes = $matches[1];
+                        $closing = $matches[2];
+
+                        $type = '';
+                        if (preg_match('/type=["\']?([^"\'\s>]+)["\']?/i', $attributes, $type_match)) {
+                            $type = strtolower($type_match[1]);
+                        }
+
+                        // If type is checkbox, radio, submit, button, or hidden, don't change
+                        $excluded_types = ['checkbox', 'radio', 'submit', 'button'];
+                        if (in_array($type, $excluded_types)) {
+                            return "<input {$attributes}{$closing}";
+                        }
+
+                        // Delete value attribute from attributes if it exists
+                        $attributes = preg_replace('/\s+value=["\']?[^"\']*["\']?/i', '', $attributes);
+
+                        return "<input {$attributes} value=\"\"{$closing}";
+                    },
+                    $TEMPLATE_FORM_ELEMENT
+                );
+                $TEMPLATE_FORM_ELEMENT = preg_replace_callback(
+                    '/(<textarea[^>]*>)(.*?)(<\/textarea>)/is',
+                    function ($matches) {
+                        $textarea_tag = $matches[1]; // Opening tag <textarea>
+                        $closing_tag = $matches[3]; // Closing tag </textarea>
+
+                        // Remove value from textarea
+                        return "{$textarea_tag}{$closing_tag}";
+                    },
+                    $TEMPLATE_FORM_ELEMENT
+                );
+
+                return $TEMPLATE_FORM_ELEMENT;
+            };
+
+            $FORM_HTML = "<div class=\"divider\">
+                            <span class=\"divider-text\">File: {$file_attachment->name}.{$file_attachment->extension}</span>
+                        </div>";
+
+            $response = OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$file_attachment->encrypted_name}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
+
+            $FORM_HTML .= $this->create_atachment_file_element("{$file_attachment->name}.{$file_attachment->extension}", $response['text']);
+            $FORM_HTML .= "<!-- Input field template -->
+                    <template id=\"input-field-template\" aria-label=\"Input field template\" aria-hidden=\"true\">
+                        <div class=\"input-field-wrapper\" id=\"input-field-1\" data-action=\"insert\" aria-label=\"Input field 1\">
+                            <span class=\"input-field-title\" aria-labelledby=\"input-field-1\">Input field 1</span>
+                            {$RESET_FORM_ELEMENT($TEMPLATE_FORM_ELEMENT)}
+                        </div>
+                    </template>
+                    <div class=\"input-fields-container\" id=\"input-field-container-1\" aria-label=\"Input fields container\">
+                        <div class=\"input-field-wrapper\" id=\"input-field-1\" data-action=\"update\" aria-label=\"Input field 1\">
+                            <span class=\"input-field-title\">Input field 1</span>
+                            $INPUT_FORM_ELEMENT
+                        </div>
+
+                        <div class=\"button-actions\" aria-label=\"Button actions for input field 1 container\">
+                            <!-- Button for adding new input field for data file -->
+                            <button type=\"button\" role=\"button\" class=\"btn btn-primary btn-sm float-end btn-add-input-field\" data-template-id=\"input-field-template\" title=\"Button: to adding new input field\"><i class=\"bi bi-plus-square fs-5\"></i> New</button> 
+                        </div>
+                    </div>";
         } catch (\Exception $e) {
             return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
         }
@@ -398,18 +847,41 @@ class DocumentTypeActionController extends Controller
                 [
                     'href' => 'menu.css',
                     'base_path' => asset('/resources/apps/documents/css/')
+                ],
+                [
+                    'href' => 'insert-update-data.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ]
+            ],
+            [
+                [
+                    'src' => 'edit-data.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
                 ]
             ]
         );
 
         $resources['id'] = $id;
         $resources['document_type'] = $document_type;
-        $resources['form_html'] = $form_html;
+        $resources['form_html'] = $FORM_HTML;
+        $resources['action'] = $action;
 
         return view('apps.documents.edit', $resources);
     }
 
-    // Be caution unstable!!!
+    /**
+     * Handle an incoming request to update data in the document type.
+     *
+     * This function validates the data from the request and updates the document type
+     * if the data is valid. If the data is invalid, it displays an error message and
+     * redirects back with the input data.
+     *
+     * @param \Illuminate\Http\Request $request The HTTP request containing the data to update.
+     * @param string $name The name of the document type to update.
+     * @param int $id The ID of the record to update.
+     *
+     * @return \Illuminate\Http\RedirectResponse Redirects back with a success or error message.
+     */
     public function update(Request $request, string $name, $id)
     {
         // get document type by name
@@ -439,46 +911,87 @@ class DocumentTypeActionController extends Controller
         }
 
         try {
-            $validation_rules = SchemaBuilder::get_validation_rules_from_schema($document_type->table_name, $document_type->schema_form, $columns_name);
-        } catch (\Exception $e) {
-            return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
-        }
+            DB::beginTransaction();
+            $request_data = $request->only([...$columns_name, 'id']);
+            $validation_rules = SchemaBuilder::get_validation_rules_from_schema($document_type->table_name, $document_type->schema_form, $columns_name, $request->id[0]);
 
-        if (is_bool($validation_rules) && !$validation_rules) {
-            return redirect()->back()->with('message', toast("Sorry, schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", 'error'));
-        }
+            if (is_bool($validation_rules) && !$validation_rules) {
+                throw new \RuntimeException("schema for document type '$name' is corrupted, please update or recreate schema for document type '$name' and try again.", Response::HTTP_PRECONDITION_FAILED);
+            }
 
-        // add validation rules for file_id
-        $validation_rules['file_id'] = 'nullable|exists:files,id';
+            // add validation rules for file_id
+            $validation_rules['id.*'] = "nullable|exists:{$document_type->table_name},id";
 
-        // get and validate data from table document type
-        $validator = Validator::make($request->only([...$columns_name, 'file_id']), $validation_rules);
-
-        if ($validator->fails()) {
-            return redirect()->back()->with('message', toast("Invalid creating document type '$name' data, please fill the form correctly.", 'error'))->withInput()->withErrors($validator);
-        }
-
-        $validated = $validator->validated();
-
-        // compare list attribute rule with validated data
-        foreach ($document_type->schema_form as $attribute) {
-            $key = $attribute['name'];
-            if (Arr::has($validated, $key)) {
-                if ($attribute['type'] === 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
-                    $validated[$key] = $attribute['rules']['defaultValue'];
-                } elseif ($attribute['type'] !== 'select' && $attribute['required'] === false && isset($attribute['rules']['defaultValue']) && $validated[$key] === null) {
-                    $validated[$key] = $attribute['rules']['defaultValue'];
+            foreach ($validation_rules as $rule => $value) {
+                if ($rule !== 'id.*') {
+                    // add new array with new key name
+                    $validation_rules["$rule.*"] = $value;
+                    // delete current array
+                    unset($validation_rules[$rule]);
                 }
             }
-        }
 
-        // insert data to table document type
-        $result = DB::table($document_type->table_name)->where('id', $id)->update($validated);
+            // Create custom attribute for better message in client side
+            $attribute_names = [];
+            foreach ($columns_name as $column) {
+                if (Arr::has($request_data, $column) && is_array($request_data[$column])) {
+                    foreach ($request_data[$column] as $index => $value) {
+                        $attribute_names["$column.$index"] = ucfirst(str_replace('_', ' ', $column)) . " Field " . ($index + 1);
+                    }
+                }
+            }
 
-        if ($result) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
-        } else {
-            return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
+            // get and validate data from table document type
+            $validator = Validator::make($request_data, $validation_rules);
+            $validator->setAttributeNames($attribute_names);
+
+            if ($validator->fails()) {
+                return redirect()->back()->with('message', toast("Invalid updating document type '$name' data, please fill the form correctly.", 'error'))->withErrors($validator);
+            }
+
+            $validated = $validator->validated();
+
+            // compare list attribute rule with validated data
+            foreach ($document_type->schema_form as $attribute) {
+                $key = $attribute['name'];
+
+                if (Arr::has($validated, $key)) {
+                    $value = $validated[$key];
+
+                    if (is_array($value)) {
+                        foreach ($value as $index => $item) {
+                            if (!$attribute['required'] && Arr::has($attribute, 'rules.defaultValue') && (is_null($item) || $item === '')) {
+                                $value[$index] = $attribute['rules']['defaultValue'];
+                            }
+                        }
+                    } else {
+                        if (!$attribute['required'] && Arr::has($attribute, 'rules.defaultValue') && (is_null($value) || $value === '')) {
+                            $value = $attribute['rules']['defaultValue'];
+                        }
+                    }
+
+                    $validated[$key] = $value;
+                }
+            }
+
+            // insert data to table document type
+            $data = array_map(function ($index) use ($validated) {
+                return array_combine(array_keys($validated), array_column($validated, $index));
+            }, range(0, count(reset($validated)) - 1));
+
+            $result = DB::table($document_type->table_name)->upsert($data, 'id', $columns_name);
+            DB::commit();
+
+            if ($result) {
+                return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
+            } else {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
+            }
+        } catch (\Exception $e) {
+            // rollback if any error occur
+            if (DB::transactionLevel() > 0) DB::rollBack();
+
+            return redirect()->route('documents.data.create', $name)->with('message', toast($e->getMessage(), 'error'))->withInput();
         }
     }
 
@@ -494,21 +1007,21 @@ class DocumentTypeActionController extends Controller
      * @param int $id The id of the document type data to delete.
      * @return \Illuminate\Http\RedirectResponse Redirects to the document type's browse page with a success or error message.
      */
-    public function destroy(string $name, int $id)
+    public function destroy(...$args): RedirectResponse
     {
         // get document type by name
-        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+        $document_type = DocumentType::where('name', $args[0])->where('is_active', 1)->firstOrFail();
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
-            return redirect()->route('documents.index')->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table for document type '$name' and try again.", 'error'));
+            return redirect()->route('documents.index')->with('message', toast("Sorry, we couldn't find table for document type '{$args[0]}', please create a valid table for document type '{$args[0]}' and try again.", 'error'));
         }
 
         // delete data in table
-        if (DB::table($document_type->table_name)->where('id', $id)->delete()) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Data in document type '$name' has been deleted successfully.", 'success'));
+        if (DB::table($document_type->table_name)->where('id', $args[1])->delete()) {
+            return redirect()->route('documents.browse', $args[0])->with('message', toast("Data in document type '{$args[0]}' has been deleted successfully.", 'success'));
         } else {
-            return redirect()->route('documents.browse', $name)->with('message', toast("No data deleted in document type '$name'.", 'error'));
+            return redirect()->route('documents.browse', $args[0])->with('message', toast("No data deleted in document type '{$args[0]}'.", 'error'));
         }
     }
 
@@ -541,24 +1054,25 @@ class DocumentTypeActionController extends Controller
         }
     }
 
-    public function export(Request $req, $document){
+    public function export(Request $req, $document)
+    {
         $table = DocumentType::where('name', $document)->firstOrFail();
-        if(!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
-        
-        return Excel::download(new TableExport($table->table_name), $table->name.'_'.date('Y_m_d_His').'.'.$req->format);
+        if (!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
+
+        return Excel::download(new TableExport($table->table_name), $table->name . '_' . date('Y_m_d_His') . '.' . $req->format);
     }
 
-    public function import(Request $req, $document){
+    public function import(Request $req, $document)
+    {
         $table = DocumentType::where('name', $document)->firstOrFail();
-        
+
         $import = new TableImport($table->table_name, $table->schema_form);
         Excel::import($import, $req->file('data'));
-        
-        if($import->success){
+
+        if ($import->success) {
             return redirect()->back()->with('message', toast('Import Success'));
-        }else{
+        } else {
             return redirect()->back()->withErrors($import->messages);
         }
-
     }
 }

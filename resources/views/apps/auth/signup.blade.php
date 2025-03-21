@@ -69,8 +69,7 @@
                         data-bs-title="Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number. Example: 'Password#3529'"
                         pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,16}$$"
                         minlength="8" maxlength="16"
-                        placeholder="Password" 
-                        aria-label="Password" aria-required="true" 
+                        placeholder="Password" aria-required="true" 
                         autocomplete="new-password"
                         required>
                     </div>
@@ -83,8 +82,7 @@
                         data-bs-title="It must be the same as the password field."
                         pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,16}$$"
                         minlength="8" maxlength="16"
-                        placeholder="Confirm Password" 
-                        aria-label="Confirm Password" aria-required="true" 
+                        placeholder="Confirm Password" aria-required="true" 
                         required>
                     </div>
                     <div class="mb-3">
@@ -106,11 +104,8 @@
         <script src="{{ asset('assets/vali-admin-master/js/jquery-3.7.0.min.js') }}"></script>
         <script src="{{ asset('assets/vali-admin-master/js/bootstrap.min.js') }}"></script>
         <script src="{{ asset('assets/vali-admin-master/js/main.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('resources/plugins/imgpreview/js/imgpreview.js') }}"></script>
         <!-- The Application javascripts -->
         <script type="text/javascript" src="{{ asset('resources/apps/main/js/scripts.js') }}"></script> 
-
-        <script type="text/javascript">
-            INITIALIZE_TOOLTIPS();
-        </script>
     </body>
 </html>

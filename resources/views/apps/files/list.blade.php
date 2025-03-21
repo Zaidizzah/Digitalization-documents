@@ -5,7 +5,7 @@
                 <!-- Checkbox to select file and actions -->
                 <div class="checkbox-wrapper">
                     <div class="cbx">
-                        <input type="checkbox" name="file[]" class="cbx-file-id" id="cbx-{{ $file->id }}" value="{{ $file->encrypted_name }}">
+                        <input type="checkbox" name="file[]" class="cbx-file" id="cbx-{{ $file->id }}" value="{{ $file->encrypted_name }}">
                         <label for="cbx-{{ $file->id }}"></label>
                         <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
                             <path d="M2 8.36364L6.23077 12L13 2"></path>

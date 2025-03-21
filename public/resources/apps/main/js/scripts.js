@@ -195,4 +195,28 @@
             .replace(/'/g, "\\'")
             .replace(/"/g, '\\"');
     };
+
+    /**
+     * Escapes special characters in a string to prevent XSS attacks.
+     *
+     * This function replaces characters like ampersands, angle brackets, quotes,
+     * and single quotes with their corresponding HTML entities.
+     *
+     * @param {string} str - The string to be escaped.
+     * @return {string} The escaped string with HTML entities.
+     */
+    window.htmlspecialchars = (str) => {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
+    window.removeCharacter = (input, pattern) => {
+        const regex = new RegExp(`[${pattern}]`, "g");
+
+        return input.replace(regex, "");
+    };
 })();

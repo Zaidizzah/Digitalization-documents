@@ -30,7 +30,7 @@
                 data-bs-toggle="tooltip" data-bs-placement="bottom"
                 data-bs-custom-class="custom-tooltip" 
                 data-bs-title="Button: to load previous schema attributes or get schema attributes from previous saving if available."
-                id="btn-load-schema-attributes" class="btn btn-primary btn-sm" aria-label="Button: load schema attributes"><i class="bi bi-arrow-clockwise fs-5"></i> Load Schema</button>
+                id="btn-load-schema-attributes" class="btn btn-primary btn-sm"><i class="bi bi-arrow-clockwise fs-5"></i> Load Schema</button>
             </div>
         </div>
         <!-- \Attributes Section/ -->

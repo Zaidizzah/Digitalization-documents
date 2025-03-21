@@ -52,7 +52,8 @@
     line-height: 1.6;
     color: #333;
     background-color: #fcfcfc;
-    overflow-y: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     resize: both;
 }
 
@@ -82,28 +83,84 @@
     transition: background-color 0.2s;
 }
 
-.extraction-container .extraction-body .ex-b-actions .btn-primary {
-    background-color: #2b6cb0;
-    color: #fff;
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s;
-}
-
-.extraction-container .extraction-body .ex-b-actions .btn-primary:hover {
-    border: 2px solid #000;
-    background-color: #2c5282;
-}
-
-.extraction-container .extraction-body .ex-b-actions .btn-secondary {
+.extraction-container .extraction-body .ex-b-actions .btn.btn-secondary {
     background-color: #e2e8f0;
     color: #4a5568;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #333;
     transition: all 0.3s;
 }
 
-.extraction-container .extraction-body .ex-b-actions .btn-secondary:hover {
+.extraction-container .extraction-body .ex-b-actions .btn.btn-secondary:hover {
     border: 2px solid #000;
     background-color: #cbd5e0;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--primary-color);
+    margin: 5px;
+}
+
+.divider-text {
+    padding: 0 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+.input-fields-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.input-fields-container .input-field-wrapper,
+.input-fields-container .input-field-wrapper[data-action="update"] {
+    position: relative;
+    width: 100%;
+    height: auto;
+    background-color: #f6f8fa;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: 5px;
+    padding: 1rem;
+}
+
+.input-fields-container .input-field-wrapper[data-action="update"] {
+    background-color: #edf5ffb6;
+    border: var(--bs-border-width) solid #2b6cb0;
+}
+
+.input-fields-container
+    .input-field-wrapper.attached-file
+    .attached-file-wrapper.ignored {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.input-fields-container .input-field-wrapper span.input-field-title {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    padding: 4px 6px 4px 6px;
+    background-color: #fff;
+    border-width: 0 0 var(--bs-border-width) var(--bs-border-width);
+    border-style: solid;
+    border-color: var(--bs-border-color);
+    border-bottom-left-radius: 5px;
+}
+
+.input-fields-container
+    .input-field-wrapper[data-action="update"]
+    span.input-field-title {
+    border-color: #2b6cb0;
 }
 
 @media (max-width: 640px) {

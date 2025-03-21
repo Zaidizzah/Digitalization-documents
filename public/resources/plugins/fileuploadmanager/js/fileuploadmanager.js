@@ -171,6 +171,8 @@ class UploadQueueManager {
                 });
                 this.uploadedFiles++;
                 this.updateProgress();
+
+                console.error(error);
             }
         }
 
