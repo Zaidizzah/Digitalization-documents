@@ -469,8 +469,9 @@ class DocumentTypeActionController extends FileController
                     $index++;
                 }
             }
-        } catch (\Exception $e) {
-            return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
+        } catch (\Throwable $th) {
+            // catch error and dsiplaying in page 
+            return redirect()->back()->with('message', toast($th->getMessage(), 'error'));
         }
 
         //check if data long_name is not empty set new properti 'abbr'
@@ -829,7 +830,8 @@ class DocumentTypeActionController extends FileController
                             <button type=\"button\" role=\"button\" class=\"btn btn-primary btn-sm float-end btn-add-input-field\" data-template-id=\"input-field-template\" title=\"Button: to adding new input field\"><i class=\"bi bi-plus-square fs-5\"></i> New</button> 
                         </div>
                     </div>";
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Get any exception and display in page
             return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
         }
 

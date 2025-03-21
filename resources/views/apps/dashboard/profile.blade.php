@@ -21,7 +21,6 @@
                                 </td>
                                 <td>
                                     <h5>{{ auth()->user()->name }}</h5>
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-name">Edit</button>
                                 </td>
                             </tr>
                             <tr>
@@ -52,6 +51,9 @@
                     </table>
                 </div>
             </div>
+            <div class="tile-footer">
+                <button type="button" role="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-name" title="Button: to edit about your profile information">Edit</button>
+            </div>
         </div>
     </div>
     <div class="col-md-6">
@@ -62,10 +64,10 @@
                     <small class="caption small font-italic fs-5">Forgot password? Change Here.</small>
                 </div>
             </div> 
-            <div class="tile-body">
-                <form action="{{ route('profile.change_password') }}" method="post">
+            <form action="{{ route('profile.change_password') }}" method="post">
+                <div class="tile-body">
                     <div class="form-group mb-3">  
-                        <label for="password_new">New Password<span aria-label="required" class="text-danger">*</span></label>
+                        <label for="password_new" class="form-label">New Password<span aria-label="required" class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="password_new" name="password_new" 
                             data-bs-toggle="tooltip" data-bs-placement="top"
                             data-bs-custom-class="custom-tooltip"
@@ -77,7 +79,7 @@
                             required>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="password_confirmation">Confirm Password<span aria-label="required" class="text-danger">*</span></label>
+                        <label for="password_confirmation" class="form-label">Confirm Password<span aria-label="required" class="text-danger">*</span></label>
                         <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" 
                             data-parsley-equalto="#password"
                             data-bs-toggle="tooltip" data-bs-placement="top"
@@ -88,9 +90,11 @@
                             placeholder="Confirm Password" aria-required="true" 
                             required>
                     </div>
-                    <button type="submit" class="btn btn-block btn-primary">Send</button>
-                </form>
-            </div>
+                </div>
+                <div class="tile-footer">
+                    <button type="submit" role="button" class="btn btn-block btn-primary" title="Button: to save the changes password">Send</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -27,12 +27,13 @@ class DashboardController extends Controller
         return view('apps.dashboard.index', $resources);
     }
 
-    public function profile(){
+    public function profile()
+    {
         $resources = build_resource_array(
             "Profile",
-            "Lorem",
-            "<i class=\"bi bi-user\"></i> ",
-            "Lorem ipsum A page",
+            "Profile",
+            "<i class=\"bi bi-person-fill-gear\"></i> ",
+            "Display user information or profile, on the '<mark>" . auth()->user()->name . "</mark>' user",
             [
                 'Dashboard' => route('dashboard.index'),
                 'Profile' => route('dashboard.profile')
@@ -42,7 +43,8 @@ class DashboardController extends Controller
         return view('apps.dashboard.profile', $resources);
     }
 
-    public function change_name(Request $req){
+    public function change_name(Request $req)
+    {
         $req->validate([
             'name' => 'required|string|max:100',
         ]);
@@ -54,7 +56,8 @@ class DashboardController extends Controller
         return redirect()->route('dashboard.profile')->with('message', toast('Name changed successfully!', 'success'));
     }
 
-    public function change_password(Request $req){
+    public function change_password(Request $req)
+    {
         $req->validate([
             'password_new' => [
                 'required',

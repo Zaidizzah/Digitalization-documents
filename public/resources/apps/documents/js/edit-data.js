@@ -120,7 +120,11 @@
                     );
 
                     // remove element from DOM
-                    if (inputFieldWrapper) inputFieldWrapper.remove();
+                    if (
+                        inputFieldWrapper &&
+                        confirm("Are you sure to remove this input field?")
+                    )
+                        inputFieldWrapper.remove();
                 }
             });
         });
