@@ -54,15 +54,16 @@ const uploadQueue = new UploadQueueManager({
      * Handles the scroll event on the file list container.
      * Loads more files when the user scrolls to the bottom of the container.
      */
-    let scrolling = false,
-        scrollDiffBefore = 0;
-    $("#file-list-container").scroll(function () {
-        const container = $(this),
-            maxPage = fileList.getAttribute("data-last-page"),
-            scrollDiff = container.scrollTop() + container.innerHeight();
+     var scrolling = false,
+        scrollDiffBefore = 0,
+        page = fileList.getAttribute("data-current-page"),
+        maxPage = fileList.getAttribute("data-last-page");
 
-        let page = fileList.getAttribute("data-current-page"),
-            scrollArea = container[0].scrollHeight;
+    $("#file-list-container").scroll(function () {
+        const container = $(this)
+
+        var scrollArea = container[0].scrollHeight,
+            scrollDiff = container.scrollTop() + container.innerHeight();
 
         if (scrollDiff > scrollDiffBefore) {
             scrollArea = container[0].scrollHeight - 50;
@@ -74,7 +75,7 @@ const uploadQueue = new UploadQueueManager({
                 page++;
 
                 // Assign new page
-                page = loadMoreFiles(page);
+                loadMoreFiles();
                 scrolling = true;
             }
         }

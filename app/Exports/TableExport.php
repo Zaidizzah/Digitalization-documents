@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use App\Services\SchemaBuilder;
@@ -34,7 +33,7 @@ class TableExport implements FromView, ShouldAutoSize
         });
         array_push($headings, 'Attached File', 'Created At',  'Updated At');
 
-        array_push($columns, DB::raw('files.name as file_name'), $table.'.created_at',  $table.'.updated_at');
+        array_push($columns, DB::raw('CONCAT(files.name, ".", files.extension) as file_name'), $table.'.created_at',  $table.'.updated_at');
 
         $data = DB::table($table)->select($columns)
             ->join('files', 'files.id', '=', $table.'.file_id', 'left')

@@ -3,7 +3,7 @@
     top: calc(53px + 1rem);
 }
 
-.file-list {
+.file-list-container {
     position: relative;
     height: calc(100vh - 2rem);
     overflow-y: scroll;
