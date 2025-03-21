@@ -163,6 +163,13 @@
     border-color: #2b6cb0;
 }
 
+.input-fields-container .input-field-wrapper .button-actions {
+    padding: 0.5rem;
+    background-color: #f4f8fc;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: 5px;
+}
+
 @media (max-width: 640px) {
     .extraction-container {
         border-radius: 6px;

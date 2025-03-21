@@ -4,6 +4,9 @@
     const btnCopyExtractedResult = document.querySelectorAll(
             ".btn-copy-ex-result"
         ),
+        inputFieldsContainer = document.querySelectorAll(
+            ".input-fields-container"
+        ),
         btnAddInputField = document.querySelectorAll(".btn-add-input-field");
 
     if (btnCopyExtractedResult) {
@@ -102,6 +105,23 @@
                     });
 
                 element.parentElement.before(inputFieldTemplate);
+            });
+        });
+    }
+
+    if (inputFieldsContainer) {
+        inputFieldsContainer.forEach((element, index) => {
+            element.addEventListener("click", function (event) {
+                const btn = event.target.closest(".btn-delete-input-field");
+
+                if (btn) {
+                    const inputFieldWrapper = event.target.closest(
+                        ".input-field-wrapper"
+                    );
+
+                    // remove element from DOM
+                    if (inputFieldWrapper) inputFieldWrapper.remove();
+                }
             });
         });
     }

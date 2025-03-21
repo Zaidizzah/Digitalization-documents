@@ -69,7 +69,7 @@
 
                             <!-- List of folders -->
                             @foreach ($document_types as $d)
-                                <a href="{{ $document_type === null ? route('documents.files.index', $d->name) : 'javascript:void(0)' }}" role="button" class="text-decoration-none">
+                                <a href="{{ route('documents.files.index', $d->name) }}" role="button" class="text-decoration-none">
                                     <div class="folder-item p-3 {{ $document_type !== null && $document_type->name === $d->name ? 'main-folder' : '' }}" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
                                         <div class="folder-info" aria-label="Info for folder {{ $d->name }}">
                                             <div class="fw-semibold">
@@ -90,7 +90,9 @@
 
         <!-- File List -->
         <div class="col-md-8">
-            {!! note("If too many files are selected, it may take a little or a lot of time to process text extraction through OCR from each file.") !!}
+            @can('role-access', 'Admin')
+                {!! note("If too many files are selected, it may take a little or a lot of time to process text extraction through OCR from each file.") !!}
+            @endcan
 
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
                 <div class="tile-title-w-btn flex-wrap">  
@@ -163,7 +165,7 @@
                                                         <!-- Checkbox to select file and actions -->
                                                         <div class="checkbox-wrapper">
                                                             <div class="cbx">
-                                                                <input type="checkbox" name="file[]" class="cbx-file-id" id="cbx-{{ $loop->index }}" value="{{ $f->encrypted_name }}">
+                                                                <input type="checkbox" name="file[]" class="cbx-file" id="cbx-{{ $loop->index }}" value="{{ $f->encrypted_name }}">
                                                                 <label for="cbx-{{ $loop->index }}"></label>
                                                                 <svg fill="none" viewBox="0 0 15 14" height="14" width="15">
                                                                     <path d="M2 8.36364L6.23077 12L13 2"></path>

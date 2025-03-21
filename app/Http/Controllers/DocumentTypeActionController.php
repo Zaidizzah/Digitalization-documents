@@ -811,6 +811,11 @@ class DocumentTypeActionController extends FileController
                         <div class=\"input-field-wrapper\" id=\"input-field-1\" data-action=\"insert\" aria-label=\"Input field 1\">
                             <span class=\"input-field-title\" aria-labelledby=\"input-field-1\">Input field 1</span>
                             {$RESET_FORM_ELEMENT($TEMPLATE_FORM_ELEMENT)}
+
+                            <!-- Button to remove element input field wrapper -->
+                            <div class=\"button-actions\" aria-label=\"Button actions for input fields wrapper\">
+                                <button type=\"button\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-input-field\" title=\"Button: to remove this input field wrapper\"><i class=\"bi bi-trash fs-5\"></i></button> 
+                            </div>
                         </div>
                     </template>
                     <div class=\"input-fields-container\" id=\"input-field-container-1\" aria-label=\"Input fields container\">

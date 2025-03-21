@@ -175,33 +175,35 @@ const uploadQueue = new UploadQueueManager({
     const uploadZone = document.getElementById("upload-zone");
     const fileInput = document.getElementById("file-input");
 
-    uploadZone.addEventListener("click", () => fileInput.click());
+    if (uploadZone && fileInput) {
+        uploadZone.addEventListener("click", () => fileInput.click());
 
-    uploadZone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = "var(--primary-color)";
-        uploadZone.style.backgroundColor = "rgba(13, 110, 253, 0.05)";
-    });
+        uploadZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = "var(--primary-color)";
+            uploadZone.style.backgroundColor = "rgba(13, 110, 253, 0.05)";
+        });
 
-    uploadZone.addEventListener("dragleave", (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = "#dee2e6";
-        uploadZone.style.backgroundColor = "transparent";
-    });
+        uploadZone.addEventListener("dragleave", (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = "#dee2e6";
+            uploadZone.style.backgroundColor = "transparent";
+        });
 
-    uploadZone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = "#dee2e6";
-        uploadZone.style.backgroundColor = "transparent";
-        handleFiles(e.dataTransfer.files);
-    });
+        uploadZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = "#dee2e6";
+            uploadZone.style.backgroundColor = "transparent";
+            handleFiles(e.dataTransfer.files);
+        });
 
-    fileInput.addEventListener("change", (e) => {
-        handleFiles(e.target.files);
+        fileInput.addEventListener("change", (e) => {
+            handleFiles(e.target.files);
 
-        // Reset file input
-        fileInput.value = "";
-    });
+            // Reset file input
+            fileInput.value = "";
+        });
+    }
 
     // files action
     $("#modal-files").on("shown.bs.modal", (event) => {
@@ -280,7 +282,10 @@ const uploadQueue = new UploadQueueManager({
                     (selectedStatus.textContent = `Selected file ${numberOfElements} out of 15 (maximum for inserting data)`);
 
                 // Disable all checkbox if selected file is reached 15
-                if (checkboxCheckedList.length === 15) {
+                if (
+                    checkboxCheckedList.length ===
+                    MAX_SELECTED_FILE_TO_INSERTING
+                ) {
                     checkboxUnCheckedList.forEach((element) => {
                         element.disabled = true;
                     });

@@ -57,7 +57,7 @@
                             @csrf
                             <div class="input-group">
                                 <input type="file" name="data" required id="" class="form-control" accept=".xlsx, .xls, .csv">
-                                <button class="btn btn-primary" type="submit">Upload</button>
+                                <button class="btn btn-primary" type="submit" role="button" title="Button: to process importing data from file">Upload</button>
                             </div>
                         </form>
                     </div>
@@ -73,9 +73,9 @@
                     Export
                 </a>
                 <div class="dropdown-menu border border-primary">
-                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'xlsx']) }}" class="dropdown-item">Excel</a>
-                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'csv']) }}" class="dropdown-item">CSV</a>
-                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'pdf']) }}" class="dropdown-item">PDF</a>
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'xlsx']) }}" role="button" class="dropdown-item" title="Export to Excel file">Excel</a>
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'csv']) }}" role="button" class="dropdown-item" title="Export to CSV file">CSV</a>
+                    <a href="{{ route('documents.export', [$document_type->name, 'format' => 'pdf']) }}" role="button" class="dropdown-item" title="Export to Pdf file">PDF</a>
                 </div>
             </div>
         </li>

@@ -15,3 +15,5 @@ Tesseract implementasion: for extracing text from image
 
 install tesseract dependency into windows by installing from: 'https://github.com/UB-Mannheim/tesseract/wiki'
 install library python: 'pip install pdf2image pytesseract pillow' in console
+
+Instalasi laravel Excel di: 'https://laravel-excel.com/'
