@@ -16,35 +16,35 @@
                     <table class="table table-hover table-bordered">
                         <tbody>
                             <tr>
-                                <td>
+                                <td class="bg-body-tertiary">
                                     <h5>Name</h5>
                                 </td>
                                 <td>
-                                    <h5>{{ auth()->user()->name }}</h5>
+                                    <h5 class="fw-normal">{{ auth()->user()->name }}</h5>
                                 </td>
                             </tr>
                             <tr>
-                                <td>
+                                <td class="bg-body-tertiary">
                                     <h5>Email</h5>
                                 </td>
                                 <td>
-                                    <h5>{{ auth()->user()->email }}</h5>
+                                    <h5 class="fw-normal">{{ auth()->user()->email }}</h5>
                                 </td>
                             </tr>
                             <tr>
-                                <td>
+                                <td class="bg-body-tertiary">
                                     <h5>Role</h5>
                                 </td>
                                 <td>
-                                    <h5>{{ auth()->user()->role }}</h5>
+                                    <h5 class="fw-normal">{{ auth()->user()->role }}</h5>
                                 </td>
                             </tr>
                             <tr>
-                                <td>
+                                <td class="bg-body-tertiary">
                                     <h5>Joined At</h5>
                                 </td>
                                 <td>
-                                    <h5>{{ auth()->user()->created_at->format('d F Y') }}</h5>
+                                    <h5 class="fw-normal">{{ auth()->user()->created_at->format('d F Y') }}</h5>
                                 </td>
                             </tr>
                         </tbody>

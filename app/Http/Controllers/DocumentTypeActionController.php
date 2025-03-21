@@ -367,6 +367,11 @@ class DocumentTypeActionController extends FileController
                         <div class=\"input-field-wrapper\" id=\"input-field-1\" aria-label=\"Input field 1\">
                             <span class=\"input-field-title\" aria-labelledby=\"input-field-1\">Input field 1</span>
                             $INPUT_FORM_ELEMENT
+
+                            <!-- Button to remove element input field wrapper -->
+                            <div class=\"button-actions\" aria-label=\"Button actions for input fields wrapper\">
+                                <button type=\"button\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-input-field\" title=\"Button: to remove this input field wrapper\"><i class=\"bi bi-trash fs-5\"></i></button> 
+                            </div>
                         </div>
                     </template>
 
@@ -452,6 +457,11 @@ class DocumentTypeActionController extends FileController
                                 <div class=\"input-field-wrapper\" aria-label=\"Input field $index\">
                                     <span class=\"input-field-title\">Input field $index</span>
                                     $TEMPLATE_FORM_ELEMENT
+
+                                    <!-- Button to remove element input field wrapper -->
+                                    <div class=\"button-actions\" aria-label=\"Button actions for input fields wrapper\">
+                                        <button type=\"button\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-input-field\" title=\"Button: to remove this input field wrapper\"><i class=\"bi bi-trash fs-5\"></i></button> 
+                                    </div>
                                 </div>
                             </template>
 
@@ -705,13 +715,9 @@ class DocumentTypeActionController extends FileController
             return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
-        // get relevant of document type data
+        // get relevant of document type data and related file to update with
         $document_type_data = DB::table($document_type->table_name)->where('id', $id)->get()->firstOrFail();
-
         $file_attachment = FileModel::where('id', $document_type_data->file_id)->first();
-
-        // check if file exists
-        if (empty($file_attachment)) return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find file for this document type data, please try again.", 'error'));
 
         try {
             // initialze action
@@ -801,12 +807,16 @@ class DocumentTypeActionController extends FileController
             };
 
             $FORM_HTML = "<div class=\"divider\">
-                            <span class=\"divider-text\">File: {$file_attachment->name}.{$file_attachment->extension}</span>
+                            <span class=\"divider-text\">File: " . ($file_attachment !== null ? "{$file_attachment->name}.{$file_attachment->extension}" : "Not Initialzed") . "</span>
                         </div>";
 
-            $response = OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$file_attachment->encrypted_name}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
+            // check if file attachment is available and not null
+            if ($file_attachment !== null) {
+                $response = OcrService::process_file(self::PARENT_OF_FILES_DIRECTORY . "/{$name}/{$file_attachment->encrypted_name}.{$file_attachment->extension}", "{$file_attachment->name}.{$file_attachment->extension}");
 
-            $FORM_HTML .= $this->create_atachment_file_element("{$file_attachment->name}.{$file_attachment->extension}", $response['text']);
+                $FORM_HTML .= $this->create_atachment_file_element("{$file_attachment->name}.{$file_attachment->extension}", $response['text']);
+            }
+
             $FORM_HTML .= "<!-- Input field template -->
                     <template id=\"input-field-template\" aria-label=\"Input field template\" aria-hidden=\"true\">
                         <div class=\"input-field-wrapper\" id=\"input-field-1\" data-action=\"insert\" aria-label=\"Input field 1\">

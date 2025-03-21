@@ -159,9 +159,12 @@
 
     if (action === "create") {
         const inputFieldAtachedFile = document.querySelectorAll(
-            ".input-field-wrapper.attached-file"
-        );
-        const divider = document.querySelectorAll(".divider");
+                ".input-field-wrapper.attached-file"
+            ),
+            divider = document.querySelectorAll(".divider"),
+            inputFieldsContainer = document.querySelectorAll(
+                ".input-fields-container"
+            );
 
         if (inputFieldAtachedFile) {
             /**
@@ -220,6 +223,31 @@
                     </div>
                 </div>`;
             };
+
+            if (inputFieldsContainer) {
+                inputFieldsContainer.forEach((element, index) => {
+                    element.addEventListener("click", function (event) {
+                        const btn = event.target.closest(
+                            ".btn-delete-input-field"
+                        );
+
+                        if (btn) {
+                            const inputFieldWrapper = event.target.closest(
+                                ".input-field-wrapper"
+                            );
+
+                            // remove element from DOM
+                            if (
+                                inputFieldWrapper &&
+                                confirm(
+                                    "Are you sure to remove this input field?"
+                                )
+                            )
+                                inputFieldWrapper.remove();
+                        }
+                    });
+                });
+            }
 
             inputFieldAtachedFile.forEach((element, index) => {
                 // get all file inputs
@@ -281,11 +309,6 @@
                             }
 
                             if (file) {
-                                // set the file name in the divider
-                                divider[
-                                    index
-                                ].textContent = `File: ${file.name}`;
-
                                 await preProcessRecognizing(
                                     await readFile(file),
                                     file,
@@ -306,6 +329,11 @@
                             if (file) {
                                 // Set enable/disable attribute to false to button element
                                 buttonStartOCRProcess.disabled = false;
+
+                                // set the file name in the divider
+                                divider[
+                                    index
+                                ].textContent = `File: ${file.name}`;
                             } else {
                                 // Set disable/disable attribute to true to button element
                                 buttonStartOCRProcess.disabled = true;

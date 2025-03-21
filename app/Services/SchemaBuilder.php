@@ -887,7 +887,7 @@ class SchemaBuilder
         } else {
             return "<tbody>
                         <tr aria-hidden=\"true\" aria-label=\"No data current document type\" role=\"row\" aria-rowindex=\"1\">
-                            <td colspan=\"" . (count($columns) + 4) . "\" class=\"text-center\">No data available for current document type.</td>
+                            <td colspan=\"" . (count($columns) + 5) . "\" class=\"text-center\">No data available for current document type.</td>
                         </tr>
                     </tbody>";
         }
