@@ -249,7 +249,7 @@ class FileController extends Controller
      */
     public function upload(Request $req, ?string $name = null)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (is_role('User')) {
             return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
         }
 

@@ -9,14 +9,17 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithProperties;
 
-class TableExport implements FromView, ShouldAutoSize
+class TableExport implements FromView, ShouldAutoSize, WithProperties
 {
     private $table;
+    private $file_name;
 
-    public function __construct($table)
+    public function __construct($table, $file_name)
     {
         $this->table = $table;
+        $this->file_name = $file_name;
     }
 
     /**
@@ -45,5 +48,15 @@ class TableExport implements FromView, ShouldAutoSize
         $data = json_decode($data, true);
 
         return view('vendors.exports.general', compact('data', 'headings'));
+    }
+
+    /*
+     * @return array
+     */
+    public function properties(): array
+    {
+        return [
+            'title' => "Digitalization Document - {$this->file_name}",
+        ];
     }
 }

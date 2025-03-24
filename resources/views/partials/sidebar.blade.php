@@ -1,10 +1,14 @@
+@php
+  $user = auth()->user();
+@endphp
+
 <!-- Sidebar menu-->
 <div class="app-sidebar__overlay" data-toggle="sidebar" aria-label="Close Sidebar"></div>
 <aside class="app-sidebar" aria-label="Sidebar Section of Navigation">
-  <div class="app-sidebar__user" aria-label="User Information"><img class="app-sidebar__user-avatar" src="https://placehold.co/600x600/{{ substr(fake()->hexColor(), 1, 6) }}/FFF?text={{ substr(auth()->user()->name, 0, 1) }}" loading="lazy" title="User Image" alt="User Image">
+  <div class="app-sidebar__user" aria-label="User Information"><img class="app-sidebar__user-avatar" src="https://placehold.co/600x600/{{ substr(fake()->hexColor(), 1, 6) }}/FFF?text={{ substr($user->name, 0, 1) }}" loading="lazy" title="User Image" alt="User Image">
     <div>
-      <p class="app-sidebar__user-name" title="{{ auth()->user()->name }}">{{ auth()->user()->name }}</p>
-      <p class="app-sidebar__user-designation" title="{{ auth()->user()->role === "Admin" ? "Administrator" : "User" }}">{{ auth()->user()->role === "Admin" ? "Administrator" : "User" }}</p>
+      <p class="app-sidebar__user-name" title="{{ $user->name }}">{{ $user->name }}</p>
+      <p class="app-sidebar__user-designation" title="{{ $user->role === "Admin" ? "Administrator" : "User" }}">{{ $user->role === "Admin" ? "Administrator" : "User" }}</p>
     </div>
   </div>
   <ul class="app-menu">

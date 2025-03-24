@@ -33,7 +33,7 @@ class File extends Model
         return $this->belongsTo(DocumentType::class, 'document_type_id', 'id');
     }
 
-    public static function scopeFilesWithFilter($query, $filters, $name = null)
+    public function scopeFilesWithFilter($query, $filters, $name = null)
     {
         $query->when($filters['search'] ?? false, function ($query, $search) {
             $query->where('name', 'like', '%' . $search . '%');

@@ -310,7 +310,7 @@ class SchemaBuilder
                 'id' => $action === 'create' ? (strtolower(Str::random(10)) . ":$sequence_number") : $field['id'],
                 'sequence_number' => $action === 'create' ? $sequence_number : $field['sequence_number'],
                 'type' => $type_config['type'],
-                'maxLength' => $type_config['maxLength'],
+                'maxLength' => (int)strlen($type_config['maxLength']),
                 'default' => $type_config['default'],
                 'nullable' => !$field['required'],
                 'unique' => $field['unique'] ?? false,
@@ -325,13 +325,7 @@ class SchemaBuilder
             if (Arr::has($field, 'rules.max') && is_numeric($field['rules']['max'])) {
                 $max_length = (int)strlen($field['rules']['max']);
 
-                $column['maxLength'] = $max_length > $column['maxLength'] ? $column['maxLength'] : $max_length;
-            }
-
-            if (Arr::has($field, 'rules.min') && is_numeric($field['rules']['min'])) {
-                $min_length = (int)strlen($field['rules']['min']);
-
-                $column['minLength'] = $min_length < $column['minLength'] ? $column['minLength'] : $min_length;
+                $column['maxLength'] = $max_length > $column['maxLength'] ? $max_length : $column['maxLength'];
             }
 
             // Handle custom maxLength from rules
@@ -340,8 +334,6 @@ class SchemaBuilder
                 if ($field['type'] === 'text' && $max_length > 255) {
                     $column['type'] = 'text';
                     $column['maxLength'] = null;
-                } else {
-                    $column['maxLength'] = $max_length;
                 }
             }
 
@@ -416,7 +408,25 @@ class SchemaBuilder
         // Handle custom maxLength from rules
         if (Arr::has($field, 'rules.maxLength') && is_numeric($field['rules']['maxLength'])) {
             $max_length = (int)$field['rules']['maxLength'];
-            $attribute['rules']['maxLength'] = $max_length;
+            if (($field['type'] === 'text' || $field['type'] === 'textarea') && $max_length > 65535) {
+                $attribute['rules']['maxLength'] = 65535;
+            } else if (($field['type'] === 'text' || $field['type'] === 'textarea') && $max_length < -65535) {
+                $attribute['rules']['maxLength'] = -65535;
+            } else {
+                $attribute['rules']['maxLength'] = $max_length;
+            }
+        }
+
+        // Handle custom minLength from rules
+        if (Arr::has($field, 'rules.minLength') && is_numeric($field['rules']['minLength'])) {
+            $min_length = (int)$field['rules']['minLength'];
+            if (($field['type'] === 'text' || $field['type'] === 'textarea') && $min_length < -65535) {
+                $attribute['rules']['minLength'] = 65535;
+            } else if (($field['type'] === 'text' || $field['type'] === 'textarea') && $min_length > 65535) {
+                $attribute['rules']['minLength'] = -65535;
+            } else {
+                $attribute['min'] = $min_length;
+            }
         }
 
         // Handle ENUM options for select type
@@ -430,9 +440,44 @@ class SchemaBuilder
             $field['type'] === 'number' && Arr::has($field, 'rules.min') && Arr::has($field, 'rules.max') && Arr::has($field, 'rules.step')
             && is_numeric($field['rules']['min']) && is_numeric($field['rules']['max']) && is_numeric($field['rules']['step'])
         ) {
-            $attribute['min'] = $field['rules']['min'];
-            $attribute['max'] = $field['rules']['max'];
-            $attribute['step'] = $field['rules']['step'];
+            if (Arr::has($field, 'rules.max') && is_numeric($field['rules']['max'])) {
+                $max_length = (int)strlen($field['rules']['max']);
+
+                // check if max length is greater than max length of type
+                if ($max_length > self::FIELD_TYPE_CONFIG[$field['type']]['max']) {
+                    $attribute['rules']['max'] = self::FIELD_TYPE_CONFIG[$field['type']]['max'];
+                } else if ($max_length < self::FIELD_TYPE_CONFIG[$field['type']]['min']) {
+                    $attribute['rules']['max'] = self::FIELD_TYPE_CONFIG[$field['type']]['min'];
+                } else {
+                    $attribute['rules']['max'] = $max_length;
+                }
+            }
+
+            if (Arr::has($field, 'rules.min') && is_numeric($field['rules']['min'])) {
+                $min_length = (int)strlen($field['rules']['min']);
+
+                // check if min length is greater than min length of type 
+                if ($min_length > self::FIELD_TYPE_CONFIG[$field['type']]['max']) {
+                    $attribute['rules']['min'] = self::FIELD_TYPE_CONFIG[$field['type']]['max'];
+                } else if ($min_length < self::FIELD_TYPE_CONFIG[$field['type']]['min']) {
+                    $attribute['rules']['min'] = self::FIELD_TYPE_CONFIG[$field['type']]['min'];
+                } else {
+                    $attribute['rules']['min'] = $min_length;
+                }
+            }
+
+            if (Arr::has($field, 'rules.step') && is_numeric($field['rules']['step'])) {
+                $step_length = (int)strlen($field['rules']['step']);
+
+                // check if step length is greater than step length of type
+                if ($step_length > self::FIELD_TYPE_CONFIG[$field['type']]['max']) {
+                    $attribute['rules']['step'] = self::FIELD_TYPE_CONFIG[$field['type']]['max'];
+                } else if ($step_length < self::FIELD_TYPE_CONFIG[$field['type']]['min']) {
+                    $attribute['rules']['step'] = self::FIELD_TYPE_CONFIG[$field['type']]['min'];
+                } else {
+                    $attribute['rules']['step'] = $step_length;
+                }
+            }
         }
 
         // Handle INSTRUCTIONS rule
@@ -548,6 +593,7 @@ class SchemaBuilder
             $inputMode = $get_input_mode($data['type']);
             $label = ucfirst($field) . ($data['required'] ? ' <span class="text-danger">*</span>' : '');
             $title = $data['rules']['instructions'] ? "title=\"{$data['rules']['instructions']}\"" : '';
+            $is_unique = $data['unique'] ? 'true' : 'false';
 
             // Form group wrapper
             $FORM_HTML .= "<div class=\"form-group row g-1 mb-3\">
@@ -557,7 +603,7 @@ class SchemaBuilder
             // Field type handling
             switch ($data['type']) {
                 case 'textarea':
-                    $FORM_HTML .= "<textarea class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\" rows=\"3\" $title placeholder=\"Enter $field\" $attributes>$field_value</textarea>";
+                    $FORM_HTML .= "<textarea class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\" rows=\"3\" data-unique=\"$is_unique\" $title placeholder=\"Enter $field\" $attributes>$field_value</textarea>";
                     break;
 
                 case 'select':
@@ -576,12 +622,13 @@ class SchemaBuilder
                             ''
                         );
 
-                    $FORM_HTML .= "<select class=\"form-select\" name=\"{$field_name}[]\" id=\"$field_name\" $title $attributes>$options</select>";
+                    $FORM_HTML .= "<select class=\"form-select\" name=\"{$field_name}[]\" id=\"$field_name\" data-unique=\"$is_unique\" $title $attributes>$options</select>";
                     break;
 
                 default:
                     $input_type = $data['type'] === 'datetime' ? 'datetime-local' : $data['type'];
-                    $FORM_HTML .= "<input type=\"$input_type\" value=\"$field_value\" class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\" $title $inputMode placeholder=\"Enter $field\" $attributes />";
+                    $number_input_pattern = "^-?[0-9]+$";
+                    $FORM_HTML .= "<input type=\"$input_type\" value=\"$field_value\" class=\"form-control\" name=\"{$field_name}[]\" id=\"$field_name\"" . ($data['type'] === 'number' ? " pattern=\"{$number_input_pattern}\"" : '') . " data-unique=\"$is_unique\" $title $inputMode placeholder=\"Enter $field\" $attributes />";
             }
 
             // Add instructions if present
@@ -756,7 +803,6 @@ class SchemaBuilder
      */
     public static function create_table_thead_from_schema_in_html(string $table_name, array $schema_form)
     {
-        $is_admin = auth()->user()->role === 'Admin';
         // Check if schema is empty
         if (empty($schema_form)) throw new \InvalidArgumentException("Schema attribute for document type '$table_name' is empty. Please add at least one attribute to the schema.", Response::HTTP_BAD_REQUEST);
 
@@ -773,7 +819,7 @@ class SchemaBuilder
         }
 
         $action_column = '';
-        if ($is_admin) $action_column = '<th class="text-nowrap" scope="col">Action</th>';
+        if (is_role('Admin')) $action_column = '<th class="text-nowrap" scope="col">Action</th>';
 
         return <<<HTML
                 <thead>
@@ -802,10 +848,11 @@ class SchemaBuilder
      * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type list data of document type
      * @param array $old_table_schema An array representing the schema with field definitions.
      * @param int $pagination_limit The number of records to be displayed per page.
+     * @param ?string $search The value for filtering/searching data
      *
      * @return string The generated HTML for the table body.
      */
-    public static function create_table_tbody_from_schema_in_html(string $name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema)
+    public static function create_table_tbody_from_schema_in_html(string $name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema, ?string $search = null)
     {
         // Sort by sequence_number
         $old_table_schema = self::sort_schema_by_sequence_number($old_table_schema);
@@ -820,26 +867,33 @@ class SchemaBuilder
 
                 $row_data = [];
                 foreach ($columns as $column) {
+                    $value = $data->$column ?? '';
+
+                    // Highlight search keyword
+                    if ($search) {
+                        $value = preg_replace("/(" . preg_quote($search, '/') . ")/i", '<mark>$1</mark>', $value);
+                    }
+
                     // set data to type DATE, TIME, or DATETIME and ignore format data if format does not match with type DATE, TIME, or DATETIME
                     switch ($old_table_schema[$column]['type']) {
                         case 'date':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time>" : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time>") : '') . "</td>");
                             break;
                         case 'time':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time>" : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time>") : '') . "</td>");
                             break;
                         case 'datetime':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time>" : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time>") : '') . "</td>");
                             break;
                         default:
-                            array_push($row_data, '<td class="text-nowrap">' . ($data->$column ? $data->$column : '') . '</td>');
+                            array_push($row_data, "<td class=\"text-nowrap\">$value</td>");
                             break;
                     }
                 }
 
                 // add file link
                 if ($data->file_id !== null) {
-                    $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\">{$data->file_name}.{$data->file_extension}</a>";
+                    $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\">" . str_replace($search, "<mark>$search</mark>", "{$data->file_name}.{$data->file_extension}") . "</a>";
                 }
 
                 // add created_at, updated_at, button to delete and edit data of document type
@@ -868,9 +922,13 @@ class SchemaBuilder
             $rows = implode("\n", $rows);
             return "<tbody>$rows</tbody>";
         } else {
+            $message = $search
+                ? "No data available for the current document type that matches '<mark>{$search}</mark>'."
+                : "No data available for current document type.";
+
             return "<tbody>
                         <tr aria-hidden=\"true\" aria-label=\"No data current document type\" role=\"row\" aria-rowindex=\"1\">
-                            <td colspan=\"" . (count($columns) + 5) . "\" class=\"text-center\">No data available for current document type.</td>
+                            <td colspan=\"" . (count($columns) + (is_role('Admin') ? 5 : 4)) . "\" class=\"text-center\">$message</td>
                         </tr>
                     </tbody>";
         }

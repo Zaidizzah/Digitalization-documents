@@ -129,4 +129,12 @@
             });
         });
     }
+
+    // initialize input unique tracker
+    const uniqueTracker = new UniqueInputTracker();
+    uniqueTracker.addStyles();
+
+    const refreshTracker = () => {
+        uniqueTracker.refreshAll();
+    };
 })();

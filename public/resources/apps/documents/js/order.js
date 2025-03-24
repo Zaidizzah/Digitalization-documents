@@ -391,7 +391,8 @@ function normalizeSequence() {
 }
 
 function resetColumns() {
-    columns = JSON.parse(JSON.stringify(initialColumns));
+    columns = initialColumns;
+
     renderColumns();
     showNotification("Sequence has been reset");
     announceChange("Columns have been reset to their original order");

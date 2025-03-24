@@ -90,9 +90,9 @@
 
         <!-- File List -->
         <div class="col-md-8">
-            @can('role-access', 'Admin')
+            @if (is_role('Admin') && route_check('documents.files.root.index') === false)
                 {!! note("If too many files are selected, it may take a little or a lot of time to process text extraction through OCR from each file.") !!}
-            @endcan
+            @endif
 
             <div class="tile shadow-none" id="tile-file-list" tabindex="0" aria-label="Tile section of files list" aria-labelledby="tile-files-list-label">
                 <div class="tile-title-w-btn flex-wrap">  

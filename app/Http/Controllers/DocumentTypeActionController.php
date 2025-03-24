@@ -13,16 +13,13 @@ use App\Services\SchemaBuilder;
 use App\Services\OcrService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rules\File as FileRule;
+use Illuminate\Support\Facades\Schema;
 
 class DocumentTypeActionController extends FileController
 {
@@ -82,11 +79,12 @@ class DocumentTypeActionController extends FileController
      * It retrieves the data from the database and renders the view for displaying the data.
      * The function also handles potential exceptions during the retrieve process.
      *
+     * @param \Illuminate\Http\Request $request
      * @param string $name The name of the document type to display.
      *
      * @return \Illuminate\Http\Response Returns the view with the document type data.
      */
-    public function browse(string $name)
+    public function browse(Request $request, string $name)
     {
         // get document type by name
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
@@ -108,10 +106,32 @@ class DocumentTypeActionController extends FileController
 
             $document_type_data = DB::table($document_type->table_name)
                 ->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
-                ->select("$document_type->table_name.*", 'files.name as file_name', 'files.extension as file_extension', 'files.encrypted_name as file_encrypted_name')
-                ->paginate(25)->appends(request()->query());
+                ->select(
+                    "$document_type->table_name.*",
+                    'files.name as file_name',
+                    'files.extension as file_extension',
+                    'files.encrypted_name as file_encrypted_name',
+                    DB::raw("DATE_FORMAT($document_type->table_name.created_at, '%d %M %Y, %H:%i %p') as formatted_created_at"),
+                    DB::raw("DATE_FORMAT($document_type->table_name.updated_at, '%d %M %Y, %H:%i %p') as formatted_updated_at")
+                )->when($request->search ?? false, function ($query, $search) use ($document_type) {
+                    $columns = Schema::getColumnListing($document_type->table_name);
+                    $excludedColumns = ['id', 'file_id'];
 
-            $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table);
+                    $query->where(function ($query) use ($search, $columns, $excludedColumns, $document_type) {
+                        foreach ($columns as $column) {
+                            if (!in_array($column, $excludedColumns)) {
+                                $query->orWhere("$document_type->table_name.$column", 'like', "%$search%");
+                            }
+                        }
+
+                        $query->orWhere('files.name', 'like', "%$search%")
+                            ->orWhere('files.extension', 'like', "%$search%");
+                    });
+                })
+                ->paginate(25)
+                ->appends(request()->query());
+
+            $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table, $request->search);
         } catch (\Exception $e) {
             return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
@@ -520,6 +540,10 @@ class DocumentTypeActionController extends FileController
                     'src' => 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js'
                 ],
                 [
+                    'src' => 'uniqueinputtracker.js',
+                    'base_path' => asset('/resources/plugins/uniqueinputtracker/js/')
+                ],
+                [
                     'src' => 'insert-data.js',
                     'base_path' => asset('/resources/apps/documents/js/')
                 ]
@@ -872,6 +896,10 @@ class DocumentTypeActionController extends FileController
             ],
             [
                 [
+                    'src' => 'uniqueinputtracker.js',
+                    'base_path' => asset('/resources/plugins/uniqueinputtracker/js/')
+                ],
+                [
                     'src' => 'edit-data.js',
                     'base_path' => asset('/resources/apps/documents/js/')
                 ]
@@ -1031,14 +1059,14 @@ class DocumentTypeActionController extends FileController
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
-            return redirect()->route('documents.index')->with('message', toast("Sorry, we couldn't find table for document type '{$args[0]}', please create a valid table for document type '{$args[0]}' and try again.", 'error'));
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '{$args[0]}', please create a valid table for document type '{$args[0]}' and try again.", 'error'));
         }
 
         // delete data in table
         if (DB::table($document_type->table_name)->where('id', $args[1])->delete()) {
-            return redirect()->route('documents.browse', $args[0])->with('message', toast("Data in document type '{$args[0]}' has been deleted successfully.", 'success'));
+            return redirect()->back()->with('message', toast("Data in document type '{$args[0]}' has been deleted successfully.", 'success'));
         } else {
-            return redirect()->route('documents.browse', $args[0])->with('message', toast("No data deleted in document type '{$args[0]}'.", 'error'));
+            return redirect()->back()->with('message', toast("No data deleted in document type '{$args[0]}'.", 'error'));
         }
     }
 
@@ -1094,7 +1122,9 @@ class DocumentTypeActionController extends FileController
             return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
         }
 
-        return Excel::download(new TableExport($document_type->table_name), "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}");
+        $file_name =  "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}";
+
+        return Excel::download(new TableExport($document_type->table_name, $file_name), $file_name);
     }
 
     /**

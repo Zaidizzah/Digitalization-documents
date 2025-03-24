@@ -4,3 +4,19 @@ td.permalink-file {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.search-form {
+    margin-bottom: 1rem;
+}
+
+.search-form form {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+}
+
+.search-form form .input-group {
+    max-width: 350px;
+}

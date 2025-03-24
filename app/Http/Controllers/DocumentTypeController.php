@@ -63,11 +63,12 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        $document_type = DocumentType::orderBy('created_at', 'desc');
-        if (auth()->user()->role !== 'Admin') {
-            $document_type->where('is_active', 1);
-        }
-        $resources['document_types'] = $document_type->paginate(25)->withQueryString();
+        $document_type = DocumentType::orderBy('created_at', 'desc')
+            ->when(is_role('User'), function ($query) {
+                $query->where('is_active', 1);
+            })->paginate(25)->withQueryString();
+
+        $resources['document_types'] = $document_type;
 
         return view('apps.documents.index', $resources);
     }
@@ -133,7 +134,7 @@ class DocumentTypeController extends Controller
      */
     public function save_schema(Request $request)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (is_role('User')) {
             return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
         }
 
@@ -178,7 +179,7 @@ class DocumentTypeController extends Controller
      */
     public function load_schema(?string $name = null, string|int|null $attribute_id = null)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (is_role('User')) {
             return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
         }
 
