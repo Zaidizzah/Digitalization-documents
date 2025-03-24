@@ -20,23 +20,26 @@ class TableExport implements FromView, ShouldAutoSize
     }
 
     /**
-    * @return \Illuminate\Support\Collection
-    */
+     * @return \Illuminate\Support\Collection
+     */
     public function view(): View
     {
         $table = $this->table;
-        
-        $columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
 
-        $headings = Arr::map($columns, function($col, $i){
+        $columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
+        $columns_for_heading = array_map(function ($column) {
+            return ucwords(str_replace('_', ' ', $column));
+        }, $columns);
+
+        $headings = Arr::map($columns_for_heading, function ($col, $i) {
             return Str::apa($col);
         });
         array_push($headings, 'Attached File', 'Created At',  'Updated At');
 
-        array_push($columns, DB::raw('CONCAT(files.name, ".", files.extension) as file_name'), $table.'.created_at',  $table.'.updated_at');
+        array_push($columns, DB::raw('CONCAT(files.name, \'.\', files.extension) as file_name'), "$table.created_at",  "$table.updated_at");
 
         $data = DB::table($table)->select($columns)
-            ->join('files', 'files.id', '=', $table.'.file_id', 'left')
+            ->join('files', 'files.id', '=', "$table.file_id", 'left')
             ->get()->toJson();
 
         $data = json_decode($data, true);

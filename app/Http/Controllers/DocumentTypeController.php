@@ -64,7 +64,7 @@ class DocumentTypeController extends Controller
         );
 
         $document_type = DocumentType::orderBy('created_at', 'desc');
-        if(auth()->user()->role !== 'Admin'){
+        if (auth()->user()->role !== 'Admin') {
             $document_type->where('is_active', 1);
         }
         $resources['document_types'] = $document_type->paginate(25)->withQueryString();
@@ -782,6 +782,7 @@ class DocumentTypeController extends Controller
             $document_type->save();
 
             $document_type_trashed_name = "{$name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
+            $document_type_trashed_table_name = "{$document_type->table_name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
 
             // rename document type and folder to trash
             Storage::disk('local')->move(
@@ -796,29 +797,39 @@ class DocumentTypeController extends Controller
                 'user_id' => auth()->user()->id,
                 'document_type_id' => $document_type->id,
                 'trashed_name' => $document_type_trashed_name,
-                'trashed_table_name' => $document_type_trashed_name
+                'trashed_table_name' => $document_type_trashed_table_name
             ]);
 
             return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been deleted successfully.", 'success'));
         } else {
             // delete document type and folder if both is empty
             Storage::disk('local')->deleteDirectory(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}");
-
             SchemaBuilder::drop_table($document_type->table_name);
-
             $document_type->delete();
 
             return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been deleted successfully.", 'success'));
         }
     }
 
-    public function restore(string $name){
+    /**
+     * Restore a previously deleted document type.
+     *
+     * This function retrieves a document type by its name that is currently inactive.
+     * It then restores the document type by marking it as active, renaming the associated
+     * folder and database table back to their original names, and removing the entry from
+     * the trashed document types table.
+     *
+     * @param string $name The name of the document type to restore.
+     * @return \Illuminate\Http\RedirectResponse Redirects to the document types index with a success message.
+     */
+    public function restore(string $name)
+    {
         $document_type = DocumentType::where('name', $name)->where('is_active', 0)->firstOrFail();
-        
+
         $document_type_trashed_query = DB::table('document_types_trashed')->where('document_type_id', $document_type->id);
         $document_type_trashed = $document_type_trashed_query->first();
 
-        // make document type
+        // make document type to active
         $document_type->is_active = 1;
         $document_type->save();
 
@@ -832,6 +843,180 @@ class DocumentTypeController extends Controller
         $document_type_trashed_query->delete();
 
         return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been restored successfully.", 'success'));
-    
+    }
+
+    /**
+     * Show the page for reordering schema of a document type.
+     *
+     * This function retrieves a document type by its name that is currently active.
+     * It then builds an array of resources to be passed to the view.
+     *
+     * @param string $name The name of the document type for which to show the reorder
+     *                     schema page.
+     * @return \Illuminate\View\View The view for reordering the schema of a document type.
+     */
+    public function reorder(string $name)
+    {
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        //check if data long_name is not empty set new properti 'abbr'
+        $document_type->abbr = $document_type->long_name ? '<abbr title="' . $document_type->long_name . '">' . $name . '</abbr>' : $document_type->name;
+
+        $load_columns_link = route('documents.schema.columns', [$document_type->name]);
+        $resources = build_resource_array(
+            "Reorder schema of document type $name " . ($document_type->long_name ? ' (' . $document_type->long_name . ')' : ''),
+            "Reorder schema of document type $document_type->abbr",
+            "<i class=\"bi bi-list\"></i> ",
+            "A page for reordering schema of document type $document_type->abbr.",
+            [
+                "Dashboard" => route('dashboard.index'),
+                "Documents" => route('documents.index'),
+                "Document type $name" => route('documents.structure', $name),
+                "Reorder schema of document type $name"
+            ],
+            [
+                [
+                    'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ],
+                [
+                    'href' => 'order.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
+                ]
+            ],
+            [
+                [
+                    'src' => 'order.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
+                ],
+                [
+                    'inline' => <<<JS
+                        loadColumnsData('{$load_columns_link}');
+                    JS
+                ]
+            ]
+        );
+
+        $resources['document_type'] = $document_type;
+
+        return view('apps.documents.reorder-schema', $resources);
+    }
+
+    public function reorder_schema_of_document_type(Request $request, string $name)
+    {
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        // decode schema from json to array schema attributes
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+
+        // check if document type has schema attributes
+        if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+        }
+
+        // get columns name from schema representation
+        $request_data = $request->only(['id', 'sequence']);
+
+        // Create custom attribute for better message in client side
+        $attribute_names = [];
+        foreach (['id', 'sequence'] as $column) {
+            if (Arr::has($request_data, $column) && is_array($request_data[$column])) {
+                foreach ($request_data[$column] as $index => $value) {
+                    $attribute_names["$column.$index"] = ucfirst(str_replace('_', ' ', $column)) . " Field " . ($index + 1);
+                }
+            }
+        }
+
+        $validator = Validator::make($request_data, [
+            'id.*' => "required|string",
+            'sequence.*' => "required|numeric",
+        ]);
+        // Validate attributes id exists in schema attributes
+        $validator->after(function ($validator) use ($document_type) {
+            $ids = array_column($document_type->schema_form, 'id');
+
+            foreach ($validator->getData()['id'] as $index => $id) {
+                if (!in_array($id, $ids)) {
+                    $validator->errors()->add("id.$index", "Field with id $id doesn't exist");
+                }
+            }
+        });
+        $validator->setAttributeNames($attribute_names);
+
+        if ($validator->fails()) {
+            return redirect()->back()->with('message', toast($validator->messages()->first(), 'error'))->withErrors($validator);
+        }
+
+        $validated = $validator->validated();
+
+        // Change order/sequence number of schema attributes
+        $new_schema_form = $document_type->schema_form;
+        $new_schema_table = $document_type->schema_table;
+        foreach ($document_type->schema_form as $attribute => $value) {
+            foreach ($validated['id'] as $key => $id) {
+                if ($value['id'] === $id) {
+                    // update id attributes
+                    $new_schema_form[$attribute]['id'] = substr_replace($new_schema_form[$attribute]['id'], $validated['sequence'][$key], strrpos($new_schema_form[$attribute]['id'], ':') + 1);
+
+                    // update table attributes
+                    $new_schema_table[$new_schema_form[$attribute]['name']]['id'] = substr_replace($new_schema_table[$new_schema_form[$attribute]['name']]['id'], $validated['sequence'][$key], strrpos($new_schema_table[$new_schema_form[$attribute]['name']]['id'], ':') + 1);
+
+                    // update sequence number
+                    $new_schema_form[$attribute]['sequence_number'] = $validated['sequence'][$key];
+
+                    $new_schema_table[$new_schema_form[$attribute]['name']]['sequence_number'] = $validated['sequence'][$key];
+                }
+            }
+        }
+
+        // update and reordered sequence number of schema attributes
+        $document_type->schema_form = json_encode(SchemaBuilder::reorder_schema_sequence_number($new_schema_form), JSON_PRETTY_PRINT);
+        $document_type->schema_table = json_encode(SchemaBuilder::reorder_schema_sequence_number($new_schema_table), JSON_PRETTY_PRINT);
+        $document_type->save();
+
+        return redirect()->back()->with('message', toast("Schema of document type '$name' has been reordered successfully.", 'success'));
+    }
+
+    /**
+     * Retrieve the schema attributes of a document type.
+     *
+     * This function is responsible for retrieving the schema attributes of a given document type.
+     * It first checks if the associated table exists and then attempts to decode the schema attributes
+     * from the 'schema_form' field of the document type.
+     * The function returns a success response with the retrieved schema attributes in the form of a JSON object.
+     *
+     * @param \Illuminate\Http\Request $request The HTTP request.
+     * @param string $name The name of the document type to retrieve its schema attributes.
+     * @return \Illuminate\Http\JsonResponse A success response with the retrieved schema attributes.
+     */
+    public function get_schema_attribute_columns(Request $request, string $name)
+    {
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
+
+        if ($document_type === null) {
+            return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", null, Response::HTTP_NOT_FOUND);
+        }
+
+        $document_type->schema_form = json_decode($document_type->schema_form, true);
+        $document_type->schema_table = json_decode($document_type->schema_table, true);
+
+        // check if document type has schema attributes
+        if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
+            return $this->error_response("Sorry, we couldn't find schema for document type '$name'. Please try again.", null, Response::HTTP_BAD_REQUEST);
+        }
+
+        // Get columns data with format { id: 'column_id', name: 'column_name', type: 'column_type', sequence: 'column_sequence' }
+        $columns = [];
+        foreach ($document_type->schema_form as $column => $value) {
+            $columns[] = [
+                'id' => $value['id'],
+                'name' => $column,
+                'type' => strtoupper($value['type']),
+                'sequence' => $value['sequence_number']
+            ];
+        }
+
+        return $this->success_response("Schema for document type '$name' has been retrieved successfully.", ['columns' => $columns]);
     }
 }

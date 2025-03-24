@@ -402,18 +402,19 @@ if (!function_exists('note')) {
     }
 }
 
-if (!function_exists('is_admin')) {
+if (!function_exists('is_role')) {
     /**
      * Checks if the current authenticated user is an Admin.
      * 
      * This function simply checks the role of the current authenticated user and returns true if
      * the user is an Admin, otherwise false.
      * 
+     * @param string $role The role to check against { User, Admin }.
      * @return bool True if the user is an Admin, otherwise false.
      */
-    function is_admin()
+    function is_role(string $role)
     {
-        return auth()->user()->role === 'Admin';
+        return auth()->user()->role === $role;
     }
 }
 

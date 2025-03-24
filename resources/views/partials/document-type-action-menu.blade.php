@@ -1,6 +1,24 @@
 <nav class="nav-container mb-3" id="document-menu">
     <ul class="nav-menu">
         <li class="nav-item">
+            <a href="{{ route('documents.index') }}" class="nav-link" title="Manage document types">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <rect x="4" y="2" width="12" height="16" rx="1" ry="1" fill="white" stroke="#333" stroke-width="1.2"/>
+                    
+                    <path d="M12 2 L16 6 L12 6 Z" fill="#e0e0e0" stroke="#333" stroke-width="1"/>
+                    
+                    <rect x="6" y="8" width="8" height="1" fill="#555"/>
+                    <rect x="6" y="10" width="8" height="1" fill="#555"/>
+                    <rect x="6" y="12" width="6" height="1" fill="#555"/>
+                    
+                    <rect x="8" y="16" width="4" height="4" fill="#4285F4" rx="1" ry="1"/>
+                    <rect x="14" y="14" width="4" height="6" fill="#34A853" rx="1" ry="1"/>
+                    <rect x="20" y="12" width="4" height="8" fill="#EA4335" rx="1" ry="1" opacity="0.8"/>
+                </svg>
+                Document Types
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="{{ route('documents.browse', $document_type->name) }}" class="nav-link {{ set_active('documents.browse', 'documents.data.edit') }}" title="Browse data of documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
@@ -10,7 +28,7 @@
         </li>
         @can('role-access', 'Admin')
             <li class="nav-item">
-                <a href="{{ route('documents.structure', $document_type->name) }}" class="nav-link {{ set_active('documents.structure', 'documents.insert.schema.page', 'documents.edit.schema') }}" aria-label="Structure of documents {{ $document_type->name }}" title="Structure of documents {{ $document_type->name }}">
+                <a href="{{ route('documents.structure', $document_type->name) }}" class="nav-link {{ set_active('documents.structure', 'documents.insert.schema.page', 'documents.edit.schema', 'documents.schema.reorder') }}" aria-label="Structure of documents {{ $document_type->name }}" title="Structure of documents {{ $document_type->name }}">
                     <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
@@ -52,12 +70,12 @@
                         Import
                     </a>
                     <div class="dropdown-menu border border-primary p-2" style="min-width: 320px">
-                        <p>Import from excel: .xlsx, .xls, and .csv. Make sure all columns are in the correct order. Column No, Attached File, Created At, and Updated At will not be affected. Important: Do not include headings in your file!</p>
+                        <p>Import from excel: .xlsx, .xls, and .csv. <mark>Note: Make sure all columns are in the correct order</mark>. Column No, Attached File, Created At, and Updated At will not be affected. Important: Do not include headings in your file!</p>
                         <form action="{{ route('documents.import', $document_type->name) }}" method="post" enctype="multipart/form-data">
                             @csrf
                             <div class="input-group">
                                 <input type="file" name="data" required id="" class="form-control" accept=".xlsx, .xls, .csv">
-                                <button class="btn btn-primary" type="submit" role="button" title="Button: to process importing data from file">Upload</button>
+                                <button class="btn btn-primary" type="submit" role="button" title="Button: to process importing data from file" onclick="return confirm('Are you sure you want to import data from file?')">Upload</button>
                             </div>
                         </form>
                     </div>

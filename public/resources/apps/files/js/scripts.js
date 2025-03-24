@@ -54,13 +54,13 @@ const uploadQueue = new UploadQueueManager({
      * Handles the scroll event on the file list container.
      * Loads more files when the user scrolls to the bottom of the container.
      */
-     var scrolling = false,
+    var scrolling = false,
         scrollDiffBefore = 0,
         page = fileList.getAttribute("data-current-page"),
         maxPage = fileList.getAttribute("data-last-page");
 
     $("#file-list-container").scroll(function () {
-        const container = $(this)
+        const container = $(this);
 
         var scrollArea = container[0].scrollHeight,
             scrollDiff = container.scrollTop() + container.innerHeight();
@@ -309,15 +309,18 @@ const uploadQueue = new UploadQueueManager({
         });
     }
 
-    $("#delete_option").on("show.bs.modal", function (e) {
+    $("#delete-option").on("show.bs.modal", function (e) {
         var button = $(e.relatedTarget);
         var keep_btn = $(this).find("#keep-btn");
         var erase_btn = $(this).find("#erase-btn");
 
-        var link_keep = `${keep_btn.data("url")}?file=${button.data("file")}`;
-        var link_erase = `${erase_btn.data("url")}?file=${button.data("file")}`;
-
-        keep_btn.attr("href", link_keep);
-        erase_btn.attr("href", link_erase);
+        keep_btn.attr(
+            "href",
+            `${keep_btn.data("url")}?file=${button.data("file")}`
+        );
+        erase_btn.attr(
+            "href",
+            `${erase_btn.data("url")}?file=${button.data("file")}`
+        );
     });
 })();

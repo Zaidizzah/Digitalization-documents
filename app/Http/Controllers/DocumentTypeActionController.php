@@ -93,7 +93,7 @@ class DocumentTypeActionController extends FileController
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
-            return redirect()->route('documents.index')->with('message', toast('Sorry, we couldn\'t find table for document type \'' . $name . '\', please create a valid table for this document type and try again.', 'error'));
+            return redirect()->back()->with('message', toast('Sorry, we couldn\'t find table for document type \'' . $name . '\', please create a valid table for this document type and try again.', 'error'));
         }
 
         // decode schema from json to array schema attributes
@@ -113,7 +113,7 @@ class DocumentTypeActionController extends FileController
 
             $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table);
         } catch (\Exception $e) {
-            return redirect()->route('documents.index')->with('message', toast($e->getMessage(), 'error'));
+            return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
 
         //check if data long_name is not empty set new properti 'abbr'
@@ -1071,23 +1071,67 @@ class DocumentTypeActionController extends FileController
         }
     }
 
-    public function export(Request $req, $document)
+    /**
+     * Export data of a document type to a file.
+     *
+     * This function is responsible for exporting the data of a given document type to a file.
+     * It first checks if the table exists and if the format is valid.
+     * The function returns a downloaded file with the exported data.
+     *
+     * @param \Illuminate\Http\Request $req The request object.
+     * @param string $name The name of the document type to export.
+     * @return \Illuminate\Http\Response The response object.
+     */
+    public function export(Request $req, string $name)
     {
-        $table = DocumentType::where('name', $document)->firstOrFail();
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        // check if format is valid
         if (!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
 
-        return Excel::download(new TableExport($table->table_name), $table->name . '_' . date('Y_m_d_His') . '.' . $req->format);
+        // check table is exists
+        if (!SchemaBuilder::table_exists($document_type->table_name)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
+        }
+
+        return Excel::download(new TableExport($document_type->table_name), "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}");
     }
 
-    public function import(Request $req, $document)
+    /**
+     * Import data into the specified document type.
+     *
+     * This function handles the import of data from an uploaded file into a specified document type.
+     * It retrieves the active document type by its name, and uses the TableImport service to process
+     * the file data according to the document type's schema. Upon successful import, it redirects back
+     * with a success message; otherwise, it returns with import error messages.
+     *
+     * @param \Illuminate\Http\Request $req The request object containing the uploaded file.
+     * @param string $name The name of the document type to import data into.
+     * @return \Illuminate\Http\RedirectResponse Redirects back with a success message or import errors.
+     */
+    public function import(Request $req, string $name)
     {
-        $table = DocumentType::where('name', $document)->firstOrFail();
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
 
-        $import = new TableImport($table->table_name, $table->schema_form);
+        // decode schema from json to array schema attributes
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+
+        // check table is exists
+        if (!SchemaBuilder::table_exists($document_type->table_name)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
+        }
+
+        // check if document type has schema attributes and table
+        if (empty($document_type->schema_form) || empty($document_type->schema_table) || empty($document_type->table_name)) {
+            throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
+        }
+
+        $import = new TableImport($document_type->table_name, $document_type->schema_form);
         Excel::import($import, $req->file('data'));
 
         if ($import->success) {
-            return redirect()->back()->with('message', toast('Import Success'));
+            return redirect()->route('documents.browse', $name)->with('message', toast("Importing data in document type '{$name}' has been successfully saved."));
         } else {
             return redirect()->back()->withErrors($import->messages);
         }

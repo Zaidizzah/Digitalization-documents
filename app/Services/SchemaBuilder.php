@@ -823,50 +823,33 @@ class SchemaBuilder
                     // set data to type DATE, TIME, or DATETIME and ignore format data if format does not match with type DATE, TIME, or DATETIME
                     switch ($old_table_schema[$column]['type']) {
                         case 'date':
-                            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data->$column)) {
-                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time></td>");
-                            }
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time>" : '') . "</td>");
                             break;
                         case 'time':
-                            if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $data->$column)) {
-                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time></td>");
-                            }
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time>" : '') . "</td>");
                             break;
                         case 'datetime':
-                            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $data->$column)) {
-                                array_push($row_data, "<td class=\"text-nowrap\"><time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>");
-                            }
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($data->$column ? "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time>" : '') . "</td>");
                             break;
                         default:
-                            array_push($row_data, '<td class="text-nowrap">' . (empty($data->$column) ? '' : $data->$column) . '</td>');
+                            array_push($row_data, '<td class="text-nowrap">' . ($data->$column ? $data->$column : '') . '</td>');
                             break;
                     }
                 }
 
                 // add file link
-                $preview_file_link = '';
-                if (isset($data->file_id)) {
+                if ($data->file_id !== null) {
                     $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\">{$data->file_name}.{$data->file_extension}</a>";
                 }
 
-                $is_admin = auth()->user()->role === 'Admin';
-
                 // add created_at, updated_at, button to delete and edit data of document type
-                $meta_column = "<td class=\"permalink-file\">" . ($preview_file_link ?? '') . "</td>
+                array_push($row_data, "<td class=\"text-nowrap permalink-file\">" . ($preview_file_link ?? '') . "</td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
-                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>";
-
-                if ($is_admin) {
-                    $meta_column .= "<td class=\"text-nowrap\">
-                        <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
-                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>
-                    </td>";
-                }
-
-                array_push(
-                    $row_data,
-                    $meta_column
-                );
+                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
+                    <td class=\"text-nowrap\">" .
+                    (is_role('Admin') ? "<a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
+                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>" : '') .
+                    "</td>"); // buttons action for admin user
 
                 array_push($rows, sprintf(
                     '<tr aria-rowindex="%d" role="row">
@@ -893,6 +876,17 @@ class SchemaBuilder
         }
     }
 
+    /**
+     * Generates validation rules for a given schema.
+     *
+     * @param string $table_name The name of the table.
+     * @param array $form_schema The schema of the form.
+     * @param array $columns_name The columns name of the table.
+     * @param string|int|null $update_id The ID of the document to update.
+     * @return mixed The validation rules.
+     * @throws \InvalidArgumentException When columns name is invalid.
+     * @throws \OutOfRangeException When field type is invalid.
+     */
     public static function get_validation_rules_from_schema(string $table_name, array $form_schema, array $columns_name, string|int|null $update_id = null): mixed
     {
         // Validate columns name
@@ -1464,7 +1458,7 @@ class SchemaBuilder
      *
      * @param string $table_name The name of the table to retrieve the columns from.
      * @param ?array $old_table_schema The schema representation of the table.
-     * @param bool $including If true, include 'id', 'created_at', and 'updated_at' in the result and false otherwise.
+     * @param bool $including If true, include 'id', 'file_id', 'created_at', and 'updated_at' in the result and false otherwise.
      * @return array An array of column names in the table.
      */
     public static function get_table_columns_name_from_schema_representation(string $table_name, ?array $old_table_schema = null, bool $including = false): array
@@ -1508,7 +1502,7 @@ class SchemaBuilder
      *
      * @param string $table_name The name of the table to retrieve the columns from.
      * @param ?array $old_form_schema The schema representation of the form.
-     * @param bool $including If true, include 'id', 'created_at', and 'updated_at' in the result and false otherwise.
+     * @param bool $including If true, include 'id', 'file_id', 'created_at', and 'updated_at' in the result and false otherwise.
      * @return array An array of column names in the table.
      */
     public static function get_form_columns_name_from_schema_representation(string $table_name, ?array $old_form_schema = null, bool $including = false): array

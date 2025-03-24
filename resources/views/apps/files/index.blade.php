@@ -249,7 +249,7 @@
                                                                 </a>
                                                             @else
                                                                 <a href="javascript:void(0);" data-file="{{ $f->encrypted_name }}" data-bs-toggle="modal"
-                                                                    data-bs-target="#delete_option" role="button" class="dropdown-item" 
+                                                                    data-bs-target="#delete-option" role="button" class="dropdown-item" 
                                                                     aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}">
                                                                     <i class="bi bi-trash fs-5"></i> Delete
                                                                 </a>
@@ -361,14 +361,10 @@
             </div>
         </div>
         @isset($document_type)
-            <div class="modal fade" id="delete_option" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-label="Modal edit files" aria-labelledby="delete_option-label" aria-hidden="true">
+            <div class="modal fade" id="delete-option" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-label="Modal edit files" aria-describedby="delete-option-body" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="delete_option-label"></h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
+                        <div class="modal-body" id="delete-option-body">
                             Would you like to keep the data that attached to this file? or erase it?
                         </div>
                         <div class="modal-footer">

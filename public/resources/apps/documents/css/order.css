@@ -1,0 +1,113 @@
+.column-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    background-color: #f9f9f9;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 3px;
+    touch-action: none;
+    user-select: none;
+    overflow: hidden;
+    transition: background-color 0.2s ease;
+}
+.column-item:hover {
+    background-color: #e8f8ff;
+}
+.column-handle {
+    margin-right: 10px;
+    padding: 5px;
+    color: #666;
+    cursor: grab;
+}
+.column-sequence {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 25px;
+    background-color: #ffff;
+    padding: 8px;
+    text-align: center;
+    border-width: 0 0 1px 1px;
+    border-style: solid;
+    border-color: var(--bs-border-color);
+}
+.column-name {
+    flex-grow: 1;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+.column-type {
+    width: 120px;
+    color: #666;
+    font-weight: normal;
+    padding-right: 10px;
+}
+
+/* Drag & Drop Styling */
+.dragging {
+    opacity: 1;
+    background-color: #e8f8ff !important;
+}
+.dragging .column-handle {
+    cursor: grabbing;
+}
+.drop-indicator {
+    height: 3px;
+    margin: 0 0 8px 0;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+.drop-indicator.active {
+    height: 15px;
+    margin: 4px 0 12px 0;
+    background-color: #d5ecff;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 3px;
+}
+.keyboard-dragging {
+    outline: 2px dashed #4a90e2;
+}
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+.touch-device .column-handle {
+    padding: 15px; /* Larger hit target for touch */
+}
+.touch-drag-ghost {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+/* Improved notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #333;
+    color: #ffff;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1100;
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

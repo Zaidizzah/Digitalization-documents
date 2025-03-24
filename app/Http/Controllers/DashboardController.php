@@ -27,13 +27,23 @@ class DashboardController extends Controller
         return view('apps.dashboard.index', $resources);
     }
 
+    /**
+     * Display the authenticated user's profile information.
+     *
+     * This method retrieves the currently authenticated user and constructs
+     * a resource array containing profile information to be displayed on
+     * the profile view page.
+     *
+     * @return \Illuminate\Contracts\View\View
+     */
     public function profile()
     {
+        $user = auth()->user();
         $resources = build_resource_array(
             "Profile",
             "Profile",
             "<i class=\"bi bi-person-fill-gear\"></i> ",
-            "Display user information or profile, on the '<mark>" . auth()->user()->name . "</mark>' user",
+            "Display user information or profile, on the '<mark>" . $user->name . "</mark>' user",
             [
                 'Dashboard' => route('dashboard.index'),
                 'Profile' => route('dashboard.profile')
@@ -43,6 +53,12 @@ class DashboardController extends Controller
         return view('apps.dashboard.profile', $resources);
     }
 
+    /**
+     * Handle the incoming request for changing name.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function change_name(Request $req)
     {
         $req->validate([
@@ -53,9 +69,15 @@ class DashboardController extends Controller
         $user->name = $req->name;
         $user->save();
 
-        return redirect()->route('dashboard.profile')->with('message', toast('Name changed successfully!', 'success'));
+        return redirect()->route('dashboard.profile')->with('message', toast('Your name has changed successfully!'));
     }
 
+    /**
+     * Handle the incoming request for changing password.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function change_password(Request $req)
     {
         $req->validate([
@@ -72,6 +94,6 @@ class DashboardController extends Controller
         $user->password = Hash::make($req->password_new);
         $user->save();
 
-        return redirect()->route('dashboard.profile')->with('message', toast('Password changed successfully!', 'success'));
+        return redirect()->route('dashboard.profile')->with('message', toast('Your password has changed successfully!'));
     }
 }

@@ -98,6 +98,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/documents/schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save');
         Route::get('/documents/schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load');
         Route::get('/documents/{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load');
+
+        // Reorder schema route
+        Route::get('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder'])->name('documents.schema.reorder.page');
+        Route::post('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
+        Route::get('/documents/{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns');
     });
 
     Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
