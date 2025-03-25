@@ -877,13 +877,13 @@ class SchemaBuilder
                     // set data to type DATE, TIME, or DATETIME and ignore format data if format does not match with type DATE, TIME, or DATETIME
                     switch ($old_table_schema[$column]['type']) {
                         case 'date':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y') . "</time>") : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? "<time datetime=\"{$data->$column}\">" . str_replace($search, "<mark>$search</mark>", Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y')) . "</time>" : '') . "</td>");
                             break;
                         case 'time':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A') . "</time>") : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? "<time datetime=\"{$data->$column}\">" . str_replace($search, "<mark>$search</mark>", Carbon::parse($data->$column, 'Asia/Jakarta')->format('H:i A')) . "</time>" : '') . "</td>");
                             break;
                         case 'datetime':
-                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? str_replace($search, "<mark>$search</mark>", "<time datetime=\"{$data->$column}\">" . Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time>") : '') . "</td>");
+                            array_push($row_data, "<td class=\"text-nowrap\">" . ($value ? "<time datetime=\"{$data->$column}\">" . str_replace($search, "<mark>$search</mark>", Carbon::parse($data->$column, 'Asia/Jakarta')->format('d F Y, H:i A')) . "</time>" : '') . "</td>");
                             break;
                         default:
                             array_push($row_data, "<td class=\"text-nowrap\">$value</td>");
@@ -898,8 +898,8 @@ class SchemaBuilder
 
                 // add created_at, updated_at, button to delete and edit data of document type
                 array_push($row_data, "<td class=\"text-nowrap permalink-file\">" . ($preview_file_link ?? '') . "</td>
-                    <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
-                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A') . "</time></td>
+                    <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . str_replace($search, "<mark>$search</mark>", Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A')) . "</time></td>
+                    <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . str_replace($search, "<mark>$search</mark>",     Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A')) . "</time></td>
                     <td class=\"text-nowrap\">" .
                     (is_role('Admin') ? "<a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
                         <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>" : '') .
@@ -968,25 +968,50 @@ class SchemaBuilder
             $type_rules = match ($type) {
                 'text', 'textarea' => [
                     'string',
-                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : []),
+                    ...(isset($rules_config['minLength']) ? ["min:{$rules_config['minLength']}"] : [])
                 ],
                 'number' => [
                     'numeric',
                     ...(isset($rules_config['min']) ? ["min:{$rules_config['min']}"] : []),
                     ...(isset($rules_config['max']) ? ["max:{$rules_config['max']}"] : [])
                 ],
-                'date'       => ['date_format:Y-m-d'],
-                'time'       => ['date_format:H:i'],
-                'datetime'  => ['date_format:Y-m-d H:i:s'],
+                'date'       => [
+                    'string',
+                    'date',
+                    'date_format:Y-m-d',
+                    ...(isset($rules_config['minDate']) ? ["after_or_equal:{$rules_config['minDate']}"] : []),
+                    ...(isset($rules_config['maxDate']) ? ["before_or_equal:{$rules_config['maxDate']}"] : [])
+                ], // min date dan max date
+                'time'       => [
+                    'string',
+                    'date_format:H:i',
+                    ...(isset($rules_config['minTime']) ? ["after_or_equal:{$rules_config['minTime']}"] : []),
+                    ...(isset($rules_config['maxTime']) ? ["before_or_equal:{$rules_config['maxTime']}"] : [])
+                ], // min time dan max time
+                'datetime'  => [
+                    'string',
+                    'date_format:Y-m-d H:i:s',
+                    ...(isset($rules_config['minDate']) ? ["after_or_equal:{$rules_config['minDate']}"] : []),
+                    ...(isset($rules_config['maxDate']) ? ["before_or_equal:{$rules_config['maxDate']}"] : [])
+                ], // min date dan max date
                 'email'      => [
+                    'string',
                     'email',
-                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : []),
+                    ...(isset($rules_config['minLength']) ? ["min:{$rules_config['minLength']}"] : [])
                 ],
                 'url'        => [
+                    'string',
                     'url',
-                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : [])
+                    ...(isset($rules_config['maxLength']) ? ["max:{$rules_config['maxLength']}"] : []),
+                    ...(isset($rules_config['minLength']) ? ["min:{$rules_config['minLength']}"] : [])
                 ],
-                'phone'      => ['regex:/^\+?[1-9]\d{0,2}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,9}[-.\s]?\d{1,' . (int) self::FIELD_TYPE_CONFIG['phone']['maxLength'] . '}$/'],
+                'phone'      => [
+                    'string',
+                    'regex:/^\+?[1-9]\d{0,2}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,9}[-.\s]?\d{1,' . (int) self::FIELD_TYPE_CONFIG['phone']['maxLength'] . '}$/',
+                    'max:' . self::FIELD_TYPE_CONFIG['phone']['maxLength'],
+                ],
                 'select'     => ['in:' . implode(',', $rules_config['options'])],
                 default      => throw new \OutOfRangeException("Unsupported field type: {$type}", Response::HTTP_BAD_REQUEST),
             };

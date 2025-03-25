@@ -423,7 +423,7 @@ class DocumentTypeActionController extends FileController
                             <div class=\"attached-file-wrapper form-group g-3 mb-3\">
                                 <label for=\"attached-file-1\" class=\"form-label\">File <span class=\"text-danger\">*</span></label>
                                 <div class=\"input-group flex-nowrap\">
-                                    <input type=\"file\" class=\"form-control attached-file\" name=\"attached_file\" id=\"attached-file-1\" aria-label=\"File\" data-attached-file-id=\"1\" accept=\"image/png, image/jpg, image/jpeg, image/webp, application/pdf\">
+                                    <input type=\"file\" class=\"form-control attached-file\" name=\"attached_file\" id=\"attached-file-1\" aria-label=\"File\" data-attached-file-id=\"1\" accept=\"image/png, image/jpg, image/jpeg, image/webp, application/pdf\" aria-required=\"true\" required>
                                     <button class=\"btn btn-outline-primary btn-ocr-content-file\" type=\"button\" role=\"button\" disabled title=\"Button: to get content result from file (OCR)\"><i class=\"bi bi-file-earmark-text fs-5\"></i> OCR</button>
                                 </div>
                             </div>
