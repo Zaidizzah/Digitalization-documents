@@ -23,7 +23,7 @@ class DocumentTypeController extends Controller
 
     private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
     private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
-    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp';
+    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temps';
     private array $VALIDATION_RULES;
 
     public function __construct()
@@ -34,7 +34,7 @@ class DocumentTypeController extends Controller
                 'string',
                 'max:' . SchemaBuilder::__get_max_length_for_field_name(),
                 'regex:/^(?!.* {2})[a-zA-Z][a-zA-Z0-9_\s]{0,63}$/',
-                'unique:document_types,name'
+                Rule::unique('document_types', 'name')->where('is_active', 1),
             ],
             'description' => 'nullable|string',
             'long_name' => 'nullable|string|max:125',
@@ -44,7 +44,7 @@ class DocumentTypeController extends Controller
     /**
      * Display a listing of the resource for document types.
      */
-    public function index(Request $request)
+    public function index()
     {
         $resources = build_resource_array(
             "Manage document types",
@@ -268,22 +268,21 @@ class DocumentTypeController extends Controller
             }
 
             // create a table 
-            $table = SchemaBuilder::create_table($name, $schema['table'], $schema['form']);
+            $table_name = SchemaBuilder::create_table($name, $schema['table'], $schema['form']);
 
             DB::beginTransaction();
 
             // create new document type
-            $data = [
+            $document_type->fill([
                 'user_id' => auth()->user()->id,
                 'name' => $name,
-                'table_name' => $table,
+                'table_name' => $table_name,
                 'description' => $validated['description'],
                 'long_name' => $validated['long_name'],
                 'is_active' => true,
                 'schema_table' => json_encode($schema['table'], JSON_PRETTY_PRINT),
                 'schema_form' => json_encode($schema['form'], JSON_PRETTY_PRINT),
-            ];
-            $document_type->fill($data);
+            ]);
             $document_type->save();
 
             if (empty($document_type)) throw new \RuntimeException("Sorry, we couldn't create document type '$name', please try again.");
@@ -302,6 +301,9 @@ class DocumentTypeController extends Controller
             if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/$name")) {
                 Storage::disk('local')->deleteDirectory(self::PARENT_OF_FILES_DIRECTORY . "/$name");
             }
+
+            // delete table if exists
+            if (SchemaBuilder::table_exists($table_name)) SchemaBuilder::drop_table($table_name);
 
             // refresh changes value of document type to original value if transaction fails
             $document_type->refresh();
@@ -398,7 +400,7 @@ class DocumentTypeController extends Controller
      */
     public function update(Request $request, string $name)
     {
-        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->with('example_file')->firstOrFail();
 
         $validator = Validator::make(
             $request->only(['name', 'description', 'long_name']),
@@ -409,46 +411,75 @@ class DocumentTypeController extends Controller
             return redirect()->route("documents.settings", $name)->with('message', toast("Invalid updating document type '$name'.", 'error'))->withErrors($validator);
         }
 
-        $validated = $validator->validated();
-        $new_table_name = Str::snake(trim($validated['name']));
-        $original_table_name = $document_type->table_name;
-
         try {
-            if ($validated['name'] && $original_table_name !== $new_table_name) {
-                // changes the name of the table
-                SchemaBuilder::rename_table($original_table_name, $new_table_name);
-
-                $document_type->name = $validated['name'];
-                $document_type->table_name = $new_table_name;
-            }
+            $validated = $validator->validated();
+            $document_type->table_name = Str::snake(trim($validated['name']));
+            $original_table_name = $document_type->table_name;
 
             DB::beginTransaction();
+            if ($validated['name'] && $original_table_name !== $document_type->table_name) {
+                // changes the name of the table
+                SchemaBuilder::rename_table($original_table_name, $document_type->table_name);
+
+                $document_type->name = $validated['name'];
+            }
 
             $document_type->description = $validated['description'];
             $document_type->long_name = $validated['long_name'];
-            $document_type->save();
 
-            // rename existing directory
-            if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
-                if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/$new_table_name")) {
-                    throw new \RuntimeException(
-                        "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.",
-                        Response::HTTP_INTERNAL_SERVER_ERROR
-                    );
+            if ($document_type->isDirty('name')) {
+                // rename existing directory
+                if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
+                    if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
+                        throw new \RuntimeException(
+                            "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.",
+                            Response::HTTP_INTERNAL_SERVER_ERROR
+                        );
+                    }
+                }
+
+                // rename existing example file
+                if (Storage::disk('local')->exists($document_type->example_file->file_path)) {
+                    if (!Storage::disk('local')->move($document_type->example_file->file_path, str_replace($name, $document_type->name, $document_type->example_file->file_path))) {
+                        throw new \RuntimeException(
+                            "Sorry, we couldn't rename example file from previous name '" . $document_type->example_file->file_path . " to new name '" . str_replace($name, $document_type->name, $document_type->example_file->file_path) . "' of document type '$name', please try again.",
+                            Response::HTTP_INTERNAL_SERVER_ERROR
+                        );
+                    }
                 }
             }
 
+            // Save updated example file
+            $document_type->example_file->name = str_replace($name, $document_type->name, $document_type->example_file->name);
+            $document_type->example_file->encrypted_name = str_replace($name, $document_type->name, $document_type->example_file->encrypted_name); // because example file is not encrypted
+            $document_type->example_file->path = str_replace($name, $document_type->name, $document_type->example_file->path);
+            $document_type->example_file->save();
+
+            // Save updated document type
+            $document_type->save();
             DB::commit();
 
-            return redirect()->route("documents.settings", $new_table_name)->with('message', toast("Document type '$name' has been updated successfully.", 'success'));
+            return redirect()->route("documents.settings", $document_type->table_name)->with('message', toast("Document type '$name' has been updated successfully.", 'success'));
         } catch (\Exception $e) {
             // rollback transaction if any exception occurs and transaction level is active or greater than 0
             if (DB::transactionLevel() > 0) DB::rollBack();
 
             // rollback renamed table name to previous table name
-            if (SchemaBuilder::table_exists($new_table_name)) SchemaBuilder::rename_table($new_table_name, $original_table_name);
+            if (SchemaBuilder::table_exists($document_type->table_name)) SchemaBuilder::rename_table($document_type->table_name, $original_table_name);
 
+            // rollback renamed directory name to previous directory name
+            if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
+                Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}", self::PARENT_OF_FILES_DIRECTORY . "/{$name}");
+            }
+
+            // rollback renamed example file name to previous example file name
+            if (Storage::disk('local')->exists(str_replace($document_type->name, $name, $document_type->example_file->file_path))) {
+                Storage::disk('local')->move(str_replace($name, $document_type->name, $document_type->example_file->file_path), str_replace($document_type->name, $name, $document_type->example_file->file_path));
+            }
+
+            // refresh all model
             $document_type->refresh();
+            $document_type->example_file->refresh();
 
             return redirect()->route("documents.settings", $name)->with('message', toast($e->getMessage(), 'error'));
         }
@@ -744,12 +775,12 @@ class DocumentTypeController extends Controller
      * table does not exist, and handles any exceptions during the process by redirecting
      * with an error message.
      *
-     * @param string $name The name of the document type to delete.
+     * @param string|int $id The id of the document type to delete.
      * @return \Illuminate\Http\RedirectResponse Redirects to the document types index with a success or error message.
      */
-    public function destroy(string $name)
+    public function destroy(string|int $id)
     {
-        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+        $document_type = DocumentType::where('is_active', 1)->findOrFail($id);
 
         // check table exist in database and or directory of document type is exist
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
@@ -757,11 +788,11 @@ class DocumentTypeController extends Controller
                 sprintf(
                     'Table %s does not exist. Cannot delete document type %s.',
                     $document_type->table_name,
-                    $name
+                    $document_type->name
                 )
             );
 
-            return redirect()->route('documents.index')->with('message', toast("Table '$document_type->table_name' does not exist. Cannot delete document type '$name'.", 'error'));
+            return redirect()->route('documents.index')->with('message', toast("Table '{$document_type->table_name}' does not exist. Cannot delete document type '{$document_type->name}'.", 'error'));
         }
 
         if (!Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
@@ -769,11 +800,11 @@ class DocumentTypeController extends Controller
                 sprintf(
                     'Directory %s does not exist. Cannot delete document type %s.',
                     self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}",
-                    $name
+                    $document_type->name
                 )
             );
 
-            return redirect()->route('documents.index')->with('message', toast("Directory '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}' does not exist. Cannot delete document type '$name'.", 'error'));
+            return redirect()->route('documents.index')->with('message', toast("Directory '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}' does not exist. Cannot delete document type '{$document_type->name}'.", 'error'));
         }
 
         // check table has data and or directory of document type has files
@@ -782,12 +813,12 @@ class DocumentTypeController extends Controller
             $document_type->is_active = false;
             $document_type->save();
 
-            $document_type_trashed_name = "{$name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
+            $document_type_trashed_name = "{$document_type->name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
             $document_type_trashed_table_name = "{$document_type->table_name}_trash_" . now('Asia/Jakarta')->format('Y_m_d_His');
 
             // rename document type and folder to trash
             Storage::disk('local')->move(
-                self::PARENT_OF_FILES_DIRECTORY . "/$name",
+                self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}",
                 self::PARENT_OF_FILES_DIRECTORY . "/$document_type_trashed_name"
             );
 
@@ -801,14 +832,14 @@ class DocumentTypeController extends Controller
                 'trashed_table_name' => $document_type_trashed_table_name
             ]);
 
-            return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been deleted successfully.", 'success'));
+            return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' has been deleted successfully.", 'success'));
         } else {
             // delete document type and folder if both is empty
             Storage::disk('local')->deleteDirectory(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}");
             SchemaBuilder::drop_table($document_type->table_name);
             $document_type->delete();
 
-            return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been deleted successfully.", 'success'));
+            return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' has been deleted successfully.", 'success'));
         }
     }
 
@@ -820,14 +851,24 @@ class DocumentTypeController extends Controller
      * folder and database table back to their original names, and removing the entry from
      * the trashed document types table.
      *
-     * @param string $name The name of the document type to restore.
+     * @param string|int $id The id of the document type to restore.
      * @return \Illuminate\Http\RedirectResponse Redirects to the document types index with a success message.
      */
-    public function restore(string $name)
+    public function restore(string|int $id)
     {
-        $document_type = DocumentType::where('name', $name)->where('is_active', 0)->firstOrFail();
+        $document_type = DocumentType::where('is_active', 0)->findOrFail($id);
 
         $document_type_trashed_query = DB::table('document_types_trashed')->where('document_type_id', $document_type->id);
+        // check if document type is trashed or not
+        if (!$document_type_trashed_query->exists()) {
+            return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' is not trashed.", 'error'));
+        }
+
+        // check if document type is trashed and not duplicate
+        if (DocumentType::where('name', $document_type->name)->where('is_active', 1)->exists()) {
+            return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' already exists and is not trashed or active. Please rename the document type or check if active document type cannot be more than one.", 'error'));
+        }
+
         $document_type_trashed = $document_type_trashed_query->first();
 
         // make document type to active
@@ -836,14 +877,14 @@ class DocumentTypeController extends Controller
 
         // rename document folder
         Storage::disk('local')->move(
-            self::PARENT_OF_FILES_DIRECTORY . "/$document_type_trashed->trashed_name",
-            self::PARENT_OF_FILES_DIRECTORY . "/$name",
+            self::PARENT_OF_FILES_DIRECTORY . "/{$document_type_trashed->trashed_name}",
+            self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}",
         );
 
         SchemaBuilder::rename_table($document_type_trashed->trashed_table_name, $document_type->table_name);
         $document_type_trashed_query->delete();
 
-        return redirect()->route('documents.index')->with('message', toast("Document type '$name' has been restored successfully.", 'success'));
+        return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' has been restored successfully.", 'success'));
     }
 
     /**
@@ -921,7 +962,7 @@ class DocumentTypeController extends Controller
 
         // Create custom attribute for better message in client side
         $attribute_names = [];
-        foreach (['id', 'sequence'] as $column) {
+        foreach (array_keys($request_data) as $column) {
             if (Arr::has($request_data, $column) && is_array($request_data[$column])) {
                 foreach ($request_data[$column] as $index => $value) {
                     $attribute_names["$column.$index"] = ucfirst(str_replace('_', ' ', $column)) . " Field " . ($index + 1);
@@ -976,7 +1017,7 @@ class DocumentTypeController extends Controller
         $document_type->schema_table = json_encode(SchemaBuilder::reorder_schema_sequence_number($new_schema_table), JSON_PRETTY_PRINT);
         $document_type->save();
 
-        return redirect()->back()->with('message', toast("Schema of document type '$name' has been reordered successfully.", 'success'));
+        return redirect()->route('documents.structure', $name)->with('message', toast("Schema of document type '$name' has been reordered successfully.", 'success'));
     }
 
     /**

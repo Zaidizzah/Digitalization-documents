@@ -9,12 +9,13 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File as FileRule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use App\Services\SchemaBuilder;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ExampleExport;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -72,6 +73,11 @@ class FileController extends Controller
 
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+            // check if user need to be attached file to data of document type
+            if ($req->action === 'attach' && DB::table($document_type->table_name)->whereNull('file_id')->count() < 1) {
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast('Sorry, we couldn\'t find any data where file is not attached for document type \'' . $name . '\' data, please create unattached file data and try again.', 'error'));
+            }
 
             // change the upload url
             $upload_url = route('documents.files.upload', $document_type->name);
@@ -373,6 +379,31 @@ class FileController extends Controller
         }
 
         return Storage::download($file->path, "{$file->name}.{$file->extension}");
+    }
+
+    /**
+     * Download example file for importing data
+     *
+     * @param string $name The name of the document type.
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse 
+     */
+    public function download_example_file(string $name)
+    {
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+
+        // decode schema from json to array schema attributes
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+
+        // check table is exists
+        if (!SchemaBuilder::table_exists($document_type->table_name)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
+        }
+
+        $file_name = "Example-$name-" . date("Y-m-d-His") . ".xlsx";
+
+        // Create example excel file for importing data
+        return Excel::download(new ExampleExport($file_name, SchemaBuilder::get_example_data_for_import($document_type->table_name, $document_type->schema_form)), $file_name);
     }
 
     /**

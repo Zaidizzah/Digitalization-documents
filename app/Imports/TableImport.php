@@ -11,51 +11,62 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 
 class TableImport implements ToCollection
 {
-    private $table;
-    private $columns;
-    private $rules;
+    private string $table;
+    private array $columns;
+    private array $rules;
 
-    public $messages;
-    public $success = false;
+    public MessageBag $messages;
+    public bool $success = false;
 
     public function __construct($table, $form_schema)
     {
         $this->table = $table;
-        $columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
-        $this->columns = $columns;
-        $rules = SchemaBuilder::get_validation_rules_from_schema($table, $form_schema, $columns);
-        $this->rules = $rules;
+        $this->columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
+        $this->rules = SchemaBuilder::get_validation_rules_from_schema($table, $form_schema, $this->columns);
     }
 
     /**
-     * @param Collection $collection
+     * Import data from the given collection to the specified table.
+     *
+     * This function validates the given data by checking the number of columns
+     * and validating it against the rules defined in the schema. If any of the
+     * validation fails, the error messages are stored in the messages property.
+     *
+     * If all validation passes and the data is not empty, the function inserts
+     * the data to the specified table and sets the success property to true.
+     *
+     * @param Collection $collection The data to be imported.
+     *
+     * @return void
      */
-    public function collection(Collection $collection)
+    public function collection(Collection $collection): void
     {
-        // dd($collection);
         $data = [];
         $messages = new MessageBag();
+
         foreach ($collection as $j => $row) {
-            // Count the number of columns in the row same as the number of columns in the table
+            // Check number of columns
             if (count($row) !== count($this->columns)) {
-                $messages->add("row$j", 'Invalid number of columns at row ' . ($j + 1) . '. Instead of ' . count($this->columns) . ' columns, but ' . count($row) . ' columns found.');
+                $messages->add("row$j", "Invalid number of columns at row " . ($j + 1) . ". Expected " . count($this->columns) . ", but got " . count($row) . ".");
                 continue;
             }
 
-            array_push($data, []);
-            foreach ($this->columns as $i => $col) {
-                $data[$j] += [$col => $row[$i]];
-            }
-            $valid = Validator::make($data[$j], $this->rules);
+            $rowData = array_combine($this->columns, $row->toArray());
+            // Validate all rows
+            $valid = Validator::make($rowData, $this->rules);
             if ($valid->fails()) {
-                $message = implode('<br>', $valid->messages()->all());
-                $messages->add("row$j", 'Invalid value at row ' . ($j + 1) . ': <br>' . $message);
+                $messages->add("row$j", "Invalid value at row " . ($j + 1) . ": <br>" . implode("<br>", $valid->messages()->all()));
             }
-        }
 
+            $data[] = $rowData;
+        }
         $this->messages = $messages;
-        if ($this->messages->isEmpty()) {
+
+        // Save all valid rows
+        if ($this->messages->isEmpty() && !empty($data)) {
             $this->success = true;
+
+            // Insert data
             DB::table($this->table)->insert($data);
         }
     }

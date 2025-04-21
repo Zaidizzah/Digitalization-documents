@@ -19,7 +19,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('documents.browse', $document_type->name) }}" class="nav-link {{ set_active('documents.browse', 'documents.data.edit') }}" title="Browse data of documents {{ $document_type->name }}">
+            <a href="{{ route('documents.browse', [$document_type->name, 'action' => 'browse']) }}" class="nav-link {{ set_active('documents.browse', 'documents.data.edit') }}" title="Browse data of documents {{ $document_type->name }}">
                 <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 3h18v18H3V3zm16 16V5H5v14h14zM7 7h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
                 </svg>
@@ -70,11 +70,11 @@
                         Import
                     </a>
                     <div class="dropdown-menu border border-primary p-2" style="min-width: 320px">
-                        <p>Import from excel: .xlsx, .xls, and .csv. <mark>Note: Make sure all columns are in the correct order</mark>. Column No, Attached File, Created At, and Updated At will not be affected. Important: Do not include headings in your file!</p>
+                        <p>Import data from excel: .xlsx, .xls, and .csv. <mark>Note: Make sure all columns are in the correct order</mark>, or you can check first in the <a href="{{ route('documents.structure', $document_type->name) }}" class="text-primary fw-bold" title="View structure of document type {{ $document_type->name }}">structure</a>. Column No, Attached File, Created At, and Updated At will not be affected. Important: Do not include headings in your file!<br />Or you can download a sample file <a href="{{ route('documents.files.download.example', $document_type->name) }}" class="text-primary fw-bold" title="Download sample file of document type {{ $document_type->name }}">here</a>.</p>
                         <form action="{{ route('documents.import', $document_type->name) }}" method="post" enctype="multipart/form-data">
                             @csrf
                             <div class="input-group">
-                                <input type="file" name="data" required id="" class="form-control" accept=".xlsx, .xls, .csv">
+                                <input type="file" name="data"class="form-control" accept=".xlsx, .xls, .csv" aria-required="true" required>
                                 <button class="btn btn-primary" type="submit" role="button" title="Button: to process importing data from file" onclick="return confirm('Are you sure you want to import data from file?')">Upload</button>
                             </div>
                         </form>

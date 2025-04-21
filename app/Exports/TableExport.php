@@ -13,23 +13,24 @@ use Maatwebsite\Excel\Concerns\WithProperties;
 
 class TableExport implements FromView, ShouldAutoSize, WithProperties
 {
-    private $table;
-    private $file_name;
+    private string $document_type_name;
+    private string $table_name;
+    private string $file_name;
 
-    public function __construct($table, $file_name)
+    public function __construct(string $document_type_name, string $table_name, string $file_name)
     {
-        $this->table = $table;
+        $this->document_type_name = $document_type_name;
+        $this->table_name = $table_name;
         $this->file_name = $file_name;
     }
 
     /**
-     * @return \Illuminate\Support\Collection
+     * @return \Illuminate\Contracts\View\View
      */
     public function view(): View
     {
-        $table = $this->table;
-
-        $columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
+        // Get columns name
+        $columns = SchemaBuilder::get_table_columns_name_from_schema_representation($this->table_name);
         $columns_for_heading = array_map(function ($column) {
             return ucwords(str_replace('_', ' ', $column));
         }, $columns);
@@ -39,15 +40,17 @@ class TableExport implements FromView, ShouldAutoSize, WithProperties
         });
         array_push($headings, 'Attached File', 'Created At',  'Updated At');
 
-        array_push($columns, DB::raw('CONCAT(files.name, \'.\', files.extension) as file_name'), "$table.created_at",  "$table.updated_at");
+        array_push($columns, DB::raw('CONCAT(files.name, \'.\', files.extension) as file_name'), "{$this->table_name}.created_at",  "{$this->table_name}.updated_at");
 
-        $data = DB::table($table)->select($columns)
-            ->join('files', 'files.id', '=', "$table.file_id", 'left')
-            ->get()->toJson();
+        $data = DB::table($this->table_name)->select($columns)
+            ->join('files', 'files.id', '=', "{$this->table_name}.file_id", 'left')
+            ->get();
 
-        $data = json_decode($data, true);
-
-        return view('vendors.exports.general', compact('data', 'headings'));
+        return view('vendors.exports.general', [
+            'headings' => $headings,
+            'data' => $data,
+            'action' => 'export'
+        ]);
     }
 
     /*

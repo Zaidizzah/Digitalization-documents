@@ -27,7 +27,7 @@ class DocumentTypeActionController extends FileController
 
     private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
     private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
-    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp';
+    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temps';
 
     /**
      * Handle file upload and recognition using OCR.
@@ -104,34 +104,60 @@ class DocumentTypeActionController extends FileController
                 throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
             }
 
-            $document_type_data = DB::table($document_type->table_name)
-                ->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
+            $document_type_data = DB::table($document_type->table_name)->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
                 ->select(
-                    "$document_type->table_name.*",
+                    "{$document_type->table_name}.*",
                     'files.name as file_name',
                     'files.extension as file_extension',
                     'files.encrypted_name as file_encrypted_name',
-                    DB::raw("DATE_FORMAT($document_type->table_name.created_at, '%d %M %Y, %H:%i %p') as formatted_created_at"),
-                    DB::raw("DATE_FORMAT($document_type->table_name.updated_at, '%d %M %Y, %H:%i %p') as formatted_updated_at")
-                )->when($request->search ?? false, function ($query, $search) use ($document_type) {
+                )->when($request->search ?? false, function ($query, $search) use ($request, $document_type) {
                     $columns = Schema::getColumnListing($document_type->table_name);
-                    $excludedColumns = ['id', 'file_id'];
+                    $excludedColumns = 'id';
+                    $fileColumns = ['file_id' => ['files.name', 'files.extension']];
 
-                    $query->where(function ($query) use ($search, $columns, $excludedColumns, $document_type) {
-                        foreach ($columns as $column) {
-                            if (!in_array($column, $excludedColumns)) {
-                                $query->orWhere("$document_type->table_name.$column", 'like', "%$search%");
+                    $requestedColumn = $request->column;
+
+                    $isValidColumn = in_array($requestedColumn, $columns) || array_key_exists($requestedColumn, $fileColumns);
+
+                    $query->where(function ($query) use ($search, $columns, $excludedColumns, $document_type, $fileColumns, $requestedColumn, $isValidColumn) {
+                        if ($requestedColumn && $isValidColumn) {
+                            if (isset($fileColumns[$requestedColumn])) {
+                                foreach ($fileColumns[$requestedColumn] as $fileColumn) {
+                                    $query->orWhere($fileColumn, 'like', "%$search%");
+                                }
+                            } else {
+                                $query->orWhere("{$document_type->table_name}.$requestedColumn", 'like', "%$search%");
                             }
-                        }
+                        } else {
+                            foreach ($columns as $column) {
+                                if ($column !== $excludedColumns) {
+                                    $query->orWhere("{$document_type->table_name}.$column", 'like', "%$search%");
+                                }
+                            }
 
-                        $query->orWhere('files.name', 'like', "%$search%")
-                            ->orWhere('files.extension', 'like', "%$search%");
+                            $query->orWhere('files.name', 'like', "%$search%")
+                                ->orWhere('files.extension', 'like', "%$search%")
+                                ->orWhereRaw("DATE_FORMAT({$document_type->table_name}.created_at, '%d %F %Y, %H:%i %A') like ?", ["%$search%"])
+                                ->orWhereRaw("DATE_FORMAT({$document_type->table_name}.updated_at, '%d %F %Y, %H:%i %A') like ?", ["%$search%"]);
+                        }
                     });
+                })->when($request->action === 'attach', function ($query) use ($document_type) {
+                    $query->whereNull("{$document_type->table_name}.file_id");
                 })
                 ->paginate(25)
                 ->appends(request()->query());
 
-            $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table, $request->search);
+            // check if attach action on inactive document type
+            if ($request->action === 'attach' && $document_type->is_active === 0) {
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast('Document type \'' . $name . '\' is inactive, please activate document type and try again.', 'error'));
+            }
+
+            // check if data is empty for attach action
+            if ($request->action === 'attach' && $document_type_data->isEmpty()) {
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast('Sorry, we couldn\'t find any data where file is not attached for document type \'' . $name . '\' data, please create unattached file data and try again.', 'error'));
+            }
+
+            $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table, $request->action);
         } catch (\Exception $e) {
             return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
@@ -166,7 +192,66 @@ class DocumentTypeActionController extends FileController
         $resources['pagination'] = $document_type_data;
         $resources['document_type'] = $document_type;
 
+        $resources['columns_name'] = SchemaBuilder::get_form_columns_name_from_schema_representation($document_type->table_name, $document_type->schema_form, true);
+        // delete 'id' value from columns name
+        array_shift($resources['columns_name']);
+
+        // if action hass value 'attach' pass data attached file to view
+        $resources['attached_file'] = FileModel::when($request->action === 'attach' && $request->file, function ($query) use ($request) {
+            return $query->where('encrypted_name', $request->file);
+        })->firstOrFail();
+
         return view('apps.documents.browse', $resources);
+    }
+
+    /**
+     * Attach a file to the specified document type data.
+     *
+     * This function validates the input request to ensure the presence and existence of the file ID
+     * and document data IDs. If the validation succeeds, it updates the document type data by associating
+     * the specified file ID with the provided document data IDs. It redirects with a success message upon
+     * successful association, otherwise, it provides an error message.
+     *
+     * @param \Illuminate\Http\Request $request The HTTP request containing file and document data IDs.
+     * @param string $name The name of the document type to which the file will be attached.
+     * @return \Illuminate\Http\RedirectResponse Redirects to the document browse page with a success or error message.
+     */
+    public function attach(Request $request, string $name)
+    {
+        $request_data = $request->only(['file_id', 'data_id']);
+        $document_type = DocumentType::where('name', $name)->firstOrFail();
+
+        // Create custom attribute for better message in client side
+        $attribute_names = [];
+        if (Arr::has($request_data, 'data_id') && is_array($request_data['data_id'])) {
+            foreach ($request_data['data_id'] as $index => $value) {
+                $attribute_names["'data_id'.$index"] = "data id Field " . ($index + 1);
+            }
+        }
+
+        $validator = Validator::make($request_data, [
+            'file_id' => 'required|exists:files,id',
+            'data_id' => 'required|array',
+            'data_id.*' => "required|exists:{$document_type->table_name},id"
+        ]);
+        $validator->setAttributeNames($attribute_names);
+
+        if ($validator->fails()) {
+            return redirect()->back()->with('message', toast("Invalid attaching file to document type '$name' data.", 'error'))->withErrors($validator)->withInput();
+        }
+
+        $validated = $validator->validated();
+        $file = FileModel::where('id', $validated['file_id'])->first();
+
+        $result = DB::table($document_type->table_name)->whereIn('id', $validated['data_id'])->update([
+            'file_id' => $validated['file_id']
+        ]);
+
+        if ($result) {
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Successfully attaching file {$file->name}.{$file->extension} to document type '$name' data.", 'success'));
+        } else {
+            return redirect()->back()->with('message', toast("Failed attaching file {$file->name}.{$file->extension} to document type '$name' data.", 'error'));
+        }
     }
 
     /**
@@ -202,7 +287,7 @@ class DocumentTypeActionController extends FileController
                 throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
             }
 
-            $list_data_schema_attribute = SchemaBuilder::create_table_row_for_schema_attributes_in_html($document_type, $document_type->schema_form);
+            $list_data_schema_attribute = SchemaBuilder::create_table_row_for_schema_attributes_in_html($name, $document_type->schema_form);
         } catch (\Exception $e) {
             return redirect()->route('documents.index')->with('message', toast($e->getMessage(), 'error'));
         }
@@ -587,7 +672,7 @@ class DocumentTypeActionController extends FileController
 
         // check if document type has schema attributes and table
         if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
         $columns_name = array_column($document_type->schema_form, 'name');
@@ -614,8 +699,11 @@ class DocumentTypeActionController extends FileController
 
             foreach ($validation_rules as $rule => $value) {
                 if ($rule !== 'file_id.*') {
+                    $validation_rules["$rule"] = (in_array('required', $value) ? 'required' : 'nullable') . "|array";
+
                     // add new array with new key name
                     $validation_rules["$rule.*"] = $value;
+
                     // delete current array
                     unset($validation_rules[$rule]);
                 }
@@ -693,7 +781,7 @@ class DocumentTypeActionController extends FileController
             DB::table($document_type->table_name)->insert($data);
             DB::commit();
 
-            return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
         } catch (\Exception $e) {
             // rollback if any error occur
             if (DB::transactionLevel() > 0) DB::rollBack();
@@ -736,7 +824,7 @@ class DocumentTypeActionController extends FileController
 
         // check if document type has schema attributes and table
         if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
         // get relevant of document type data and related file to update with
@@ -866,7 +954,7 @@ class DocumentTypeActionController extends FileController
                     </div>";
         } catch (\Throwable $e) {
             // Get any exception and display in page
-            return redirect()->route('documents.browse', $name)->with('message', toast($e->getMessage(), 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast($e->getMessage(), 'error'));
         }
 
         //check if data long_name is not empty set new properti 'abbr'
@@ -942,7 +1030,7 @@ class DocumentTypeActionController extends FileController
 
         // check if document type has schema attributes and table
         if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
         $columns_name = array_column($document_type->schema_form, 'name');
@@ -969,6 +1057,9 @@ class DocumentTypeActionController extends FileController
 
             foreach ($validation_rules as $rule => $value) {
                 if ($rule !== 'id.*') {
+                    // prepare and add validation to field is array
+                    $validation_rules[$rule] = (in_array('required', $value) ? 'required' : 'nullable') . '|array';
+
                     // add new array with new key name
                     $validation_rules["$rule.*"] = $value;
                     // delete current array
@@ -1028,7 +1119,7 @@ class DocumentTypeActionController extends FileController
             DB::commit();
 
             if ($result) {
-                return redirect()->route('documents.browse', $name)->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
             } else {
                 return redirect()->back()->with('message', toast("Sorry, we couldn't create new data for document type '$name', please try again.", 'error'));
             }
@@ -1088,14 +1179,14 @@ class DocumentTypeActionController extends FileController
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table for document type '$name' and try again.", 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table for document type '$name' and try again.", 'error'));
         }
 
         // delete all data in table
         if (DB::table($document_type->table_name)->delete()) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("All data in document type '$name' has been deleted successfully.", 'success'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("All data in document type '$name' has been deleted successfully.", 'success'));
         } else {
-            return redirect()->route('documents.browse', $name)->with('message', toast("No data deleted in document type '$name'.", 'error'));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("No data deleted in document type '$name'.", 'error'));
         }
     }
 
@@ -1124,7 +1215,7 @@ class DocumentTypeActionController extends FileController
 
         $file_name =  "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}";
 
-        return Excel::download(new TableExport($document_type->table_name, $file_name), $file_name);
+        return Excel::download(new TableExport($document_type->name, $document_type->table_name, $file_name), $file_name);
     }
 
     /**
@@ -1161,7 +1252,7 @@ class DocumentTypeActionController extends FileController
         Excel::import($import, $req->file('data'));
 
         if ($import->success) {
-            return redirect()->route('documents.browse', $name)->with('message', toast("Importing data in document type '{$name}' has been successfully saved."));
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Importing data in document type '{$name}' has been successfully saved."));
         } else {
             return redirect()->back()->withErrors($import->messages);
         }

@@ -80,6 +80,15 @@
             <button type="button" class="btn btn-primary btn-sm" role="button" data-bs-toggle="modal" data-bs-target="#modal-users" title="Button: to add new user"><i class="bi bi-plus-square fs-5"></i> Add</button>
         </div> 
         <div class="tile-body">
+            <div class="search-form" id="search-form" aria-label="Search form container">
+                <form action="{{ route('users.index') }}" class="novalidate" method="get">
+                    <div class="input-group">
+                        <input type="search" class="form-control" name="search" placeholder="Search" value="{{ request('search') ?? '' }}">
+                        <button type="submit" class="btn btn-primary" title="Button: to apply filtering data">Search</button>
+                    </div>
+                </form>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover table-bordered" aria-labelledby="table-users-label" aria-label="Table of users">
                     <caption>List of data for users.</caption>
@@ -97,17 +106,17 @@
                     <tbody>
                         @if ($users->isEmpty())
                             <tr class="text-muted text-center" aria-hidden="true" aria-label="No data users">
-                                <td colspan="7" aria-colspan="7">No data available for users.</td>
+                                <td colspan="7" aria-colspan="7">No user data available{!! request('search') ? ' for <mark>' . request('search') . '</mark>' : '' !!}.</td>
                             </tr>
                         @else
                             @foreach ($users as $user)
                                 <tr aria-rowindex="{{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}" role="row">
                                     <th scope="row" class="text-nowrap" data-id="{{ $user->id }}">{{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}</th>
-                                    <td class="text-nowrap">{{ $user->name }}</td>
-                                    <td class="text-nowrap">{{ $user->email }}</td>
-                                    <td class="text-nowrap">{{ $user->role }}</td>
-                                    <td class="text-nowrap"><time datetime="{{ $user->created_at }}">{{ $user->created_at->format('d F Y, H:i A') }}</time></td>
-                                    <td class="text-nowrap"><time datetime="{{ $user->updated_at }}">{{ $user->updated_at->format('d F Y, H:i A') }}</time></td>
+                                    <td class="text-nowrap">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->name) !!}</td>
+                                    <td class="text-nowrap">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->email) !!}</td>
+                                    <td class="text-nowrap">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->role) !!}</td>
+                                    <td class="text-nowrap"><time datetime="{{ $user->created_at }}">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->created_at->format('d F Y, H:i A')) !!}</time></td>
+                                    <td class="text-nowrap"><time datetime="{{ $user->updated_at }}">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->updated_at->format('d F Y, H:i A')) !!}</time></td>
                                     <td class="text-nowrap">
                                         <button type="button" class="btn btn-warning btn-sm btn-edit" role="button" title="Button: to edit user" data-id="{{ $user->id }}"><i class="bi bi-pencil-square fs-5"></i></button>
                                         <a href="{{ route('users.delete', $user->id) }}" class="btn btn-danger btn-sm btn-delete" role="button" title="Button: to delete user" data-id="{{ $user->id }}"><i class="bi bi-trash fs-5"></i></a>

@@ -10,7 +10,11 @@ let isDragging = false;
 let dragOffsetY = 0;
 let ghostElement = null;
 
-// Render columns
+/**
+ * Renders all columns in the UI, sorted by sequence number. This function
+ * also sets up event listeners for drag & drop (desktop), touch events (mobile),
+ * and keyboard accessibility.
+ */
 function renderColumns() {
     const columnsContainer = document.getElementById("columns-container");
     columnsContainer.innerHTML = "";
@@ -64,6 +68,12 @@ function renderColumns() {
     });
 }
 
+/**
+ * Creates a drop indicator element and appends it to the given container at the specified index.
+ * Listens for dragover, dragleave, and drop events on the indicator element.
+ * @param {HTMLElement} container - The container element to append the drop indicator to.
+ * @param {number} index - The index of the drop indicator in the container.
+ */
 function addDropIndicator(container, index) {
     const indicator = document.createElement("div");
     indicator.className = "drop-indicator";
@@ -78,6 +88,14 @@ function addDropIndicator(container, index) {
     container.appendChild(indicator);
 }
 
+/**
+ * Handles the start of a drag & drop event, for desktop and mobile devices.
+ *
+ * Sets up the custom drag image, stores the mouse offset, and sets the effect
+ * and data for the drag event.
+ *
+ * @param {Event} e The dragstart event.
+ */
 function handleDragStart(e) {
     if (!e.target.closest(".column-item")) return;
 
@@ -115,6 +133,14 @@ function handleDragStart(e) {
     isDragging = true;
 }
 
+/**
+ * Handles drag end event.
+ *
+ * Resets the dragged item's state and removes the custom drag image.
+ * Also resets all drop indicators.
+ *
+ * @param {DragEvent} e The event object containing the drag object.
+ */
 function handleDragEnd(e) {
     if (draggedItem) {
         draggedItem.classList.remove("dragging");
@@ -136,6 +162,15 @@ function handleDragEnd(e) {
     isDragging = false;
 }
 
+/**
+ * Handles the drag over event for drop indicators.
+ *
+ * Prevents the default behavior of the event, sets the drop effect to "move",
+ * and adds an "active" class to the current drop indicator element, providing
+ * visual feedback that the item is currently being dragged over it.
+ *
+ * @param {DragEvent} e - The drag over event.
+ */
 function handleDragOver(e) {
     if (!isDragging) return;
 
@@ -152,10 +187,27 @@ function handleDragOver(e) {
     currentDropIndicator = this;
 }
 
+/**
+ * Handles the drag leave event for drop indicators.
+ *
+ * Removes the "active" class from the drop indicator element
+ * when a dragged item leaves its area, providing visual feedback
+ * that the item is no longer a potential drop target.
+ *
+ * @param {DragEvent} e - The drag leave event.
+ */
+
 function handleDragLeave(e) {
     this.classList.remove("active");
 }
 
+/**
+ * Handles drop event when a column is being reordered.
+ *
+ * @param {DragEvent} e - The drop event.
+ *
+ * @returns {void}
+ */
 function handleDrop(e) {
     e.preventDefault();
 
@@ -175,7 +227,15 @@ function handleDrop(e) {
     reorderColumns(columnId, dropIndex);
 }
 
-// Touch event handlers (mobile)
+/**
+ * Handles touch start events during drag and drop.
+ *
+ * Prevents scrolling when starting drag from a column handle.
+ * Stores the touch offset and creates a visual feedback element
+ * (ghost element) that is used to indicate the drag position.
+ *
+ * @param {TouchEvent} e The event object containing the touch object.
+ */
 function handleTouchStart(e) {
     if (!e.target.closest(".column-handle")) return;
 
@@ -211,6 +271,15 @@ function handleTouchStart(e) {
     isDragging = true;
 }
 
+/**
+ * Handles touch move events during drag and drop.
+ *
+ * Updates the position of the ghost element as the user drags.
+ * Finds the drop indicator the user is over and updates its "active" class.
+ * If no indicator is found, finds the closest indicator and updates its "active" class.
+ *
+ * @param {TouchEvent} e The event object containing the touch object.
+ */
 function handleTouchMove(e) {
     if (!isDragging || !draggedItem) return;
 
@@ -261,6 +330,13 @@ function handleTouchMove(e) {
     }
 }
 
+/**
+ * Handles the touchend event after a column has been dragged and dropped.
+ *
+ * Restores the original item appearance, cleans up the ghost element, and
+ * processes the drop by calling reorderColumns if we have an active drop
+ * indicator.  Resets the state after the drop is complete.
+ */
 function handleTouchEnd(e) {
     if (!isDragging || !draggedItem) return;
 
@@ -288,6 +364,20 @@ function handleTouchEnd(e) {
     currentDropIndicator = null;
     isDragging = false;
 }
+
+/**
+ * Handles keyboard interactions for column items, enabling accessibility
+ * features such as grabbing and moving items using the keyboard.
+ *
+ * @param {Event} e - The keyboard event triggered by user interaction.
+ *
+ * - Space or Enter: Toggles the grab/release state of the column item.
+ * - ArrowUp: Moves the grabbed item up in the order, if possible.
+ * - ArrowDown: Moves the grabbed item down in the order, if possible.
+ *
+ * The function ensures that only one item can be grabbed at a time and
+ * provides visual feedback for the grabbed state.
+ */
 
 function handleKeyDown(e) {
     const columnItem = e.target.closest(".column-item");
@@ -340,6 +430,14 @@ function handleKeyDown(e) {
     }
 }
 
+/**
+ * Reorders a column in the schema based on its ID and the desired index.
+ * The column's sequence number is updated accordingly, and the UI is re-rendered.
+ * A notification is displayed to the user, and the change is announced for screen readers.
+ *
+ * @param {string} columnId The ID of the column to reorder.
+ * @param {number} dropIndex The desired index of the column after reordering.
+ */
 function reorderColumns(columnId, dropIndex) {
     const draggedColumn = columns.find((col) => col.id === columnId);
     if (!draggedColumn) return;
@@ -382,6 +480,15 @@ function reorderColumns(columnId, dropIndex) {
     );
 }
 
+/**
+ * Normalizes the sequence numbers of the columns to a continuous
+ * sequence starting from 1.
+ *
+ * This function is called after the user has reordered the columns.
+ *
+ * @returns {void}
+ */
+
 function normalizeSequence() {
     const sortedColumns = [...columns].sort((a, b) => a.sequence - b.sequence);
 
@@ -390,14 +497,31 @@ function normalizeSequence() {
     });
 }
 
+/**
+ * Resets the columns to their original order and re-renders the UI.
+ *
+ * This function is called when the user clicks the "Reset" button.
+ *
+ * @returns {void}
+ */
 function resetColumns() {
-    columns = initialColumns;
+    columns = JSON.parse(JSON.stringify(initialColumns));
 
     renderColumns();
     showNotification("Sequence has been reset");
     announceChange("Columns have been reset to their original order");
 }
 
+/**
+ * Loads the columns data from the specified URL and initializes the UI.
+ *
+ * @param {string} url - The URL to fetch the columns data from.
+ *
+ * @throws {Error} - If the response is not ok, an error is thrown with a
+ *  message indicating the failure.
+ *
+ * @returns {Promise<void>}
+ */
 async function loadColumnsData(url) {
     try {
         LOADER.show();
@@ -415,8 +539,10 @@ async function loadColumnsData(url) {
         }
 
         const data = await response.json();
-        initialColumns = data.columns;
-        columns = data.columns;
+
+        // create new object of data columns
+        initialColumns = JSON.parse(JSON.stringify(data.columns));
+        columns = JSON.parse(JSON.stringify(data.columns));
 
         // Render columns
         renderColumns();
@@ -430,7 +556,16 @@ async function loadColumnsData(url) {
     }
 }
 
-// Display notification
+/**
+ * Displays a notification message to the user.
+ *
+ * This function creates a div element with a class of "notification" if it
+ * doesn't already exist, and appends it to the document body. It sets the
+ * provided message as the text content of the notification and makes it
+ * visible. The notification will automatically disappear after 3 seconds.
+ *
+ * @param {string} message - The message to display in the notification.
+ */
 function showNotification(message) {
     let notification = document.getElementById("notification");
     if (!notification) {
@@ -458,6 +593,15 @@ function showNotification(message) {
     }, 3000);
 }
 
+/**
+ * Announces a change to the user using a screen reader.
+ *
+ * If the `sr-announcer` element does not exist, it is created and appended to
+ * the document body. The message is then set as the textContent of the
+ * announcer element, which will be read out by screen readers.
+ *
+ * @param {string} message - The message to be announced to the user.
+ */
 function announceChange(message) {
     let announcer = document.getElementById("sr-announcer");
 
@@ -473,10 +617,26 @@ function announceChange(message) {
     announcer.textContent = message;
 }
 
+/**
+ * Determines if the current device is a touch-enabled device.
+ *
+ * Checks for the presence of touch-specific capabilities such as 'ontouchstart'
+ * in the window object or a non-zero number of maximum touch points supported
+ * by the device.
+ *
+ * @returns {boolean} True if the device supports touch, otherwise false.
+ */
 function isTouchDevice() {
     return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
+/**
+ * Adds classnames to the document body to indicate whether the user is using
+ * a touch device or a mouse device.
+ *
+ * This is used to adjust the column drag handles to be larger on touch
+ * devices.
+ */
 function setupDeviceSpecificStyles() {
     if (isTouchDevice()) {
         document.body.classList.add("touch-device");
@@ -485,6 +645,10 @@ function setupDeviceSpecificStyles() {
     }
 }
 
+/**
+ * Removes all event listeners from the document and removes the ghost element
+ * from the DOM. Used to clean up after reordering the columns.
+ */
 function cleanup() {
     if (ghostElement && ghostElement.parentNode) {
         ghostElement.parentNode.removeChild(ghostElement);

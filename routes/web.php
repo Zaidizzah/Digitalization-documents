@@ -26,7 +26,7 @@ use App\Http\Controllers\FileController;
 |
 */
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/signout', [AuthController::class, 'signout'])->name('signout');
 
     /*
@@ -39,7 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
     Route::post('/profile/change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
 
-    Route::middleware(['auth', 'role:Admin'])->group(function () {
+    Route::middleware('role:Admin')->group(function () {
         /*
         |--------------------------------------------------------------------------
         | User Routes
@@ -59,8 +59,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/documents/store', [DocumentTypeController::class, 'store'])->name('documents.store');
 
         Route::post('/documents/update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
-        Route::get('/documents/delete/{name}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
-        Route::get('/documents/restore/{name}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
+        Route::get('/documents/delete/{id}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
+        Route::get('/documents/restore/{id}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
 
         Route::get('/documents/{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
         Route::get('/documents/{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
@@ -103,6 +103,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder'])->name('documents.schema.reorder.page');
         Route::post('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
         Route::get('/documents/{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns');
+
+        // Document type data
+        Route::post('/documents/{name}/attach', [DocumentTypeActionController::class, 'attach'])->name('documents.data.attach');
     });
 
     Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
@@ -119,6 +122,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/documents/{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
     Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.root.download');
+
+    // Download sample file for importing data
+    Route::get('/documents/{name}/files/download-example', [FileController::class, 'download_example_file'])->name('documents.files.download.example');
 
     Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
     Route::get('/documents/{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');

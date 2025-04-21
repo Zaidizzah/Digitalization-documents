@@ -9,14 +9,18 @@ td.permalink-file {
     margin-bottom: 1rem;
 }
 
-.search-form form {
+.search-form form,
+.attached-file-action {
     position: relative;
     width: 100%;
+    height: max-content;
     display: flex;
     align-items: center;
     justify-content: end;
+    gap: 0.5rem;
 }
 
-.search-form form .input-group {
-    max-width: 350px;
+.search-form form .input-group,
+.attached-file-action .input-group {
+    max-width: 650px;
 }

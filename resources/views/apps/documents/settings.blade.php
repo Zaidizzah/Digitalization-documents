@@ -61,7 +61,7 @@
         </div>
         <div class="tile-body">
             <a href="{{ route("documents.data.delete.all", $document_type->name) }}" type="button" class="btn btn-danger btn-sm" title="Button: to empty the document type or delete all data in document type '{{ $document_type->name }}'" onclick="return confirm('Are you sure you want to empty the document type or delete all data in document type {{ $document_type->name }}?')">Empty the document type {!! $document_type->abbr ?? $document_type->name !!}</a>
-            <a href="{{ route('documents.delete', $document_type->name) }}" type="button" class="btn btn-danger btn-sm" role="button" title="Button: to delete document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}" onclick="return confirm('Are you sure you want to delete this document type {{ $document_type->name }}?')">Delete document type {!! $document_type->abbr ?? $document_type->name !!}</a>
+            <a href="{{ route('documents.delete', $document_type->id) }}" type="button" class="btn btn-danger btn-sm" role="button" title="Button: to delete document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}" onclick="return confirm('Are you sure you want to delete this document type {{ $document_type->name }}?')">Delete document type {!! $document_type->abbr ?? $document_type->name !!}</a>
         </div>
     </div>
 

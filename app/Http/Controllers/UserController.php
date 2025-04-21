@@ -13,8 +13,10 @@ class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * 
+     * @param \Illuminate\Http\Request $request
      */
-    public function index()
+    public function index(Request $request)
     {
         $resources = build_resource_array(
             // List of data for the page
@@ -26,7 +28,12 @@ class UserController extends Controller
                 'Dashboard' => route('dashboard.index'),
                 'Manage users' => route('users.index')
             ],
-            null,
+            [
+                [
+                    'href' => 'styles.css',
+                    'base_path' => asset('resources/apps/user/css/')
+                ]
+            ],
             [
                 [
                     'src' => 'scripts.js',
@@ -36,7 +43,16 @@ class UserController extends Controller
         );
 
         // List of users
-        $resources['users'] = User::where('role', 'User')->paginate(25)->withQueryString();
+        $resources['users'] = User::where('role', 'User')
+            ->when($request->search ?? false, function ($query, $search) {
+                $query->where('name', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%")
+                    ->orWhere('created_at', 'like', "%$search%")
+                    ->orWhere('updated_at', 'like', "%$search%")
+                    ->orWhereRaw("DATE_FORMAT(created_at, '%d %F %Y %H:%i %A') LIKE ?", ["%$search%"])
+                    ->orWhereRaw("DATE_FORMAT(updated_at, '%d %F %Y %H:%i %A') LIKE ?", ["%$search%"]);
+            })
+            ->paginate(25)->withQueryString();
 
         return view('apps.user.index', $resources);
     }

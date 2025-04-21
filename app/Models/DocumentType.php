@@ -35,4 +35,9 @@ class DocumentType extends Model
     {
         return $this->hasMany(File::class, 'document_type_id', 'id');
     }
+
+    public function example_file()
+    {
+        return $this->belongsTo(File::class, 'example_file_id', 'id');
+    }
 }

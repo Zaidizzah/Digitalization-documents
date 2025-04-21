@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\File as FileModel;
+use App\Models\DocumentType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -24,7 +26,14 @@ class DashboardController extends Controller
             ]
         );
 
-        return view('apps.dashboard.index', $resources);
+        $data = [
+            'users' => User::count(),
+            'files' => FileModel::count(),
+            'document_types' => DocumentType::count(),
+            'unlabeled_files' => FileModel::whereNull('document_type_id')->count()
+        ];
+
+        return view('apps.dashboard.index', array_merge($resources, $data));
     }
 
     /**

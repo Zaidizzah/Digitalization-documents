@@ -8,7 +8,7 @@
 
     <div class="row">
         <div class="col-md-6">
-            <div class="tile" aria-label="Tile section of users" aria-labelledby="tile-users-label">
+            <div class="tile h-100" aria-label="Tile section of users" aria-labelledby="tile-users-label">
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
                         <h3 class="title" id="tile-users-label">Your Profile</h3>
@@ -61,7 +61,7 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="tile" aria-label="Tile section of users" aria-labelledby="tile-users-label">
+            <div class="tile h-100" aria-label="Tile section of users" aria-labelledby="tile-users-label">
                 <div class="tile-title-w-btn flex-wrap">  
                     <div class="tile-title flex-nowrap">
                         <h3 class="title" id="tile-users-label">Change Password</h3>

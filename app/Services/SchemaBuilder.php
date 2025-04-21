@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
+use Faker\Factory as Faker;
 use App\Models\DocumentType;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use stdClass;
 
 class SchemaBuilder
 {
@@ -650,7 +649,7 @@ class SchemaBuilder
      * and formats the attribute data including rules, options, and other metadata.
      * It also constructs links for editing and deleting attributes.
      *
-     * @param string $table_name The name of the table associated with the schema.
+     * @param string $name The name of the document type associated with the schema.
      * @param array $schema_form An array representing the schema form, containing
      *                           the attributes and their configurations.
      *
@@ -658,10 +657,10 @@ class SchemaBuilder
      *
      * @throws \InvalidArgumentException If the schema form is empty.
      */
-    public static function create_table_row_for_schema_attributes_in_html(DocumentType $document_type, array $schema_form)
+    public static function create_table_row_for_schema_attributes_in_html(string $name, array $schema_form)
     {
         // check if schema is empty
-        if (empty($schema_form)) throw new \InvalidArgumentException("Schema attribute for document type {$document_type->name} is empty. Please add at least one field/attribute to the schema.", Response::HTTP_BAD_REQUEST);
+        if (empty($schema_form)) throw new \InvalidArgumentException("Schema attribute for document type {$name} is empty. Please add at least one field/attribute to the schema.", Response::HTTP_BAD_REQUEST);
 
         // Validate schema structure
         self::validate_structure_of_form_schema($schema_form);
@@ -754,8 +753,8 @@ class SchemaBuilder
                         <td class=\"text-nowrap\"><time datetime=\"{$data['created_at']}\">{$data['created_at']}</time></td>
                         <td class=\"text-nowrap\"><time datetime=\"{$data['updated_at']}\">{$data['updated_at']}</time></td>
                         <td class=\"text-nowrap\">
-                            <a href=\"" . route('documents.edit.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-warning btn-sm btn-edit-attribute\" title=\"Button: to edit attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\"><i class=\"bi bi-pencil fs-5\"></i></a>
-                            <a href=\"" . route('documents.delete.schema', [$document_type->name, $data['id']]) . "\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$document_type->name}.\" data-id=\"{$data['id']}\" onclick=\"return confirm('Are you sure you want to delete attribute $field?')\"><i class=\"bi bi-trash fs-5\"></i></a>
+                            <a href=\"" . route('documents.edit.schema', [$name, $data['id']]) . "\" role=\"button\" class=\"btn btn-warning btn-sm btn-edit-attribute\" title=\"Button: to edit attribute {$field} from document type {$name}.\" data-id=\"{$data['id']}\"><i class=\"bi bi-pencil fs-5\"></i></a>
+                            <a href=\"" . route('documents.delete.schema', [$name, $data['id']]) . "\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$name}.\" data-id=\"{$data['id']}\" onclick=\"return confirm('Are you sure you want to delete attribute $field?')\"><i class=\"bi bi-trash fs-5\"></i></a>
                         </td>
                     </tr>
 
@@ -840,20 +839,24 @@ class SchemaBuilder
      *
      * The function extracts fields from the schema, sorts them by their sequence number,
      * and constructs an HTML table body row for each data in the table. Each field
-     * value is used as a column value. Additional columns for "Created At", "Updated At",
-     * and "Action" are appended at the end.
+     * value is used as a column value. Additional columns for "No", "Atached File", "Created At", "Updated At",
+     * and "Action" are appended.
      *
      * @param string $name The name of the document type.
      * @param string $table_name The name of the table.
      * @param \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type list data of document type
      * @param array $old_table_schema An array representing the schema with field definitions.
      * @param int $pagination_limit The number of records to be displayed per page.
-     * @param ?string $search The value for filtering/searching data
+     * @param string $action The action to be performed in browse page, either 'browse' or 'attach'.
      *
      * @return string The generated HTML for the table body.
      */
-    public static function create_table_tbody_from_schema_in_html(string $name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema, ?string $search = null)
+    public static function create_table_tbody_from_schema_in_html(string $name, string $table_name, \Illuminate\Contracts\Pagination\LengthAwarePaginator $data_document_type, array $old_table_schema, $action = 'browse')
     {
+        // searching data
+        $search = request()->search;
+        $column_search = request()->column;
+
         // Sort by sequence_number
         $old_table_schema = self::sort_schema_by_sequence_number($old_table_schema);
 
@@ -892,18 +895,28 @@ class SchemaBuilder
                 }
 
                 // add file link
+                $preview_file_link = '';
                 if ($data->file_id !== null) {
                     $preview_file_link = "<a href=\"" . route('documents.files.preview', [$name, 'file' => $data->file_encrypted_name]) . "\" role=\"button\" title=\"Button: to preview file {$data->file_name}.{$data->file_extension}\">" . str_replace($search, "<mark>$search</mark>", "{$data->file_name}.{$data->file_extension}") . "</a>";
+                }
+
+                if (is_role('Admin') && $action === 'browse') {
+                    $buttons_action = "<a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
+                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>";
+                } else if (is_role('Admin') && $action === 'attach') {
+                    $buttons_action = "<div class=\"form-check form-switch mb-3\">
+                            <input class=\"form-check-input\" type=\"checkbox\" id=\"cbx-attached-data-to-file-$no\" name=\"data_id[]\" value=\"$data->id\" " . (in_array($data->id, old('data_id', [])) ? 'checked' : '') . " aria-label=\"Attaching on current data to file in request\" aria-required=\"false\">
+                            <label class=\"form-check-label\" for=\"cbx-attached-data-to-file-$no\">Attach</label>
+                        </div>";
+                } else {
+                    $buttons_action = '';
                 }
 
                 // add created_at, updated_at, button to delete and edit data of document type
                 array_push($row_data, "<td class=\"text-nowrap permalink-file\">" . ($preview_file_link ?? '') . "</td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->created_at\">" . str_replace($search, "<mark>$search</mark>", Carbon::parse($data->created_at, 'Asia/Jakarta')->format('d F Y, H:i A')) . "</time></td>
                     <td class=\"text-nowrap\"><time datetime=\"$data->updated_at\">" . str_replace($search, "<mark>$search</mark>",     Carbon::parse($data->updated_at, 'Asia/Jakarta')->format('d F Y, H:i A')) . "</time></td>
-                    <td class=\"text-nowrap\">" .
-                    (is_role('Admin') ? "<a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
-                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>" : '') .
-                    "</td>"); // buttons action for admin user
+                    <td class=\"text-nowrap\">$buttons_action</td>"); // buttons action for admin user
 
                 array_push($rows, sprintf(
                     '<tr aria-rowindex="%d" role="row">
@@ -923,7 +936,7 @@ class SchemaBuilder
             return "<tbody>$rows</tbody>";
         } else {
             $message = $search
-                ? "No data available for the current document type that matches '<mark>{$search}</mark>'."
+                ? "No data available for the current document type that matches '<mark>{$search}</mark>'" . ($column_search ? " in column <mark>{$column_search}</mark>" : '') .  "."
                 : "No data available for current document type.";
 
             return "<tbody>
@@ -938,24 +951,25 @@ class SchemaBuilder
      * Generates validation rules for a given schema.
      *
      * @param string $table_name The name of the table.
-     * @param array $form_schema The schema of the form.
+     * @param array $schema_form The schema of the form.
      * @param array $columns_name The columns name of the table.
      * @param string|int|null $update_id The ID of the document to update.
-     * @return mixed The validation rules.
+     * @return array The generated validation rules.
+     * 
      * @throws \InvalidArgumentException When columns name is invalid.
      * @throws \OutOfRangeException When field type is invalid.
      */
-    public static function get_validation_rules_from_schema(string $table_name, array $form_schema, array $columns_name, string|int|null $update_id = null): mixed
+    public static function get_validation_rules_from_schema(string $table_name, array $schema_form, array $columns_name, string|int|null $update_id = null): mixed
     {
         // Validate columns name
-        $schema_columns_name = array_column($form_schema, 'name');
+        $schema_columns_name = array_column($schema_form, 'name');
         if (!empty(array_diff($columns_name, $schema_columns_name))) {
             throw new \InvalidArgumentException();
         }
 
         $validation_rules = [];
 
-        foreach ($form_schema as $attribute) {
+        foreach ($schema_form as $attribute) {
             $field_name = $attribute['name'];
             $type = $attribute['type'];
             $required = $attribute['required'];
@@ -1027,6 +1041,63 @@ class SchemaBuilder
         }
 
         return $validation_rules;
+    }
+
+    /**
+     * Returns an array of example data for importing data into a table.
+     *
+     * The function takes the table name, schema form, and limit as input.
+     * The schema form should contain the column names and their respective field types.
+     * The function will generate example data based on the provided schema form
+     * and return an array of example data.
+     *
+     * @param string $table_name The name of the table.
+     * @param array $schema_form The schema form containing column names and their respective field types.
+     * @param int $limit The number of example data to generate.
+     *
+     * @return array An array of example data.
+     *
+     * @throws \InvalidArgumentException If the table does not exist.
+     * @throws \OutOfRangeException If the field type is not supported.
+     */
+    public static function get_example_data_for_import(string $table_name, array $schema_form, int $limit = 2): array
+    {
+        // check if table exists
+        if (!SchemaBuilder::table_exists($table_name))
+            throw new \InvalidArgumentException("Table {$table_name} does not exist.", Response::HTTP_BAD_REQUEST);
+
+        // reordered the schema before next proccess
+        $schema_form = SchemaBuilder::reorder_schema_sequence_number($schema_form);
+
+        $faker = Faker::create();
+        $columns_type = array_column($schema_form, 'type');
+        $example_data = [];
+
+        $matching_faker_type = function (string $type, array $value = []) use ($faker) { // $value is required if type is select/enum
+            return match ($type) {
+                'text', 'textarea' => Str::substr($faker->sentence($value['maxLength'] ?? 4), 0, $value['maxLength'] ?? 255),
+                'number' => $faker->numberBetween($value['min'] ?? 0, $value['max'] ?? random_int(1, 9)),
+                'date' => $faker->date(),
+                'time' => $faker->time('H:i'),
+                'datetime' => $faker->dateTime(),
+                'email' => $faker->email(),
+                'url' => $faker->url(),
+                'phone' => $faker->phoneNumber(),
+                'select' => $faker->randomElement($value['options'] ?? ['option 1', 'option 2', 'option 3']),
+                default => throw new \OutOfRangeException("Unsupported field type: {$type}", Response::HTTP_BAD_REQUEST),
+            };
+        };
+
+        for ($i = 0; $i < $limit; $i++) {
+            // push new array
+            $example_data[] = [];
+
+            for ($j = 0; $j < count($columns_type); $j++) {
+                $example_data[$i][array_keys($schema_form)[$j]] = $matching_faker_type($columns_type[$j], array_column($schema_form, 'rules')[$j]);
+            }
+        }
+
+        return $example_data;
     }
 
     /**
@@ -1535,7 +1606,7 @@ class SchemaBuilder
     }
 
     /**
-     * Returns an array of columns name in a table excluding 'id', 'created_at', and 'updated_at'.
+     * Returns an array of columns name in a table excluding 'id', 'file_id', 'created_at', and 'updated_at'.
      * 
      * This function is intended for schema table operations.
      *
@@ -1579,7 +1650,7 @@ class SchemaBuilder
     }
 
     /**
-     * Returns an array of columns name in a table excluding 'id', 'created_at', and 'updated_at' that is used for form operations.
+     * Returns an array of columns name in a table excluding 'id', 'file_id', 'created_at', and 'updated_at' that is used for form operations.
      * 
      * This function is intended for schema form operations.
      *
