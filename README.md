@@ -1,10 +1,10 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-# Mengenai laravel
+# Mengenai laravel {#mengenai-laravel}
 
 Laravel adalah kerangka kerja aplikasi web dengan sintaks yang ekspresif dan elegan. Kami percaya bahwa pengembangan harus menjadi pengalaman yang menyenangkan dan kreatif agar benar-benar memuaskan. Laravel menghilangkan rasa sakit dari pengembangan dengan memudahkan tugas-tugas umum yang digunakan dalam banyak proyek web.
 
-## Laravel Setup (Quick Guide) {#about-laravel}
+## Laravel Setup (Quick Guide)
 
 Ini adalah panduan singkat untuk menjalankan proyek Laravel dari GitHub tanpa mengganggu dokumentasi utama.
 
@@ -13,6 +13,7 @@ Ini adalah panduan singkat untuk menjalankan proyek Laravel dari GitHub tanpa me
 ```bash
 git clone https://github.com/username/nama-proyek.git
 cd nama-proyek
+```
 
 ---
 
@@ -53,6 +54,7 @@ graph TD
     D --> E
     E --> F
     F --> G
+```
 
 ## Kontributor: {#kontributor-digitalisasi-dokumen)
 - (Ahmad Zaid)[https://github.com/Ahmad0126/] sebagai Sistem analist, debugger, dan fullstack web developer
@@ -61,7 +63,7 @@ graph TD
 ---
 
 ## Link cepat
-- [Mengenai laravel](#about-laravel)
+- [Mengenai laravel](#mengenai-laravel)
 - [Pengenalan digitalisasi dokumen](#pengenalan-digitalisasi-dokumen)
 - [Fitur aplikasi digitalisasi dokumen](#fitur-digitalisasi-dokumen)
 - [Alur kerja sistem digitalisasi dokumen](#alur-digitalisasi-dokumen)
