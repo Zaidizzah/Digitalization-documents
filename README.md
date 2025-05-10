@@ -21,10 +21,10 @@ cd digitalization-documents
 composer install
 ```
 
-### Salin dan konfigurasi file ==.env==
+### Salin dan konfigurasi file <mark>.env</mark>
 
 ```bash
-cp .env.example .env
+<font color="yellow">cp</font> .env.example <font color="yellow">.env</font>
 ```
 
 ### Generate application key
