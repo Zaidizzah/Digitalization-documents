@@ -11,9 +11,42 @@ Ini adalah panduan singkat untuk menjalankan proyek Laravel dari GitHub tanpa me
 ### Clone Proyek dari GitHub
 
 ```bash
-git clone https://github.com/username/nama-proyek.git
-cd nama-proyek
+git clone https://github.com/Zaidizzah/digitalization-documents.git
+cd digitalization-documents
 ```
+
+### Install dependency via composer
+
+```bash
+composer install
+```
+
+### Salin dan konfigurasi file ==.env==
+
+```bash
+cp .env.example .env
+```
+
+### Generate application key
+
+```bash
+php artisan key:generate
+```
+
+### Migrasi dan seeder
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+### Menjalankan project laravel
+
+```bash
+php artisan serve
+```
+
+---
 
 # Project Digitalisasi Dokumen
 
