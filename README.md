@@ -1,10 +1,10 @@
-# 📄 Project Digitalisasi Dokumen
+# Project Digitalisasi Dokumen
 
 Proyek ini bertujuan untuk mengelola proses digitalisasi dokumen secara efisien, mulai dari upload, penyimpanan metadata, hingga pencarian berbasis skema dan atribut tertentu. Cocok digunakan untuk instansi, perusahaan, maupun kebutuhan personal.
 
 ---
 
-## 🚀 Fitur Utama
+## Fitur Utama
 
 - ✅ Upload dokumen (PDF, DOCX, gambar, dll)
 - 🗂️ Kategori dokumen berdasarkan skema
@@ -17,7 +17,7 @@ Proyek ini bertujuan untuk mengelola proses digitalisasi dokumen secara efisien,
 
 ---
 
-## 🧭 Alur Kerja Sistem
+## Alur Kerja Sistem
 
 ```mermaid
 graph TD
