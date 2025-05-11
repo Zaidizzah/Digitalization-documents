@@ -94,4 +94,22 @@ graph TD
 - [Alur kerja sistem digitalisasi dokumen](#alur-kerja-sistem)
 - [Kontibutor project digitalisasi dokumen](#kontributor)
 
+## Kontribusi
+
+Kami sangat terbuka terhadap kontribusi dari siapa pun!  
+Jika kamu menemukan bug, punya ide fitur baru, atau ingin membantu memperbaiki dokumentasi:
+
+- Fork repositori ini
+- Buat branch baru (`git checkout -b fitur-atau-perbaikan`)
+- Lakukan perubahan dan commit
+- Kirimkan pull request
+
+Setiap kontribusi sangat berarti dan akan kami apresiasi 🙌
+
+## Lisensi
+
+Proyek ini adalah **open source** dan dirilis di bawah lisensi [MIT License](LICENSE).  
+Silakan gunakan, modifikasi, dan distribusikan proyek ini sesuai dengan ketentuan lisensi tersebut.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
