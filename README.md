@@ -93,3 +93,5 @@ graph TD
 - [Fitur aplikasi digitalisasi dokumen](#fitur-utama)
 - [Alur kerja sistem digitalisasi dokumen](#alur-kerja-sistem)
 - [Kontibutor project digitalisasi dokumen](#kontributor)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
