@@ -35,9 +35,17 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Profile Routes
+    |--------------------------------------------------------------------------
+    */
     Route::get('/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
-    Route::post('/profile/change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
-    Route::post('/profile/change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
+    Route::group(['prefix' => 'profile'], function () {
+        Route::post('change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
+        Route::post('change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
+    });
 
     Route::middleware('role:Admin')->group(function () {
         /*
@@ -46,90 +54,108 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
-        Route::post('/users/store', [UserController::class, 'store'])->name('users.store');
-        Route::post('/users/update/{id}', [UserController::class, 'update'])->name('users.update');
-        Route::get('/users/delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
+        Route::group(['prefix' => 'users'], function () {
+            Route::post('store', [UserController::class, 'store'])->name('users.store');
+            Route::post('update/{id}', [UserController::class, 'update'])->name('users.update');
+            Route::get('delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
+        });
 
         /*
         |--------------------------------------------------------------------------
         | Document Type Routes
         |--------------------------------------------------------------------------
         */
-        Route::get('/documents/create', [DocumentTypeController::class, 'create'])->name('documents.create');
-        Route::post('/documents/store', [DocumentTypeController::class, 'store'])->name('documents.store');
+        Route::group(['prefix' => 'documents'], function () {
+            Route::get('create', [DocumentTypeController::class, 'create'])->name('documents.create');
+            Route::post('store', [DocumentTypeController::class, 'store'])->name('documents.store');
 
-        Route::post('/documents/update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
-        Route::get('/documents/delete/{id}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
-        Route::get('/documents/restore/{id}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
+            Route::post('update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
+            Route::get('delete/{id}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
+            Route::get('restore/{id}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
 
-        Route::get('/documents/{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
-        Route::get('/documents/{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
-        Route::post('/documents/{name}/import', [DocumentTypeActionController::class, 'import'])->name('documents.import');
+            Route::get('{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
+            Route::get('{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
+            Route::post('{name}/import', [DocumentTypeActionController::class, 'import'])->name('documents.import');
 
-        Route::get('/documents/{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
-        Route::post('/documents/{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
-        Route::get('/documents/{name}/edit/{id}', [DocumentTypeActionController::class, 'edit'])->name('documents.data.edit');
-        Route::post('/documents/{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
-        Route::get('/documents/{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
-        Route::get('/documents/{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
+            Route::get('{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
+            Route::post('{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
+            Route::get('{name}/edit/{id}', [DocumentTypeActionController::class, 'edit'])->name('documents.data.edit');
+            Route::post('{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
+            Route::get('{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
+            Route::get('{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
 
-        //doument files admin only
-        Route::post('/documents/files/upload', [FileController::class, 'upload'])->name('documents.files.root.upload');
-        Route::post('/documents/files/{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
-        Route::get('/documents/files/{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
-        Route::get('/documents/files/delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
-        Route::post('/documents/files/rename', [FileController::class, 'rename'])->name('documents.files.rename');
+            // Get result of file content in create action
+            Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize');
 
-        // Get result of file content in create action
-        Route::post('/documents/{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize');
+            /*
+            |--------------------------------------------------------------------------
+            | Route for handle the schema attributes
+            |--------------------------------------------------------------------------
+            */
+            Route::get('{name}/schema/edit/{id?}', [DocumentTypeController::class, 'edit_schema_of_document_type'])->name('documents.edit.schema');
+            Route::get('{name}/schema/delete/{id}', [DocumentTypeController::class, 'delete_schema_of_document_type'])->name('documents.delete.schema');
+            Route::post('{name}/schema/update', [DocumentTypeController::class, 'update_schema_of_document_type'])->name('documents.update.schema');
+
+            Route::get('{name}/schema/insert/', [DocumentTypeController::class, 'insert'])->name('documents.insert.schema.page');
+            Route::post('{name}/schema/insert', [DocumentTypeController::class, 'insert_schema_of_document_type'])->name('documents.insert.schema');
+
+            Route::post('schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save');
+            Route::get('schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load');
+            Route::get('{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load');
+
+            // Reorder schema route
+            Route::get('{name}/schema/reorder', [DocumentTypeController::class, 'reorder'])->name('documents.schema.reorder.page');
+            Route::post('{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
+            Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns');
+
+            // Document type data
+            Route::post('{name}/attach', [DocumentTypeActionController::class, 'attach'])->name('documents.data.attach');
+        });
 
         /*
         |--------------------------------------------------------------------------
-        | Route for handle the schema attributes
+        | Documents files routes
         |--------------------------------------------------------------------------
         */
-        Route::get('/documents/{name}/schema/edit/{id?}', [DocumentTypeController::class, 'edit_schema_of_document_type'])->name('documents.edit.schema');
-        Route::get('/documents/{name}/schema/delete/{id}', [DocumentTypeController::class, 'delete_schema_of_document_type'])->name('documents.delete.schema');
-        Route::post('/documents/{name}/schema/update', [DocumentTypeController::class, 'update_schema_of_document_type'])->name('documents.update.schema');
-
-        Route::get('/documents/{name}/schema/insert/', [DocumentTypeController::class, 'insert'])->name('documents.insert.schema.page');
-        Route::post('/documents/{name}/schema/insert', [DocumentTypeController::class, 'insert_schema_of_document_type'])->name('documents.insert.schema');
-
-        Route::post('/documents/schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save');
-        Route::get('/documents/schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load');
-        Route::get('/documents/{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load');
-
-        // Reorder schema route
-        Route::get('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder'])->name('documents.schema.reorder.page');
-        Route::post('/documents/{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
-        Route::get('/documents/{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns');
-
-        // Document type data
-        Route::post('/documents/{name}/attach', [DocumentTypeActionController::class, 'attach'])->name('documents.data.attach');
+        Route::group(['prefix' => 'documents/files'], function () {
+            //doument files admin only
+            Route::post('upload', [FileController::class, 'upload'])->name('documents.files.root.upload');
+            Route::post('{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
+            Route::get('{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
+            Route::get('delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
+            Route::post('rename', [FileController::class, 'rename'])->name('documents.files.rename');
+        });
     });
-
-    Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
-    Route::get('/documents/{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
-    Route::get('/documents/{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
 
     /*
     |--------------------------------------------------------------------------
-    | Documents files routes
+    | Documents routes
     |--------------------------------------------------------------------------
     */
-    Route::get('/documents/{name}/files', [FileController::class, 'index'])->name('documents.files.index');
-    Route::get('/documents/files', [FileController::class, 'index'])->name('documents.files.root.index');
+    Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
+    Route::group(['prefix' => 'documents'], function () {
+        Route::get('{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
+        Route::get('{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
 
-    Route::get('/documents/{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
-    Route::get('/documents/files/download', [FileController::class, 'download'])->name('documents.files.root.download');
+        /*
+        |--------------------------------------------------------------------------
+        | Documents files routes
+        |--------------------------------------------------------------------------
+        */
+        Route::get('{name}/files', [FileController::class, 'index'])->name('documents.files.index');
+        Route::get('files', [FileController::class, 'index'])->name('documents.files.root.index');
 
-    // Download sample file for importing data
-    Route::get('/documents/{name}/files/download-example', [FileController::class, 'download_example_file'])->name('documents.files.download.example');
+        Route::get('{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
+        Route::get('files/download', [FileController::class, 'download'])->name('documents.files.root.download');
 
-    Route::get('/documents/files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
-    Route::get('/documents/{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
+        // Download sample file for importing data
+        Route::get('{name}/files/download-example', [FileController::class, 'download_example_file'])->name('documents.files.download.example');
 
-    Route::get('/documents/files/content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
+        Route::get('files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
+        Route::get('{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
+
+        Route::get('files/content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
+    });
 });
 
 Route::middleware(['guest'])->group(function () {
