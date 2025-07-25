@@ -6,8 +6,7 @@ class UploadQueueManager {
      * upload status, and counters for total and uploaded files.
      * Also, creates and inserts the upload progress modal into the DOM.
      */
-    constructor({ csrf_token, uploadUrl }) {
-        this.csrf_token = csrf_token;
+    constructor({ uploadUrl }) {
         this.uploadUrl = uploadUrl;
         this.queue = [];
         this.isUploading = false;
@@ -203,8 +202,10 @@ class UploadQueueManager {
             method: "POST",
             headers: {
                 Accept: "application/json",
-                "X-CSRF-TOKEN": this.csrf_token,
+                "X-CSRF-TOKEN": CSRF_TOKEN,
+                "XSRF-TOKEN": XSRF_TOKEN,
             },
+            credentials: "include",
             body: formData,
         });
 

@@ -16,6 +16,7 @@
             <div class="tile-body">
                 @csrf
 
+                @method('PUT')
                 <div class="form-group row g-1 mb-3">
                     <label for="name" class="form-label col-sm-3">Name<span aria-label="required" class="text-danger">*</span></label>
                     <div class="col-sm-9">
@@ -60,8 +61,18 @@
             </div>
         </div>
         <div class="tile-body">
-            <a href="{{ route("documents.data.delete.all", $document_type->name) }}" type="button" class="btn btn-danger btn-sm" title="Button: to empty the document type or delete all data in document type '{{ $document_type->name }}'" onclick="return confirm('Are you sure you want to empty the document type or delete all data in document type {{ $document_type->name }}?')">Empty the document type {!! $document_type->abbr ?? $document_type->name !!}</a>
-            <a href="{{ route('documents.delete', $document_type->id) }}" type="button" class="btn btn-danger btn-sm" role="button" title="Button: to delete document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}" onclick="return confirm('Are you sure you want to delete this document type {{ $document_type->name }}?')">Delete document type {!! $document_type->abbr ?? $document_type->name !!}</a>
+            <form action="{{ route("documents.data.delete.all", $document_type->name) }}" class="form-delete-all d-inline" method="post" data-id="{{ $document_type->id }}" data-name="{{ $document_type->name }}">
+                @csrf
+
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm" title="Button: to empty the document type or delete all data in document type '{{ $document_type->name }}'">Empty the document type {!! $document_type->abbr ?? $document_type->name !!}</button>
+            </form>
+            <form action="{{ route("documents.delete", $document_type->id) }}" class="form-delete d-inline" method="post" data-id="{{ $document_type->id }}" data-name="{{ $document_type->name }}">
+                @csrf
+
+                @method('DELETE')
+                <button type="submit" class="btn btn-danger btn-sm" role="button" title="Button: to delete document type '{{ $document_type->name }}'">Delete document type {!! $document_type->abbr ?? $document_type->name !!}</button>
+            </form>
         </div>
     </div>
 

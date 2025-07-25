@@ -754,7 +754,12 @@ class SchemaBuilder
                         <td class=\"text-nowrap\"><time datetime=\"{$data['updated_at']}\">{$data['updated_at']}</time></td>
                         <td class=\"text-nowrap\">
                             <a href=\"" . route('documents.edit.schema', [$name, $data['id']]) . "\" role=\"button\" class=\"btn btn-warning btn-sm btn-edit-attribute\" title=\"Button: to edit attribute {$field} from document type {$name}.\" data-id=\"{$data['id']}\"><i class=\"bi bi-pencil fs-5\"></i></a>
-                            <a href=\"" . route('documents.delete.schema', [$name, $data['id']]) . "\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$name}.\" data-id=\"{$data['id']}\" onclick=\"return confirm('Are you sure you want to delete attribute $field?')\"><i class=\"bi bi-trash fs-5\"></i></a>
+                            <form action=\"" . route('documents.delete.schema', [$name, $data['id']]) . "\" class=\"form-delete-attribute d-inline\" method=\"post\" data-id=\"{$data['id']}\" data-name=\"$field\">
+                                " . csrf_field() . "
+
+                                <input type=\"hidden\" name=\"_method\" value=\"DELETE\">
+                                <button type=\"submit\" role=\"button\" class=\"btn btn-danger btn-sm btn-delete-attribute\" title=\"Button: to delete attribute {$field} from document type {$name}.\"><i class=\"bi bi-trash fs-5\"></i></button>
+                            </form>
                         </td>
                     </tr>
 

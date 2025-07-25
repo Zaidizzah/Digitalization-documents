@@ -17,6 +17,7 @@
         <form action="{{ route("documents.data.update", [$document_type->name, $id]) }}" method="post" id="form-edit-document-type">
             @csrf
 
+            @method('PUT')
             <div class="tile-body">
                 {!! $form_html !!}
             </div>

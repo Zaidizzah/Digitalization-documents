@@ -92,7 +92,7 @@ class FileController extends Controller
 
         $files = FileModel::with(['document_type' => function ($query) {
             $query->select('id', 'name', 'long_name');
-        }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(25)->appends($req->all());
+        }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(25)->appends($req->all())->withQueryString();
 
         // If request is Fetch request send paginating files data to client
         if ($req->ajax()) {
@@ -480,11 +480,14 @@ class FileController extends Controller
     {
         $file = FileModel::where('encrypted_name', $name)->firstOrFail();
 
+        var_dump($file->path);
+        die;
+
         return response()->stream(function () use ($file) {
             echo Storage::get($file->path);
         }, 200, [
             'Content-Type' => $file->type,
-            'Content-Disposition' => 'inline; filename="pengarsipan.pdf"',
+            "Content-Disposition' => 'inline; filename=\"{$file->name}.{$file->extension}\"",
         ]);
     }
 }

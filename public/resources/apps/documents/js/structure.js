@@ -1,6 +1,10 @@
 (() => {
     "use strict";
 
+    const formDeleteAttribute = document.querySelectorAll(
+        "form.form-delete-attribute"
+    );
+
     // popover handler initialization
     const listPopover = document.querySelectorAll("[popovertarget]");
     if (listPopover) {
@@ -30,6 +34,24 @@
                     }
                 });
             }
+        });
+    }
+
+    if (formDeleteAttribute) {
+        formDeleteAttribute.forEach((form) => {
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                const name = form.dataset.name;
+
+                const confirmation = confirm(
+                    `Are you sure you want to delete attribute '${name}'?`
+                );
+
+                if (confirmation) {
+                    form.submit();
+                }
+            });
         });
     }
 })();

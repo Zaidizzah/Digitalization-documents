@@ -68,7 +68,10 @@
                         <small class="caption small font-italic fs-5">Forgot password? Change Here.</small>
                     </div>
                 </div> 
-                <form action="{{ route('profile.change_password') }}" method="post">
+                <form action="{{ route('profile.change_password') }}" class="form-horizontal" method="post">
+                    @csrf
+
+                    @method('PUT')
                     <div class="tile-body">
                         <div class="form-group mb-3">  
                             <label for="password_new" class="form-label">New Password<span aria-label="required" class="text-danger">*</span></label>
@@ -112,6 +115,8 @@
                 <form action="{{ route('profile.change_name') }}" class="form-horizontal" id="form-users" method="POST">
                     <div class="modal-body">
                         @csrf
+
+                        @method('PUT')
                         <div class="form-group mb-3 row">
                             <label for="name" class="col-sm-2 col-form-label">Name<span aria-label="required" class="text-danger">*</span></label>
                             <div class="col-sm-10">

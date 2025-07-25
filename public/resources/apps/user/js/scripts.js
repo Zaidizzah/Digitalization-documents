@@ -93,7 +93,7 @@
     }
 
     const btnEdit = document.querySelectorAll(".btn-edit");
-    const btnDelete = document.querySelectorAll(".btn-delete");
+    const formDelete = document.querySelectorAll("form.form-delete");
 
     if (btnEdit) {
         /**
@@ -154,6 +154,12 @@
                     passwordConfirmation.disabled = true;
                 }
 
+                // Adding input hidden for _method PUT
+                formUsers.insertAdjacentHTML(
+                    "beforeend",
+                    '<input type="hidden" name="_method" value="PUT">'
+                );
+
                 /**
                  * Replace message 'save' to 'update' the action onclick attribut on button submit from
                  */
@@ -178,25 +184,21 @@
         });
     }
 
-    if (btnDelete) {
-        /**
-         * Adds an event listener to each button with the class "btn-delete" that opens a confirmation alert.
-         */
-        btnDelete.forEach((btn) => {
-            btn.addEventListener("click", (event) => {
+    if (formDelete) {
+        formDelete.forEach((form) => {
+            form.addEventListener("submit", (event) => {
                 event.preventDefault();
 
-                const name = btn
+                const name = form
                     .closest("tr")
                     .querySelector("td:nth-child(2)").textContent;
 
                 const confirmation = confirm(
                     `Are you sure you want to delete data '${name}'?`
                 );
+
                 if (confirmation) {
-                    window.location.href = this.href;
-                } else {
-                    return false;
+                    form.submit();
                 }
             });
         });

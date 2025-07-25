@@ -28,7 +28,7 @@
         </li>
         @can('role-access', 'Admin')
             <li class="nav-item">
-                <a href="{{ route('documents.structure', $document_type->name) }}" class="nav-link {{ set_active('documents.structure', 'documents.insert.schema.page', 'documents.edit.schema', 'documents.schema.reorder') }}" aria-label="Structure of documents {{ $document_type->name }}" title="Structure of documents {{ $document_type->name }}">
+                <a href="{{ route('documents.structure', $document_type->name) }}" class="nav-link {{ set_active('documents.structure', 'documents.insert.schema.page', 'documents.edit.schema', 'documents.schema.reorder.page') }}" aria-label="Structure of documents {{ $document_type->name }}" title="Structure of documents {{ $document_type->name }}">
                     <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                     </svg>
@@ -73,6 +73,7 @@
                         <p>Import data from excel: .xlsx, .xls, and .csv. <mark>Note: Make sure all columns are in the correct order</mark>, or you can check first in the <a href="{{ route('documents.structure', $document_type->name) }}" class="text-primary fw-bold" title="View structure of document type {{ $document_type->name }}">structure</a>. Column No, Attached File, Created At, and Updated At will not be affected. Important: Do not include headings in your file!<br />Or you can download a sample file <a href="{{ route('documents.files.download.example', $document_type->name) }}" class="text-primary fw-bold" title="Download sample file of document type {{ $document_type->name }}">here</a>.</p>
                         <form action="{{ route('documents.import', $document_type->name) }}" method="post" enctype="multipart/form-data">
                             @csrf
+                            
                             <div class="input-group">
                                 <input type="file" name="data"class="form-control" accept=".xlsx, .xls, .csv" aria-required="true" required>
                                 <button class="btn btn-primary" type="submit" role="button" title="Button: to process importing data from file" onclick="return confirm('Are you sure you want to import data from file?')">Upload</button>

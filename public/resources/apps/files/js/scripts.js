@@ -1,6 +1,5 @@
 const uploadQueue = new UploadQueueManager({
-    csrf_token: CSRF_TOKEN,
-    uploadUrl: "/documents/files/upload",
+    uploadUrl: "api/documents/files/upload",
 });
 
 (() => {
@@ -32,7 +31,7 @@ const uploadQueue = new UploadQueueManager({
             const response = await uploadQueue.addToQueue(validFiles);
 
             if (response.fileSuccessMetadata.length > 0) {
-                var list = response.fileSuccessMetadata.join("");
+                const list = response.fileSuccessMetadata.join("");
 
                 // check if list is empty before inserting
                 const noFileAvailable =
@@ -42,10 +41,14 @@ const uploadQueue = new UploadQueueManager({
                     noFileAvailable.remove();
                 }
 
-                // Append list
-                document
-                    .querySelector("#file-list #selected-counter")
-                    .insertAdjacentHTML("afterend", list);
+                // Check if selected counter element exists
+                const selectedCounter =
+                    fileList.querySelector("#selected-counter");
+                if (selectedCounter) {
+                    selectedCounter.insertAdjacentHTML("afterend", list);
+                } else {
+                    fileList.insertAdjacentHTML("afterbegin", list);
+                }
             }
         }
     }
@@ -54,15 +57,15 @@ const uploadQueue = new UploadQueueManager({
      * Handles the scroll event on the file list container.
      * Loads more files when the user scrolls to the bottom of the container.
      */
-    var scrolling = false,
+    let scrolling = false,
         scrollDiffBefore = 0,
-        page = fileList.getAttribute("data-current-page"),
-        maxPage = fileList.getAttribute("data-last-page");
+        page = parseInt(fileList.dataset.currentPage, 10),
+        maxPage = parseInt(fileList.dataset.lastPage, 10);
 
     $("#file-list-container").scroll(function () {
         const container = $(this);
 
-        var scrollArea = container[0].scrollHeight,
+        let scrollArea = container[0].scrollHeight,
             scrollDiff = container.scrollTop() + container.innerHeight();
 
         if (scrollDiff > scrollDiffBefore) {
@@ -72,32 +75,39 @@ const uploadQueue = new UploadQueueManager({
 
         if (scrollDiff >= scrollArea && !scrolling) {
             if (page < maxPage) {
-                page++;
-
                 // Assign new page
-                loadMoreFiles();
+                page = loadMoreFiles(page);
                 scrolling = true;
             }
         }
     });
 
     function loadMoreFiles(page) {
+        // Assign 1 page to page variable
+        page++;
+
         const loadingFilesElement = $("#loading-files");
         loadingFilesElement.removeClass("d-none");
 
+        // URL to load more files with 'api' preffix
+        const url = `${location.origin}/api${location.pathname}?page=${page}`;
+
         $.ajax({
-            url: `?page=${page}`,
+            url: url,
             type: "get",
+            xhrFields: { withCredentials: true },
             success: function (data) {
                 if (!data) {
                     $(window).off("scroll");
                 } else {
-                    $("#file-list").append(data.files);
+                    fileList.insertAdjacentHTML("beforeend", data.files);
                 }
                 scrolling = false;
                 loadingFilesElement.addClass("d-none");
             },
-            error: () => page--,
+            error: () => {
+                return page--;
+            },
         });
 
         return page;
@@ -151,7 +161,9 @@ const uploadQueue = new UploadQueueManager({
                     Accept: "application/json",
                     "Content-type": "application/json",
                     "X-CSRF-TOKEN": CSRF_TOKEN,
+                    "XSRF-TOKEN": XSRF_TOKEN,
                 },
+                credentials: "include",
             })
                 .catch((error) => {
                     console.log(error);
@@ -309,18 +321,82 @@ const uploadQueue = new UploadQueueManager({
         });
     }
 
-    $("#delete-option").on("show.bs.modal", function (e) {
-        var button = $(e.relatedTarget);
-        var keep_btn = $(this).find("#keep-btn");
-        var erase_btn = $(this).find("#erase-btn");
+    // Delete option modal
+    document
+        .querySelector("#delete-option")
+        ?.addEventListener("show.bs.modal", function (e) {
+            const button = e.relatedTarget;
 
-        keep_btn.attr(
-            "href",
-            `${keep_btn.data("url")}?file=${button.data("file")}`
-        );
-        erase_btn.attr(
-            "href",
-            `${erase_btn.data("url")}?file=${button.data("file")}`
-        );
-    });
+            const formDeleteErase = document.querySelector(
+                "form.form-delete-erase"
+            );
+            const formDeleteKeep = document.querySelector(
+                "form.form-delete-keep"
+            );
+
+            if (formDeleteErase) {
+                formDeleteErase.addEventListener("submit", (event) => {
+                    event.preventDefault();
+
+                    // Adding input field hidden to encrypted file name
+                    formDeleteErase.insertAdjacentHTML(
+                        "beforeend",
+                        `<input type="hidden" name="file" value="${button.dataset.fileEncryption}">`
+                    );
+
+                    const name = `${button.dataset.fileName}.${button.dataset.fileExtension}`;
+
+                    const confirmation = confirm(
+                        `Are you sure you want to delete file '${name}' and erase all data that attached to this file?`
+                    );
+
+                    if (confirmation) {
+                        formDeleteErase.submit();
+                    }
+                });
+            }
+
+            if (formDeleteKeep) {
+                formDeleteKeep.addEventListener("submit", (event) => {
+                    event.preventDefault();
+
+                    // Adding input field hidden to encrypted file name
+                    formDeleteKeep.insertAdjacentHTML(
+                        "beforeend",
+                        `<input type="hidden" name="file" value="${button.dataset.fileEncryption}">`
+                    );
+
+                    const name = `${button.dataset.fileName}.${button.dataset.fileExtension}`;
+
+                    const confirmation = confirm(
+                        `Are you sure you want to delete file '${name}' but keep all data that attached to this file?`
+                    );
+
+                    if (confirmation) {
+                        formDeleteKeep.submit();
+                    }
+                });
+            }
+        });
+
+    const formDeleteFleRoot = document.querySelectorAll(
+        "form.form-delete-file-root"
+    );
+    if (formDeleteFleRoot) {
+        formDeleteFleRoot.forEach((form) => {
+            form.addEventListener("submit", (event) => {
+                event.preventDefault();
+
+                const name = `${form.dataset.fileName}.${form.dataset.fileExtension}`;
+
+                const confirmation = confirm(
+                    `Are you sure you want to delete file '${name}'?`
+                );
+
+                if (confirmation) {
+                    form.submit();
+                }
+            });
+        });
+    }
 })();

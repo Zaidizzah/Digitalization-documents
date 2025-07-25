@@ -119,7 +119,12 @@
                                     <td class="text-nowrap"><time datetime="{{ $user->updated_at }}">{!! str_replace(request('search'), '<mark>' . request('search') . '</mark>', $user->updated_at->format('d F Y, H:i A')) !!}</time></td>
                                     <td class="text-nowrap">
                                         <button type="button" class="btn btn-warning btn-sm btn-edit" role="button" title="Button: to edit user" data-id="{{ $user->id }}"><i class="bi bi-pencil-square fs-5"></i></button>
-                                        <a href="{{ route('users.delete', $user->id) }}" class="btn btn-danger btn-sm btn-delete" role="button" title="Button: to delete user" data-id="{{ $user->id }}"><i class="bi bi-trash fs-5"></i></a>
+                                        <form action="{{ route('users.delete', $user->id) }}" class="form-delete d-inline" method="post">
+                                            @csrf
+
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm" role="button" title="Button: to delete user" data-id="{{ $user->id }}"><i class="bi bi-trash fs-5"></i></button>
+                                        </form>
                                     </td>
                                 </tr>
                             @endforeach

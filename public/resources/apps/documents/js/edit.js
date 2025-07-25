@@ -1,6 +1,6 @@
 // Initialize the schema builder
 const schemaBuilder = new DocumentSchemaBuilder({
-    submissionURL: "/documents/schema/save",
+    submissionURL: `${location.origin}/api/documents/schema/save`,
     isModify: true,
     csrf_token: CSRF_TOKEN,
 });

@@ -14,6 +14,7 @@
         <form action="{{ route("documents.schema.reorder", $document_type->name) }}" method="post" id="form-reorder-schema-attributes-document-type">
             @csrf
 
+            @method('PUT')
             <div class="tile-body">
                 <div class="columns-container" id="columns-container" aria-label="Column list container">
                     <!-- Columns are rendered here -->

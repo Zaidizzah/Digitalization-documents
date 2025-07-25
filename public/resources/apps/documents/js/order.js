@@ -530,8 +530,10 @@ async function loadColumnsData(url) {
             headers: {
                 Accept: "application/json",
                 "Content-Type": "application/json",
+                "XSRF-TOKEN": XSRF_TOKEN,
                 "X-CSRF-TOKEN": CSRF_TOKEN,
             },
+            credentials: "include",
         });
 
         if (!response.ok) {

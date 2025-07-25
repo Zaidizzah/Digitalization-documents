@@ -7,6 +7,9 @@
     {!! note("Name of the attribute can't be '" .implode('\', \'', explode('$|', $except_attributes_name)). "'. That name's of the attribute has been added.") !!}
 
     <form action="{{ route("documents.update.schema", $document_type->name) }}" method="POST" id="form-modify-document-type">
+        @csrf
+
+        @method('PUT')
         <!-- \Attributes Section/ -->
         <div class="tile shadow-none" aria-label="Tile section of attributes list" aria-labelledby="tile-attibutes-list-label">
             <div class="tile-title-w-btn flex-wrap">  
@@ -16,7 +19,6 @@
                 </div>
                 <small class="caption small font-italic" id="schema-status">No attributes defined.</small>
             </div>
-            @csrf
 
             <div class="tile-body">
                 <div class="no-attributes" id="no-attributes" aria-hidden="true" aria-label="No attributes">

@@ -9,7 +9,11 @@
         method: "GET",
         headers: {
             "Content-Type": "application/json",
+            "X-CSRF-TOKEN": CSRF_TOKEN,
+            "XSRF-TOKEN": XSRF_TOKEN,
+            Accept: "application/json",
         },
+        credentials: "include",
     })
         .then((response) => {
             if (!response.ok) {
@@ -680,9 +684,12 @@
                     method: "POST",
                     headers: {
                         Accept: "application/json",
+                        // "Content-Type": "multipart/form-data", // Not needed because of FormData object has been set "Content-Type": "multipart/form-data" automatically
                         "X-CSRF-TOKEN": CSRF_TOKEN,
+                        "XSRF-TOKEN": XSRF_TOKEN,
                     },
                     body: formData,
+                    credentials: "include",
                 });
 
                 if (!response.ok) {

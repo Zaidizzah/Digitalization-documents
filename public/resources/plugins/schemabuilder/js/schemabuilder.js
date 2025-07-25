@@ -167,7 +167,9 @@ class DocumentSchemaBuilder {
                     Accept: "application/json",
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": this.csrf_token,
+                    "XSRF-TOKEN": XSRF_TOKEN,
                 },
+                credentials: "include",
             });
 
             if (!response.ok) {
@@ -265,7 +267,9 @@ class DocumentSchemaBuilder {
                     Accept: "application/json",
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": this.csrf_token,
+                    "XSRF-TOKEN": XSRF_TOKEN,
                 },
+                credentials: "include",
                 body: JSON.stringify({ schema: schema }),
             });
 

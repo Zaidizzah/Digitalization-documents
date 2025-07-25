@@ -43,8 +43,8 @@ Route::middleware('auth')->group(function () {
     */
     Route::get('/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
     Route::group(['prefix' => 'profile'], function () {
-        Route::post('change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
-        Route::post('change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
+        Route::put('change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
+        Route::put('change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
     });
 
     Route::middleware('role:Admin')->group(function () {
@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::group(['prefix' => 'users'], function () {
             Route::post('store', [UserController::class, 'store'])->name('users.store');
-            Route::post('update/{id}', [UserController::class, 'update'])->name('users.update');
-            Route::get('delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
+            Route::put('update/{id}', [UserController::class, 'update'])->name('users.update');
+            Route::delete('delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
         });
 
         /*
@@ -69,9 +69,9 @@ Route::middleware('auth')->group(function () {
             Route::get('create', [DocumentTypeController::class, 'create'])->name('documents.create');
             Route::post('store', [DocumentTypeController::class, 'store'])->name('documents.store');
 
-            Route::post('update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
-            Route::get('delete/{id}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
-            Route::get('restore/{id}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
+            Route::put('update/{name}', [DocumentTypeController::class, 'update'])->name('documents.update');
+            Route::delete('delete/{id}', [DocumentTypeController::class, 'destroy'])->name('documents.delete');
+            Route::put('restore/{id}', [DocumentTypeController::class, 'restore'])->name('documents.restore');
 
             Route::get('{name}/structure', [DocumentTypeActionController::class, 'structure'])->name('documents.structure');
             Route::get('{name}/settings', [DocumentTypeActionController::class, 'settings'])->name('documents.settings');
@@ -80,12 +80,9 @@ Route::middleware('auth')->group(function () {
             Route::get('{name}/create', [DocumentTypeActionController::class, 'create'])->name('documents.data.create');
             Route::post('{name}/store', [DocumentTypeActionController::class, 'store'])->name('documents.data.store');
             Route::get('{name}/edit/{id}', [DocumentTypeActionController::class, 'edit'])->name('documents.data.edit');
-            Route::post('{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
-            Route::get('{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
-            Route::get('{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
-
-            // Get result of file content in create action
-            Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize');
+            Route::put('{name}/update/{id}', [DocumentTypeActionController::class, 'update'])->name('documents.data.update');
+            Route::delete('{name}/delete/{id}', [DocumentTypeActionController::class, 'destroy'])->name('documents.data.delete');
+            Route::delete('{name}/destroy', [DocumentTypeActionController::class, 'destroy_all'])->name('documents.data.delete.all');
 
             /*
             |--------------------------------------------------------------------------
@@ -93,23 +90,18 @@ Route::middleware('auth')->group(function () {
             |--------------------------------------------------------------------------
             */
             Route::get('{name}/schema/edit/{id?}', [DocumentTypeController::class, 'edit_schema_of_document_type'])->name('documents.edit.schema');
-            Route::get('{name}/schema/delete/{id}', [DocumentTypeController::class, 'delete_schema_of_document_type'])->name('documents.delete.schema');
-            Route::post('{name}/schema/update', [DocumentTypeController::class, 'update_schema_of_document_type'])->name('documents.update.schema');
+            Route::delete('{name}/schema/delete/{id}', [DocumentTypeController::class, 'delete_schema_of_document_type'])->name('documents.delete.schema');
+            Route::put('{name}/schema/update', [DocumentTypeController::class, 'update_schema_of_document_type'])->name('documents.update.schema');
 
-            Route::get('{name}/schema/insert/', [DocumentTypeController::class, 'insert'])->name('documents.insert.schema.page');
+            Route::get('{name}/schema/insert', [DocumentTypeController::class, 'insert'])->name('documents.insert.schema.page');
             Route::post('{name}/schema/insert', [DocumentTypeController::class, 'insert_schema_of_document_type'])->name('documents.insert.schema');
-
-            Route::post('schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save');
-            Route::get('schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load');
-            Route::get('{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load');
 
             // Reorder schema route
             Route::get('{name}/schema/reorder', [DocumentTypeController::class, 'reorder'])->name('documents.schema.reorder.page');
-            Route::post('{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
-            Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns');
+            Route::put('{name}/schema/reorder', [DocumentTypeController::class, 'reorder_schema_of_document_type'])->name('documents.schema.reorder');
 
             // Document type data
-            Route::post('{name}/attach', [DocumentTypeActionController::class, 'attach'])->name('documents.data.attach');
+            Route::put('{name}/attach', [DocumentTypeActionController::class, 'attach'])->name('documents.data.attach');
         });
 
         /*
@@ -119,13 +111,14 @@ Route::middleware('auth')->group(function () {
         */
         Route::group(['prefix' => 'documents/files'], function () {
             //doument files admin only
-            Route::post('upload', [FileController::class, 'upload'])->name('documents.files.root.upload');
-            Route::post('{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload');
-            Route::get('{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
-            Route::get('delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
-            Route::post('rename', [FileController::class, 'rename'])->name('documents.files.rename');
+            Route::delete('{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
+            Route::delete('delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
+            Route::put('rename', [FileController::class, 'rename'])->name('documents.files.rename');
         });
     });
+
+    // Get file stream/blob content
+    Route::get('documents/files/content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
 
     /*
     |--------------------------------------------------------------------------
@@ -153,8 +146,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
         Route::get('{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
-
-        Route::get('files/content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
     });
 });
 

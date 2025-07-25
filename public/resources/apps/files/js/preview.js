@@ -86,7 +86,13 @@
         // Load the PDF
         LOADER.show();
         pdfjsLib
-            .getDocument(pdfPreviewUrl)
+            .getDocument({
+                url: pdfPreviewUrl,
+                withCredentials: true,
+                httpHeaders: {
+                    "X-CSRF-TOKEN": CSRF_TOKEN,
+                },
+            })
             .promise.then(function (pdf) {
                 toast(`File ${pdfTitle} has been loaded successfully.`);
 

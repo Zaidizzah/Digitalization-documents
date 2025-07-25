@@ -365,6 +365,12 @@ class DocumentTypeActionController extends FileController
                     'href' => 'menu.css',
                     'base_path' => asset('/resources/apps/documents/css/')
                 ]
+            ],
+            [
+                [
+                    'src' => 'setting.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
+                ]
             ]
         );
 

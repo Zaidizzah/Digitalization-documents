@@ -60,13 +60,18 @@ class DocumentTypeController extends Controller
                     'href' => 'menu.css',
                     'base_path' => asset('/resources/apps/documents/css/')
                 ]
+            ],
+            [
+                [
+                    'src' => 'scripts.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
+                ]
             ]
         );
 
-        $document_type = DocumentType::orderBy('created_at', 'desc')
-            ->when(is_role('User'), function ($query) {
-                $query->where('is_active', 1);
-            })->paginate(25)->withQueryString();
+        $document_type = DocumentType::orderBy('created_at', 'desc')->when(is_role('User'), function ($query) {
+            $query->where('is_active', 1);
+        })->paginate(25)->withQueryString();
 
         $resources['document_types'] = $document_type;
 

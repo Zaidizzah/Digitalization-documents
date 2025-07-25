@@ -252,13 +252,17 @@
                                                             </li>
                                                             <li>
                                                                 @if ($document_type === null)
-                                                                    <a href="{{ route('documents.files.root.delete', ['file' => $f->encrypted_name]) }}" class="dropdown-item" 
-                                                                        aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}"
-                                                                        onclick="return confirm('Are you sure to delete this file?')">
+                                                                <form action="{{ route('documents.files.root.delete', ['file' => $f->encrypted_name]) }}" class="form-delete-file-root d-inline" method="POST" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}">
+                                                                    @csrf
+
+                                                                    @method('DELETE')
+                                                                    <button type="submit" role="button" class="dropdown-item" 
+                                                                        aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}">
                                                                         <i class="bi bi-trash fs-5"></i> Delete
-                                                                    </a>
+                                                                    </button>
+                                                                </form>
                                                                 @else
-                                                                    <a href="javascript:void(0);" data-file="{{ $f->encrypted_name }}" data-bs-toggle="modal"
+                                                                    <a href="javascript:void(0);" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" data-file-encryption="{{ $f->encrypted_name }}" data-bs-toggle="modal"
                                                                         data-bs-target="#delete-option" role="button" class="dropdown-item" 
                                                                         aria-label="Delete file {{ $f->name }}" title="Button: to delete file {{ $f->name }}">
                                                                         <i class="bi bi-trash fs-5"></i> Delete
@@ -344,6 +348,7 @@
                     <form action="{{ route('documents.files.rename') }}" method="post">
                         @csrf
                         
+                        @method('PUT')
                         <div class="modal-body">
                             <div class="dialog-content">
                                 <div class="dialog-content-metadata">
@@ -382,9 +387,19 @@
                             Would you like to keep the data that attached to this file? or erase it?
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <a href="#" class="btn btn-danger" id="erase-btn" onclick="return confirm('Are you sure to delete this file and erase all the data?')" data-url="{{ route('documents.files.delete', [$document_type->name, 'erase']) }}">Erase</a>
-                            <a href="#" class="btn btn-warning" id="keep-btn" onclick="return confirm('Are you sure to delete this file?')" data-url="{{ route('documents.files.delete', [$document_type->name, 'keep']) }}">Keep</a>
+                            <button type="button" role="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="{{ route('documents.files.delete', [$document_type->name, 'erase']) }}" class="form-delete-erase d-inline" method="post">
+                                @csrf
+
+                                @method('DELETE')
+                                <button type="submit" role="button" class="btn btn-danger" title="Button: to erase this file and delete all data that attached to this file">Erase</button>
+                            </form>
+                            <form action="{{ route('documents.files.delete', [$document_type->name, 'keep']) }}" class="form-delete-keep d-inline" method="post">
+                                @csrf
+
+                                @method('DELETE')
+                                <button type="submit" role="button" class="btn btn-warning" title="Button: to keep the data that attached to this file">Keep</button>
+                            </form>
                         </div>
                     </div>
                 </div>

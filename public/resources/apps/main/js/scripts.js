@@ -77,9 +77,31 @@
         };
     };
 
-    window.CSRF_TOKEN = document
-        .querySelector('meta[name="csrf-token"]')
-        .getAttribute("content");
+    /**
+     * Gets the value of a cookie by its name
+     * @param {string} cName - The name of the cookie
+     * @returns {string} The value of the cookie, or "" if not found
+     */
+    window.GET_COOKIE = (cName) => {
+        let name = cName + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(";");
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == " ") {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    };
+
+    window.XSRF_TOKEN = GET_COOKIE("XSRF-TOKEN"); // get the XSRF-TOKEN from cookie
+    window.CSRF_TOKEN = document.querySelector(
+        'meta[name="csrf-token"]'
+    )?.content;
 
     window.INITIALIZE_TOOlTIPS = () => {
         const tooltipTriggerList = document.querySelectorAll(

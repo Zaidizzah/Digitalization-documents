@@ -39,6 +39,8 @@
                 <!-- Form for attach file to document type data -->
                 <form action="{{ route('documents.data.attach', $document_type->name) }}" class="novalidate" method="post">
                     @csrf
+
+                    @method('PUT')
             @endif
 
             <div class="table-responsive">
