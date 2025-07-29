@@ -97,7 +97,7 @@ class FileController extends Controller
         // If request is Fetch request send paginating files data to client
         if ($req->ajax()) {
             return $this->success_response("Files loaded successfully.", [
-                'files' => view('apps.files.list', ['on_upload' => false, 'files' => $files, 'document_type' => $document_type ?? null])->render(),
+                'files' => view('apps.files.list', ['on_upload' => false, 'on_attach' => $req->action === 'attach', 'files' => $files, 'document_type' => $document_type ?? null])->render(),
             ]);
         }
 

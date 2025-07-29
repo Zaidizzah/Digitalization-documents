@@ -1,7 +1,7 @@
 @foreach ($files as $file)  
     <div class="file-item @if ($on_upload) uploaded-file-item @endif p-3" aria-label="File {{ "$file->name.$file->extension" }}" title="File {{ "$file->name.$file->extension" }}">
         <div class="file-content">
-            @if ($document_type !== null) 
+            @if ($document_type !== null && $on_attach === false) 
                 <!-- Checkbox to select file and actions -->
                 <div class="checkbox-wrapper">
                     <div class="cbx">
@@ -43,43 +43,50 @@
                 </div>
             </div>
         </div>
-        <div class="dropdown">
-            <button class="file-browse btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions button for file {{ "$file->name.$file->extension" }}" title="Actions button for file {{ "$file->name.$file->extension" }}">
-                <i class="bi bi-three-dots-vertical"></i>
-            </button>
-            <ul class="dropdown-menu">
-                <li>
-                    <a class="dropdown-item" href="javascript:void(0)"
-                        aria-label="Browse file {{ "$file->name.$file->extension" }}" title="Button: to browse file {{ "$file->name.$file->extension" }}" 
-                        data-bs-toggle="modal" data-bs-target="#modal-files"
-                        data-file-id="{{ $file->id }}" data-file-name="{{ $file->name }}" data-file-extension="{{ $file->extension }}" 
-                        data-file-size="{{ format_size_file($file->size) }}"
-                        data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($file->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($file->updated_at)) }}" 
-                        data-file-document-name="{{ $file->document_type->name ?? '' }}" data-file-document-long-name="{{ $file->document_type->long_name ?? '' }}"
-                        aria-label="File {{ $file->name }}" title="File {{ "$file->name.$file->extension" }}">
-                        <i class="bi bi-search fs-5"></i>Info
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.preview', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.preview', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ $file->name }}" title="Button: to preview file {{ $file->name }}"><i class="bi bi-eye fs-5"></i> Preview</a>
-                </li>
-                <li>
-                    <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.download', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ $file->name }}" title="Button: to download file {{ $file->name }}"><i class="bi bi-download fs-5"></i> Download</a>
-                </li>
-                <li>    
-                    <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ $file->name }}" 
-                        title="Button: to edit file {{ $file->name }}"
-                        data-file-id="{{ $file->encrypted_name }}" data-file-name="{{ $file->name }}" data-file-extension="{{ $file->extension }}" data-file-document-id="{{ $file->document_type_id }}"
-                        data-bs-toggle="modal" data-bs-target="#modal-files-edit">
-                        <i class="bi bi-pencil-square fs-5"></i> Edit
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('documents.files.delete', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ $file->name }}" title="Button: to delete file {{ $file->name }}" onclick="return confirm('Are you sure to delete this file?')">
-                        <i class="bi bi-trash fs-5"></i> Delete
-                    </a>
-                </li>
-            </ul>
-        </div>
+
+        @if ($on_attach === false)
+            <div class="dropdown">
+                <button class="file-browse btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Actions button for file {{ "$file->name.$file->extension" }}" title="Actions button for file {{ "$file->name.$file->extension" }}">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)"
+                            aria-label="Browse file {{ "$file->name.$file->extension" }}" title="Button: to browse file {{ "$file->name.$file->extension" }}" 
+                            data-bs-toggle="modal" data-bs-target="#modal-files"
+                            data-file-id="{{ $file->id }}" data-file-name="{{ "{$file->name}.{$file->extension}" }}" data-file-extension="{{ $file->extension }}" 
+                            data-file-size="{{ format_size_file($file->size) }}"
+                            data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($file->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($file->updated_at)) }}" 
+                            data-file-document-name="{{ $file->document_type->name ?? '' }}" data-file-document-long-name="{{ $file->document_type->long_name ?? '' }}"
+                            aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "$file->name.$file->extension" }}">
+                            <i class="bi bi-search fs-5"></i>Info
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.preview', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.preview', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Preview file {{ "{$file->name}.{$file->extension}" }}" title="Button: to preview file {{ "{$file->name}.{$file->extension}" }}"><i class="bi bi-eye fs-5"></i> Preview</a>
+                    </li>
+                    <li>
+                        <a href="{{ $document_type !== null && $document_type->name ? route('documents.files.download', [$document_type->name, 'file' => $file->encrypted_name]) : route('documents.files.root.download', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Download file {{ "{$file->name}.{$file->extension}" }}" title="Button: to download file {{ "{$file->name}.{$file->extension}" }}"><i class="bi bi-download fs-5"></i> Download</a>
+                    </li>
+                    <li>    
+                        <a href="javascript:void(0)" role="button" class="dropdown-item" aria-label="Edit file {{ "{$file->name}.{$file->extension}" }}" 
+                            title="Button: to edit file {{ "{$file->name}.{$file->extension}" }}"
+                            data-file-id="{{ $file->encrypted_name }}" data-file-name="{{ "{$file->name}.{$file->extension}" }}" data-file-extension="{{ $file->extension }}" data-file-document-id="{{ $file->document_type_id }}"
+                            data-bs-toggle="modal" data-bs-target="#modal-files-edit">
+                            <i class="bi bi-pencil-square fs-5"></i> Edit
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('documents.files.delete', ['file' => $file->encrypted_name]) }}" role="button" class="dropdown-item" aria-label="Delete file {{ "{$file->name}.{$file->extension}" }}" title="Button: to delete file {{ "{$file->name}.{$file->extension}" }}" onclick="return confirm('Are you sure to delete this file?')">
+                            <i class="bi bi-trash fs-5"></i> Delete
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        @else
+            <a href="{{ route("documents.browse", [$document_type->name, 'action' => 'attach', 'file' => $file->encrypted_name]) }}" type="button" role="button" class="btn btn-primary btn-sm" title="Button: to attaching file {{ "{$file->name}.{$file->extension}" }} to document type {{ $document_type->name }}">
+                <i class="bi bi-paperclip fs-5"></i> Attach
+            </a>
+        @endif
     </div>
 @endforeach

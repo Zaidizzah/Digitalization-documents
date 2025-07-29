@@ -86,11 +86,17 @@ const uploadQueue = new UploadQueueManager({
         // Assign 1 page to page variable
         page++;
 
-        const loadingFilesElement = $("#loading-files");
-        loadingFilesElement.removeClass("d-none");
+        const loadingFilesElement = document.querySelector("#loading-files");
+        loadingFilesElement.classList.remove("d-none");
 
         // URL to load more files with 'api' preffix
-        const url = `${location.origin}/api${location.pathname}?page=${page}`;
+        let url = `${location.origin}/api${location.pathname}?page=${page}`;
+
+        // check if queryURL contain value: 'action=attach'
+        const action = new URLSearchParams(window.location.search).get(
+            "action"
+        );
+        if (action) url += `&action=${action}`;
 
         $.ajax({
             url: url,
@@ -103,7 +109,7 @@ const uploadQueue = new UploadQueueManager({
                     fileList.insertAdjacentHTML("beforeend", data.files);
                 }
                 scrolling = false;
-                loadingFilesElement.addClass("d-none");
+                loadingFilesElement.classList.add("d-none");
             },
             error: () => {
                 return page--;
