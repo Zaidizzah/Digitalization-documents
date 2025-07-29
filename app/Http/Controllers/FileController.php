@@ -478,16 +478,13 @@ class FileController extends Controller
      */
     public function get_file_content($name)
     {
+        // get file data and checking if file exists
         $file = FileModel::where('encrypted_name', $name)->firstOrFail();
 
-        var_dump($file->path);
-        die;
-
-        return response()->stream(function () use ($file) {
-            echo Storage::get($file->path);
-        }, 200, [
+        // return file content/stream
+        return response()->file(Storage::path($file->path), [
             'Content-Type' => $file->type,
-            "Content-Disposition' => 'inline; filename=\"{$file->name}.{$file->extension}\"",
+            'Content-Disposition' => "inline; filename=\"{$file->name}.{$file->extension}\"",
         ]);
     }
 }

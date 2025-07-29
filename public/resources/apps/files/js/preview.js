@@ -91,6 +91,8 @@
                 withCredentials: true,
                 httpHeaders: {
                     "X-CSRF-TOKEN": CSRF_TOKEN,
+                    "XSRF-TOKEN": XSRF_TOKEN,
+                    Accept: "application/pdf",
                 },
             })
             .promise.then(function (pdf) {
