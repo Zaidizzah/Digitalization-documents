@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\ApiResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Display a listing of the resource.
      * 
@@ -123,5 +127,29 @@ class UserController extends Controller
         User::findOrFail($id)->delete();
 
         return redirect()->route('users.index')->with('message', toast('User deleted successfully!', 'success'));
+    }
+
+    /**
+     * Get user data by ID.
+     *
+     * GET /users/{id}
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function get__user_data(Request $request, string $id)
+    {
+        // check if request is json request
+        if ($request->wantsJson() === false) {
+            return $this->error_response('Invalid request', null, Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = User::select('id', 'name', 'email')->find($id);
+        if ($user === null) {
+            return $this->not_found_response('User data not found, maybe the user has been deleted or data is corrupted.');
+        }
+
+        return $this->success_response("User data has been found", ['user' => $user->toArray()]);
     }
 }

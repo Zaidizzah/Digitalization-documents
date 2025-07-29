@@ -100,7 +100,7 @@
          * Adds an event listener to each button with the class "btn-edit" that opens a modal.
          */
         btnEdit.forEach((btn) => {
-            btn.addEventListener("click", (event) => {
+            btn.addEventListener("click", async (event) => {
                 event.preventDefault();
 
                 btn.closest("tr").classList.add("table-active");
@@ -111,27 +111,53 @@
                     "update/" + id
                 );
 
-                /**
-                 * Creates an object with the form values.
-                 */
-                const values = {
-                    name: btn.closest("tr").querySelector("td:nth-child(2)")
-                        .textContent,
-                    email: btn.closest("tr").querySelector("td:nth-child(3)")
-                        .textContent,
-                };
-
-                /**
-                 * Sets the form values.
-                 */
-                Object.keys(values).forEach((key) => {
-                    const input = document.querySelector(
-                        `input[name="${key}"]`
+                try {
+                    LOADER.show();
+                    /**
+                     * GET request to get the data of the user
+                     */
+                    const response = await fetch(
+                        `${location.origin}/api/users/${id}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": CSRF_TOKEN,
+                                "XSRF-TOKEN": XSRF_TOKEN,
+                                Accept: "application/json",
+                            },
+                            credentials: "include",
+                        }
                     );
-                    if (input) {
-                        input.value = values[key];
+
+                    if (!response.ok) {
+                        throw new Error(
+                            "Failed to get user data. Please try again."
+                        );
                     }
-                });
+
+                    const data = await response.json();
+
+                    // Set the form data
+                    const inputName =
+                            formUsers.querySelector("input[name='name']"),
+                        inputEmail = formUsers.querySelector(
+                            "input[name='email']"
+                        );
+
+                    if (inputName && inputEmail) {
+                        inputName.value = data.user.name;
+                        inputEmail.value = data.user.email;
+                    }
+                } catch (error) {
+                    // Display error message
+                    toast(error.message, "error");
+
+                    console.log(error);
+                    return;
+                } finally {
+                    LOADER.hide();
+                }
 
                 /**
                  * Sets the form status to "update".

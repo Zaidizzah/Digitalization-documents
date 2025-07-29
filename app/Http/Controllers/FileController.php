@@ -95,7 +95,7 @@ class FileController extends Controller
         }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(25)->appends($req->all())->withQueryString();
 
         // If request is Fetch request send paginating files data to client
-        if ($req->ajax()) {
+        if ($req->wantsJson()) {
             return $this->success_response("Files loaded successfully.", [
                 'files' => view('apps.files.list', ['on_upload' => false, 'on_attach' => $req->action === 'attach', 'files' => $files, 'document_type' => $document_type ?? null])->render(),
             ]);
@@ -255,12 +255,12 @@ class FileController extends Controller
      */
     public function upload(Request $req, ?string $name = null)
     {
-        if (is_role('User')) {
-            return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
+        // Check if the request contains a type of 'multipart/form-data' or type 'application/x-www-form-urlencoded'
+        if ($req->header('Content-Type') !== 'application/x-www-form-urlencoded' || $req->header('Content-Type') !== 'multipart/form-data') {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
-
         // check if file request exist
-        if (!$req->hasFile('file')) {
+        if (!$req->hasFile('file') || empty($req->file('file'))) {
             return $this->error_response("Sorry, we couldn't find a file to upload. Please try again.");
         }
 

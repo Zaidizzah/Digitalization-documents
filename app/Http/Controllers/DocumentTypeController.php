@@ -139,8 +139,9 @@ class DocumentTypeController extends Controller
      */
     public function save_schema(Request $request)
     {
-        if (is_role('User')) {
-            return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
+        // check if request is json request
+        if ($request->wantsJson() === false) {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
 
         if ($request->has('schema')) {
@@ -182,10 +183,11 @@ class DocumentTypeController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function load_schema(?string $name = null, string|int|null $attribute_id = null)
+    public function load_schema(Request $request, ?string $name = null, string|int|null $attribute_id = null)
     {
-        if (is_role('User')) {
-            return $this->error_response("You do not have permission to access this resources.", null, Response::HTTP_FORBIDDEN);
+        // check if request is json request
+        if ($request->wantsJson() === false) {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
 
         if ($name) {
@@ -1037,10 +1039,16 @@ class DocumentTypeController extends Controller
      * @param string $name The name of the document type to retrieve its schema attributes.
      * @return \Illuminate\Http\JsonResponse A success response with the retrieved schema attributes.
      */
-    public function get_schema_attribute_columns(Request $request, string $name)
+    public function get__schema_attribute_columns(Request $request, string $name)
     {
+        // check if request is json
+        if ($request->wantsJson() === false) {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+        }
+
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
 
+        // check if document type exists
         if ($document_type === null) {
             return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", null, Response::HTTP_NOT_FOUND);
         }

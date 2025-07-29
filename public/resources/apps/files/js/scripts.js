@@ -61,15 +61,14 @@ const uploadQueue = new UploadQueueManager({
         scrollDiffBefore = 0,
         page = parseInt(fileList.dataset.currentPage, 10),
         maxPage = parseInt(fileList.dataset.lastPage, 10);
+    const fileListContainer = document.querySelector("#file-list-container");
 
-    $("#file-list-container").scroll(function () {
-        const container = $(this);
-
-        let scrollArea = container[0].scrollHeight,
-            scrollDiff = container.scrollTop() + container.innerHeight();
+    fileListContainer?.addEventListener("scroll", function () {
+        let scrollArea = this.scrollHeight,
+            scrollDiff = this.scrollTop + this.clientHeight;
 
         if (scrollDiff > scrollDiffBefore) {
-            scrollArea = container[0].scrollHeight - 50;
+            scrollArea = this.scrollHeight - 50;
         }
         scrollDiffBefore = scrollDiff;
 
@@ -82,7 +81,7 @@ const uploadQueue = new UploadQueueManager({
         }
     });
 
-    function loadMoreFiles(page) {
+    async function loadMoreFiles(page) {
         // Assign 1 page to page variable
         page++;
 
@@ -98,25 +97,41 @@ const uploadQueue = new UploadQueueManager({
         );
         if (action) url += `&action=${action}`;
 
-        $.ajax({
-            url: url,
-            type: "get",
-            xhrFields: { withCredentials: true },
-            success: function (data) {
-                if (!data) {
-                    $(window).off("scroll");
-                } else {
-                    fileList.insertAdjacentHTML("beforeend", data.files);
-                }
-                scrolling = false;
-                loadingFilesElement.classList.add("d-none");
-            },
-            error: () => {
-                return page--;
-            },
-        });
+        try {
+            const response = await fetch(url, {
+                method: "get",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                    "XSRF-TOKEN": XSRF_TOKEN,
+                    "X-CSRF-TOKEN": CSRF_TOKEN,
+                },
+                credentials: "include",
+            });
 
-        return page;
+            if (!response.ok) {
+                throw new Error("Failed to load more files. Please try again.");
+            }
+
+            const data = await response.json();
+
+            // check if data is not empty
+            if (data === null || data === undefined)
+                window.removeEventListener("scroll", loadMoreFiles);
+
+            // insert data to file list if files data is not empty
+            if (data.hasOwnProperty("files"))
+                fileList.insertAdjacentHTML("beforeend", data.files);
+
+            scrolling = false;
+            loadingFilesElement.classList.add("d-none");
+
+            return page;
+        } catch (error) {
+            console.error(error);
+
+            return page--;
+        }
     }
 
     const paginationFileWarapper = document.querySelector(

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\DocumentTypeActionController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,7 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::get('users/{id}', [UserController::class, 'get__user_data'])->name('users.data.get');
 
     Route::group(['prefix' => 'documents'], function () {
         // Schema routes
@@ -30,7 +32,7 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
         Route::get('{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
 
         // Get schema attribute columns
-        Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get_schema_attribute_columns'])->name('documents.schema.columns'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+        Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get__schema_attribute_columns'])->name('documents.schema.columns'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
 
         // Get result of file content in create action
         Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
