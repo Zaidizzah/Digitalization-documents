@@ -37,6 +37,9 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
 
         // Get more files data
         Route::get('{name?}/files', [DocumentTypeActionController::class, 'index'])->name('documents.files.index.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+
+        // Get hashing API token for OCR API
+        Route::get('{name}/ocr-space/get-hashing-token', [DocumentTypeActionController::class, 'get__api_hashing_token'])->name('ocr-space.token.get');
     });
 
     Route::group(['prefix' => 'documents/files'], function () {

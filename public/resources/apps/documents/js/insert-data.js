@@ -5,16 +5,23 @@
 
     // Fetching data API KEY from storage server
     LOADER.show();
-    fetch("/apikey.json", {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRF-TOKEN": CSRF_TOKEN,
-            "XSRF-TOKEN": XSRF_TOKEN,
-            Accept: "application/json",
-        },
-        credentials: "include",
-    })
+
+    fetch(
+        `${location.origin}/api${location.pathname.replace(
+            "/create",
+            ""
+        )}/ocr-space/get-hashing-token`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": CSRF_TOKEN,
+                "XSRF-TOKEN": XSRF_TOKEN,
+                Accept: "application/json",
+            },
+            credentials: "include",
+        }
+    )
         .then((response) => {
             if (!response.ok) {
                 throw new Error(
@@ -24,15 +31,15 @@
 
             return response.json();
         })
-        .then(({ OCR_SPACE_API_KEY, OCR_SPACE_SPARE_API_KEY }) => {
+        .then(({ OCR_SPACE_API_KEY_HASH, OCR_SPACE_SPARE_API_KEY_HASH }) => {
             // Set API key
             OCR_SPACE_API_KEYS = {
                 OCR_SPACE_API_KEY: removeCharacter(
-                    OCR_SPACE_API_KEY,
+                    OCR_SPACE_API_KEY_HASH,
                     "-RajshIks"
                 ),
                 OCR_SPACE_SPARE_API_KEY: removeCharacter(
-                    OCR_SPACE_SPARE_API_KEY,
+                    OCR_SPACE_SPARE_API_KEY_HASH,
                     "-234567890"
                 ),
             };

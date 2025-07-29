@@ -650,6 +650,35 @@ class DocumentTypeActionController extends FileController
     }
 
     /**
+     * Retrieves the API token hash for the specified document type.
+     *
+     * The API token hash is retrieved from the environment variables
+     * `OCR_SPACE_API_KEY_HASH` and `OCR_SPACE_SPARE_API_KEY_HASH`.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $name
+     * @return \Illuminate\Http\Response
+     */
+    public function get__api_hashing_token(Request $request, string $name)
+    {
+        if ($request->acceptsJson()) {
+            // check if document type exists
+            $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
+
+            if ($document_type === null) {
+                return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", null, Response::HTTP_NOT_FOUND);
+            }
+
+            // checking inveronment variable in .ENV file
+            if (env("OCR_SPACE_API_KEY_HASH") !== null && env("OCR_SPACE_SPARE_API_KEY_HASH") !== null) {
+                return $this->success_response("API token hash is successfully loaded.", ["OCR_SPACE_API_KEY_HASH" => env("OCR_SPACE_API_KEY_HASH"), "OCR_SPACE_SPARE_API_KEY_HASH" => env("OCR_SPACE_SPARE_API_KEY_HASH")]);
+            } else {
+                return $this->not_found_response("API token hash is not loaded in environment variable system.");
+            }
+        }
+    }
+
+    /**
      * Store a newly created resource in storage.
      *
      * This function validates the request data and retrieves the document type by its name.
