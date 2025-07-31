@@ -8,7 +8,7 @@
         @include("partials.header")
 
         <!-- Including Sidebar Section -->
-        @include("partials.sidebar")
+        @include("partials.sidebar", ['on_user_guide' => $on_user_guide ?? false])
 
         <!-- Main Content -->
         <main class="app-content">

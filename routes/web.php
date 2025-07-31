@@ -14,6 +14,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentTypeActionController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\userGuideController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,16 +37,27 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
 
     /*
     |--------------------------------------------------------------------------
     | Profile Routes
     |--------------------------------------------------------------------------
     */
-    Route::get('/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
     Route::group(['prefix' => 'profile'], function () {
-        Route::put('change_name', [DashboardController::class, 'change_name'])->name('profile.change_name');
-        Route::put('change_password', [DashboardController::class, 'change_password'])->name('profile.change_password');
+        Route::get('/', [UserController::class, 'profile'])->name('users.profile');
+        Route::put('change_name', [UserController::class, 'edit_profile'])->name('users.profile.change_name');
+        Route::put('change_password', [UserController::class, 'edit_password'])->name('users.profile.change_password');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Users Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::group(['prefix' => 'user-guide'], function () {
+        Route::get('index.html', [userGuideController::class, 'index'])->name('userguide.index');
+        Route::get('user/index.html', [userGuideController::class, 'user_page__guide'])->name('userguide.user.index');
     });
 
     Route::middleware('role:Admin')->group(function () {
@@ -53,8 +66,8 @@ Route::middleware('auth')->group(function () {
         | User Routes
         |--------------------------------------------------------------------------
         */
-        Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::group(['prefix' => 'users'], function () {
+            Route::get('/', [UserController::class, 'index'])->name('users.index');
             Route::post('store', [UserController::class, 'store'])->name('users.store');
             Route::put('update/{id}', [UserController::class, 'update'])->name('users.update');
             Route::delete('delete/{id}', [UserController::class, 'destroy'])->name('users.delete');
@@ -111,22 +124,25 @@ Route::middleware('auth')->group(function () {
         */
         Route::group(['prefix' => 'documents/files'], function () {
             //doument files admin only
+            Route::get('/', [FileController::class, 'index'])->name('documents.files.root.index');
+            Route::get('download', [FileController::class, 'download'])->name('documents.files.root.download');
+            Route::get('preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
             Route::delete('{name?}/delete/{keep?}', [FileController::class, 'destroy'])->name('documents.files.delete');
             Route::delete('delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
             Route::put('rename', [FileController::class, 'rename'])->name('documents.files.rename');
+            // Get file stream/blob content
+            Route::get('content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
         });
     });
 
-    // Get file stream/blob content
-    Route::get('documents/files/content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
 
     /*
     |--------------------------------------------------------------------------
     | Documents routes
     |--------------------------------------------------------------------------
     */
-    Route::get('/documents', [DocumentTypeController::class, 'index'])->name('documents.index');
     Route::group(['prefix' => 'documents'], function () {
+        Route::get('/', [DocumentTypeController::class, 'index'])->name('documents.index');
         Route::get('{name}/browse', [DocumentTypeActionController::class, 'browse'])->name('documents.browse');
         Route::get('{name}/export', [DocumentTypeActionController::class, 'export'])->name('documents.export');
 
@@ -136,15 +152,9 @@ Route::middleware('auth')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::get('{name}/files', [FileController::class, 'index'])->name('documents.files.index');
-        Route::get('files', [FileController::class, 'index'])->name('documents.files.root.index');
-
         Route::get('{name}/files/download', [FileController::class, 'download'])->name('documents.files.download');
-        Route::get('files/download', [FileController::class, 'download'])->name('documents.files.root.download');
-
         // Download sample file for importing data
         Route::get('{name}/files/download-example', [FileController::class, 'download_example_file'])->name('documents.files.download.example');
-
-        Route::get('files/preview', [FileController::class, 'preview'])->name('documents.files.root.preview');
         Route::get('{name}/files/preview', [FileController::class, 'preview'])->name('documents.files.preview');
     });
 });

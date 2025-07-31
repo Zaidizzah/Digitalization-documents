@@ -3,10 +3,35 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
+use PhpParser\Node\Expr\Cast\Array_;
 use Symfony\Component\HttpFoundation\Response;
 
 trait ApiResponse
 {
+    private array $ADDITIONAL_HEADERS = [];
+    private static array $MAIN_HEADERS = [
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        'Pragma' => 'no-cache',
+        'Expires' => '0'
+    ];
+
+    /**
+     * Set additional headers for the response.
+     *
+     * @param array $headers    
+     * @return void
+     */
+    protected function setAdditionalHeaders(array $headers)
+    {
+        $this->ADDITIONAL_HEADERS = array_merge(self::$MAIN_HEADERS, $headers);
+    }
+
+    protected function getAdditionalHeaders(): array
+    {
+        return $this->ADDITIONAL_HEADERS ?: self::$MAIN_HEADERS;
+    }
+
     /**
      * Success Response
      *
@@ -19,7 +44,7 @@ trait ApiResponse
         string $message,
         array|null $additional = null,
         int $code = Response::HTTP_OK,
-        string $status = 'success-response'
+        string $status = 'success-response',
     ): JsonResponse {
         $response = array_merge([
             'success' => true,
@@ -27,10 +52,7 @@ trait ApiResponse
             'status' => $status
         ], $additional ?? []);
 
-        return response()->json($response, $code)
-            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
+        return response()->json($response, $code, $this->getAdditionalHeaders());
     }
 
     /**
@@ -45,7 +67,6 @@ trait ApiResponse
         string $message,
         ?array $additional = [],
         int $code = Response::HTTP_BAD_REQUEST,
-        array $headers = [],
         string $status = 'error-response'
     ): JsonResponse {
         $response = array_merge([
@@ -54,7 +75,7 @@ trait ApiResponse
             'status' => $status
         ], $additional ?? []);
 
-        return response()->json($response, $code, $headers);
+        return response()->json($response, $code, $this->getAdditionalHeaders());
     }
 
     /**
@@ -73,7 +94,6 @@ trait ApiResponse
             message: $message,
             additional: $errors,
             code: Response::HTTP_UNPROCESSABLE_ENTITY,
-            headers: $headers,
             status: 'error-validation-response'
         );
     }
@@ -94,7 +114,6 @@ trait ApiResponse
             message: $message,
             additional: $errors,
             code: Response::HTTP_NOT_FOUND,
-            headers: $headers,
             status: 'error-not-found-response'
         );
     }

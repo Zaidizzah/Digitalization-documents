@@ -1,0 +1,144 @@
+.app-search__results_header {
+    margin-bottom: 2rem;
+}
+
+.app-search__results_header .app-search__results_header_title {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.app-search__results_header .app-search__results_header_summary {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.app-search__results_content {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #b2b2b2;
+}
+
+.app-search__results_content .app-search__results_item {
+    padding: 1.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #b2b2b2;
+    transition: background-color 0.2s;
+}
+
+.app-search__results_content .app-search__results_item:last-child {
+    border-bottom: none;
+}
+
+.app-search__results_content .app-search__results_item:hover {
+    background-color: #f8fafc;
+}
+
+.app-search__results_content .app-search__results_item .item-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.app-search__results_content .app-search__results_item .item-icon {
+    width: 16px;
+    height: 16px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.app-search__results_content .app-search__results_item .item-details {
+    flex: 1;
+}
+
+.app-search__results_content .app-search__results_item .item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.app-search__results_content .app-search__results_item .item-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+.app-search__results_content
+    .app-search__results_item
+    .item-badge.badge-document {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.app-search__results_content .app-search__results_item .item-badge.badge-file {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.app-search__results_content .app-search__results_item .item-badge.badge-user {
+    background: #f3e8ff;
+    color: #7c3aed;
+    border-color: #ddd6fe;
+}
+
+.app-search__results_content
+    .app-search__results_item
+    .item-badge.badge-schema {
+    background: #fed7aa;
+    color: #ea580c;
+    border-color: #fdba74;
+}
+
+.app-search__results_content .app-search__results_item .item-badge.item-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1e293b;
+    text-decoration: none;
+    display: block;
+}
+
+.app-search__results_content .app-search__results_item .item-title:hover {
+    color: #3b82f6;
+}
+
+.app-search__results_content .app-search__results_item .item-url {
+    font-size: 0.875rem;
+    font-style: italic;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+.app-search__results_empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #64748b;
+}
+
+.app-search__results_empty .empty-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    color: #cbd5e1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-search__results_header .app-search__results_header_title {
+        font-size: 1.5rem;
+    }
+
+    .app-search__results_content .item-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .app-search__results_content .item-header {
+        flex-wrap: wrap;
+    }
+}

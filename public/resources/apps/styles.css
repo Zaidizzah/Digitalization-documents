@@ -10,6 +10,34 @@ body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.app-sidebar__search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background-color: #ffff;
+    border-right: 1px solid var(--primary-color);
+}
+
+.app-sidebar__search label[for="app-sidebar__search_input"] {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.app-sidebar__search input[id="app-sidebar__search_input"] {
+    background-color: none;
+    border-radius: 0;
+    border: 0;
+}
+
+.app-sidebar__search button {
+    border-radius: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
 .border-success {
     border-color: var(--primary-color) !important;
 }

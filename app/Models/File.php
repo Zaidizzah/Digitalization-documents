@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
+use App\Interfaces\SearchableContent;
 
-class File extends Model
+class File extends Model implements SearchableContent
 {
     use HasFactory;
 
@@ -22,6 +22,38 @@ class File extends Model
     ];
 
     protected $with = ['document_type'];
+
+    /*
+     * ------------------------------------------------------------------------
+     * Implementing SearchableContent interface for search content function
+     * ------------------------------------------------------------------------
+     */
+    public static function search(string $query): array
+    {
+        return self::whereRaw('CONCAT(name, \'.\', extension) like ?', ["%{$query}%"])
+            ->get()
+            ->whenNotEmpty(function ($collection) {
+                return $collection->flatMap(function ($item) {
+                    $PAGES = [
+                        [
+                            'type' => 'Files',
+                            'title' => "Data file - with name: '{$item->name}.{$item->extension}'",
+                            'url' => $item->document_type_id !== NULL ? route('documents.files.index', $item->document_type->name)  : route("documents.files.root.index"),
+                        ],
+                        [
+                            'type' => 'Files',
+                            'title' => "Preview file - with name: '{$item->name}.{$item->extension}'",
+                            'url' => $item->document_type_id !== NULL ? route('documents.files.preview', [$item->document_type->name, 'file' => $item->encrypted_name])  : route("documents.files.root.preview", ['file' => $item->encrypted_name]),
+                        ]
+                    ];
+
+                    return $PAGES;
+                })->toArray();
+            }, function ($collection) {
+                // Returning empty array because the collection is empty
+                return [];
+            });
+    }
 
     public function user()
     {

@@ -56,7 +56,7 @@
                     </div>
                 </div>
                 <div class="tile-footer">
-                    <button type="button" role="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-name" title="Button: to edit about your profile information">Edit</button>
+                    <button type="button" role="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-edit" title="Button: to edit about your profile information">Edit</button>
                 </div>
             </div>
         </div>
@@ -68,7 +68,7 @@
                         <small class="caption small font-italic fs-5">Forgot password? Change Here.</small>
                     </div>
                 </div> 
-                <form action="{{ route('profile.change_password') }}" class="form-horizontal" method="post">
+                <form action="{{ route('users.profile.change_password') }}" class="form-horizontal" method="post">
                     @csrf
 
                     @method('PUT')
@@ -105,14 +105,14 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="modal-name" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-label="Modal users" aria-labelledby="modal-users-label" aria-hidden="true">
+    <div class="modal fade" id="modal-edit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-label="Modal users" aria-labelledby="modal-users-label" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-light">
                     <h1 class="modal-title fs-5" id="modal-users-label">Edit name</h1>
                     <button type="button" role="button" class="btn-close bg-light-subtle" tabindex="-1" title="Button: to close this modal" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('profile.change_name') }}" class="form-horizontal" id="form-users" method="POST">
+                <form action="{{ route('users.profile.change_name') }}" class="form-horizontal" id="form-users" method="POST">
                     <div class="modal-body">
                         @csrf
 
@@ -123,6 +123,23 @@
                                 <input type="text" class="form-control" id="name" name="name" maxlength="100" placeholder="Name" aria-label="Name" aria-required="true" autocomplete="given-name" value="{{ $user->name }}" required>
                             </div>
                         </div>
+                        <div class="form-group mb-3 row">
+                            <label for="gender" class="col-sm-2 col-form-label">Gender</label>
+                            <div class="col-sm-10">
+                                <select class="form-control" id="gender" name="gender" placeholder="Gender" aria-label="Gender" aria-required="true" value="{{ $user->jenis_kelamin }}" required>
+                                    <option value="laki-laki">Men</option>
+                                    <option value="laki-laki">Women</option>
+                                    <option value="etc">etc</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group mb-3 row">
+                            <label for="address" class="col-sm-2 col-form-label">Address</label>
+                            <div class="col-sm-10">
+                                <textarea class="form-control" id="address" name="address" maxlength="100" placeholder="Address" aria-label="Address">{{ $user->address }}</textarea>
+                            </div>
+                        </div>
+                    </div>
                     <div class="modal-footer bg-light-subtle">
                         <button type="reset" role="button" class="btn btn-secondary" title="Button: to cancel this action" data-bs-dismiss="modal"><i class="bi bi-dash-square fs-5"></i> Cancel</button>
                         <button type="submit" role="button" class="btn btn-primary" title="Button: to save new name"><i class="bi bi-save fs-5"></i> Save</button>
