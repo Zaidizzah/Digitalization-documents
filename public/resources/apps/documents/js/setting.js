@@ -3,6 +3,9 @@
 
     const formDeleteAll = document.querySelector("form.form-delete-all");
     const formDelete = document.querySelector("form.form-delete");
+    const formModifyDocumentType = document.querySelector(
+        "form.form-modify-document-type"
+    );
 
     if (formDelete) {
         formDelete.addEventListener("submit", (event) => {
@@ -32,6 +35,20 @@
 
             if (confirmation) {
                 formDeleteAll.submit();
+            }
+        });
+    }
+
+    if (formModifyDocumentType) {
+        formModifyDocumentType.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const confirmation = confirm(
+                "Are you sure you want to save this data?"
+            );
+
+            if (confirmation) {
+                formModifyDocumentType.submit();
             }
         });
     }

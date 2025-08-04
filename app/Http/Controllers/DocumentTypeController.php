@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DynamicModel;
 use Illuminate\Http\Request;
 use App\Models\DocumentType;
 use App\Models\TempSchema;
@@ -58,7 +59,7 @@ class DocumentTypeController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ]
             ],
             [
@@ -71,6 +72,9 @@ class DocumentTypeController extends Controller
 
         $document_type = DocumentType::orderBy('created_at', 'desc')->when(is_role('User'), function ($query) {
             $query->where('is_active', 1);
+        }, function ($query) {
+            $query->leftJoin('document_types_trashed', 'document_types.id', '=', 'document_types_trashed.document_type_id')
+                ->select('document_types.*', 'document_types_trashed.trashed_at as deleted_at');
         })->paginate(25)->withQueryString();
 
         $resources['document_types'] = $document_type;
@@ -534,7 +538,7 @@ class DocumentTypeController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'styles.css',
@@ -673,7 +677,7 @@ class DocumentTypeController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'styles.css',
@@ -788,6 +792,13 @@ class DocumentTypeController extends Controller
     public function destroy(string|int $id)
     {
         $document_type = DocumentType::where('is_active', 1)->findOrFail($id);
+        $DOCUMENT_TYPE_TRASHED_MODEL = (new DynamicModel())->__setTableName('document_types_trashed')->__setFillableFields([
+            'user_id',
+            'document_type_id',
+            'trashed_name',
+            'trashed_table_name',
+        ])->__useTimestamps(false);
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name);
 
         // check table exist in database and or directory of document type is exist
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
@@ -815,7 +826,7 @@ class DocumentTypeController extends Controller
         }
 
         // check table has data and or directory of document type has files
-        if (DB::table($document_type->table_name)->count() > 0 || Storage::disk('local')->files(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
+        if ($DYNAMIC_DOCUMENT_TYPE_MODEL->count() > 0 || Storage::disk('local')->files(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
             // make document type and folder to trash (unactive)
             $document_type->is_active = false;
             $document_type->save();
@@ -832,12 +843,13 @@ class DocumentTypeController extends Controller
             SchemaBuilder::rename_table($document_type->table_name, $document_type_trashed_name);
 
             // add name of document type to list of trashed document type
-            DB::table('document_types_trashed')->insert([
+            $DOCUMENT_TYPE_TRASHED_MODEL->fill([
                 'user_id' => auth()->user()->id,
                 'document_type_id' => $document_type->id,
                 'trashed_name' => $document_type_trashed_name,
                 'trashed_table_name' => $document_type_trashed_table_name
             ]);
+            $DOCUMENT_TYPE_TRASHED_MODEL->save();
 
             return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' has been deleted successfully.", 'success'));
         } else {
@@ -864,10 +876,10 @@ class DocumentTypeController extends Controller
     public function restore(string|int $id)
     {
         $document_type = DocumentType::where('is_active', 0)->findOrFail($id);
+        $DOCUMENT_TYPE_TRASHED_MODEL = (new DynamicModel())->__setTableName('document_types_trashed')->where('document_type_id', $document_type->id);
 
-        $document_type_trashed_query = DB::table('document_types_trashed')->where('document_type_id', $document_type->id);
         // check if document type is trashed or not
-        if (!$document_type_trashed_query->exists()) {
+        if (!$DOCUMENT_TYPE_TRASHED_MODEL->exists()) {
             return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' is not trashed.", 'error'));
         }
 
@@ -876,7 +888,7 @@ class DocumentTypeController extends Controller
             return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' already exists and is not trashed or active. Please rename the document type or check if active document type cannot be more than one.", 'error'));
         }
 
-        $document_type_trashed = $document_type_trashed_query->first();
+        $document_type_trashed = $DOCUMENT_TYPE_TRASHED_MODEL->first();
 
         // make document type to active
         $document_type->is_active = 1;
@@ -889,7 +901,7 @@ class DocumentTypeController extends Controller
         );
 
         SchemaBuilder::rename_table($document_type_trashed->trashed_table_name, $document_type->table_name);
-        $document_type_trashed_query->delete();
+        $DOCUMENT_TYPE_TRASHED_MODEL->delete();
 
         return redirect()->route('documents.index')->with('message', toast("Document type '{$document_type->name}' has been restored successfully.", 'success'));
     }
@@ -926,7 +938,7 @@ class DocumentTypeController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'order.css',

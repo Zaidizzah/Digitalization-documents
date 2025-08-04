@@ -15,7 +15,7 @@ use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DocumentTypeActionController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\userGuideController;
+use App\Http\Controllers\SettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,11 +56,23 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::group(['prefix' => 'user-guide'], function () {
-        Route::get('index.html', [userGuideController::class, 'index'])->name('userguide.index');
-        Route::get('user/index.html', [userGuideController::class, 'user_page__guide'])->name('userguide.user.index');
+        Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguide.show.index');
+        Route::get('{url}', [SettingController::class, 'user_guide__show'])->name('userguide.show.dynamic');
     });
 
     Route::middleware('role:Admin')->group(function () {
+        /*
+        |--------------------------------------------------------------------------
+        | setting and user guide Routes
+        |--------------------------------------------------------------------------
+        */
+        Route::prefix('settings')->group(function () {
+            Route::get('/', [SettingController::class, 'index'])->name('settings.index');
+            Route::put('/', [SettingController::class, 'update'])->name('settings.update');
+            Route::get('user-guide', [SettingController::class, 'user_guide'])->name('userguides.index');
+            Route::put('user-guide', [SettingController::class, 'user_guide__update'])->name('userguides.update');
+        });
+
         /*
         |--------------------------------------------------------------------------
         | User Routes

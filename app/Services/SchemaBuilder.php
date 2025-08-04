@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Faker\Factory as Faker;
-use App\Models\DocumentType;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -309,7 +308,7 @@ class SchemaBuilder
                 'id' => $action === 'create' ? (strtolower(Str::random(10)) . ":$sequence_number") : $field['id'],
                 'sequence_number' => $action === 'create' ? $sequence_number : $field['sequence_number'],
                 'type' => $type_config['type'],
-                'maxLength' => (int)strlen($type_config['maxLength']),
+                'maxLength' => (int) $type_config['maxLength'],
                 'default' => $type_config['default'],
                 'nullable' => !$field['required'],
                 'unique' => $field['unique'] ?? false,
@@ -321,18 +320,20 @@ class SchemaBuilder
                 $column['created_at'] = now('Asia/Jakarta');
             }
 
+            // Handle maxLength from rules for number type
             if (Arr::has($field, 'rules.max') && is_numeric($field['rules']['max'])) {
-                $max_length = (int)strlen($field['rules']['max']);
+                $max_length = (int) $field['rules']['max'];
 
                 $column['maxLength'] = $max_length > $column['maxLength'] ? $max_length : $column['maxLength'];
             }
 
-            // Handle custom maxLength from rules
+            // Handle custom maxLength from rules for text type and etc except number
             if (Arr::has($field, 'rules.maxLength') && is_numeric($field['rules']['maxLength'])) {
-                $max_length = (int)$field['rules']['maxLength'];
+                $max_length = (int) $field['rules']['maxLength'];
                 if ($field['type'] === 'text' && $max_length > 255) {
-                    $column['type'] = 'text';
-                    $column['maxLength'] = null;
+                    $column['maxLength'] = 255;
+                } else {
+                    $column['maxLength'] = $max_length;
                 }
             }
 
@@ -906,8 +907,15 @@ class SchemaBuilder
                 }
 
                 if (is_role('Admin') && $action === 'browse') {
-                    $buttons_action = "<a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
-                        <a href=\"" . route('documents.data.delete', [$name, $data->id]) . "\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\" onclick=\"return confirm('Are you sure you want to delete this data?')\"><i class=\"bi bi-trash fs-5\"></i></a>";
+                    $buttons_action = "
+                        <a href=\"" . route('documents.data.edit', [$name, $data->id]) . "\" class=\"btn btn-warning btn-sm btn-edit\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-pencil-square fs-5\"></i></a>
+                        <form action=\"" . route('documents.data.delete', [$name, $data->id]) . "\" method=\"post\" class=\"form-delete-document-type-data d-inline-block\" onsubmit=\"return confirm('Are you sure you want to delete this data?')\">
+                            <input type=\"hidden\" name=\"_token\" value=\"" . csrf_token() . "\">
+
+                            <input type=\"hidden\" name=\"_method\" value=\"DELETE\">
+                            <button type=\"submit\" class=\"btn btn-danger btn-sm btn-delete\" role=\"button\" title=\"Button: to edit data of document type '$table_name'\" data-id=\"{$data->id}\"><i class=\"bi bi-trash fs-5\"></i></button>
+                        </form>
+                    ";
                 } else if (is_role('Admin') && $action === 'attach') {
                     $buttons_action = "<div class=\"form-check form-switch mb-3\">
                             <input class=\"form-check-input\" type=\"checkbox\" id=\"cbx-attached-data-to-file-$no\" name=\"data_id[]\" value=\"$data->id\" " . (in_array($data->id, old('data_id', [])) ? 'checked' : '') . " aria-label=\"Attaching on current data to file in request\" aria-required=\"false\">

@@ -16,8 +16,7 @@ use Illuminate\Support\Facades\URL;
 use App\Services\SchemaBuilder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ExampleExport;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Models\DynamicModel;
 
 class FileController extends Controller
 {
@@ -25,7 +24,7 @@ class FileController extends Controller
 
     private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
     private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
-    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp';
+    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temps';
 
     /**
      * Display a listing of the files.
@@ -73,9 +72,16 @@ class FileController extends Controller
 
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+            $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+
+            if (empty($document_type->schema_form)) {
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name'.", 'error'));
+            }
+
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name);
 
             // check if user need to be attached file to data of document type
-            if ($req->action === 'attach' && DB::table($document_type->table_name)->whereNull('file_id')->count() < 1) {
+            if ($req->action === 'attach' && $DYNAMIC_DOCUMENT_TYPE_MODEL->whereNull('file_id')->count() < 1) {
                 return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast('Sorry, we couldn\'t find any data where file is not attached for document type \'' . $name . '\' data, please create unattached file data and try again.', 'error'));
             }
 
@@ -345,11 +351,20 @@ class FileController extends Controller
 
         if ($name) {
             $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
-            $data = DB::table($document_type->table_name)->where('file_id', $file->id);
+            $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+
+            if (empty($document_type->schema_form)) {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't find a document type with the name '$name'. Please try again.", 'error'));
+            }
+
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields(array_column($document_type->schema_form, 'name'), true);
+
+            $DATA = $DYNAMIC_DOCUMENT_TYPE_MODEL->where('file_id', $file->id);
             if ($keep == 'erase') {
-                $data->delete();
+                $DATA->delete();
             } else {
-                $data->update(['file_id' => null]);
+                $DATA->file_id = null;
+                $DATA->save();
             }
         }
 

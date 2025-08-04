@@ -12,7 +12,7 @@
                 <small class="caption small font-italic fs-5">Action options for modifiying document type {!! $document_type->abbr ?? $document_type->name !!}.</small>
             </div>
         </div>
-        <form action="{{ route("documents.update", $document_type->name) }}" method="post">
+        <form action="{{ route("documents.update", $document_type->name) }}" id="form-modify-document-type" method="post">
             <div class="tile-body">
                 @csrf
 
@@ -47,7 +47,7 @@
                 </div>
             </div>
             <div class="tile-footer">
-                <button type="submit" role="button" class="btn btn-primary btn-sm" title="Button: to save changes for document type {{ $document_type->name }}" onclick="return confirm('Are you sure you want to change this document type?')"><i class="bi bi-save fs-5"></i>Save</button>
+                <button type="submit" role="button" class="btn btn-primary btn-sm" title="Button: to save changes for document type {{ $document_type->name }}"><i class="bi bi-save fs-5"></i>Save</button>
             </div>
         </form>
     </div>

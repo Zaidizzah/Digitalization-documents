@@ -176,7 +176,7 @@ class UserController extends Controller
             "Display user information or profile, on the '<mark>" . $user->name . "</mark>' user",
             [
                 'Dashboard' => route('dashboard.index'),
-                'Profile' => route('dashboard.profile')
+                'Profile' => route('users.profile')
             ]
         );
 

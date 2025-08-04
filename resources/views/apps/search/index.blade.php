@@ -22,7 +22,7 @@
 
     <div class="app-search__results">
         <div class="app-search__results_header" aria-labelledby="app-search__results_header_title" aria-describedby="app-search__results_header_summary">
-            <h1 class="app-search__results_header_title" id="app-search__results_header_title">Searching results for search query "<mark>{{ request('search') }}</mark>"</h1>
+            <h1 class="app-search__results_header_title" id="app-search__results_header_title">Searching results for search query "<mark>{{ request('q') }}</mark>"</h1>
             <p class="app-search__results_header_summary" id="app-search__results_header_summary">Found <strong>{{ $results !== null ? $count_found_value : 0 }} results</strong> from <strong>{{ $results !== null ? count($results) : 0 }} sources</strong>{!! $results !== null ? " (<span style='font-style: italic'>".implode(", ", array_keys($results))."</span>)" : "" !!}.</p>
         </div>
 
@@ -50,7 +50,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <path d="m21 21-4.35-4.35"></path>
                     </svg>
-                    <h3>No results found for search query '<mark>{{ request('search') }}</mark>'</h3>
+                    <h3>No results found for search query '<mark>{{ request('q') }}</mark>'</h3>
                     <p>Try searching for something else.</p>
                 </div>
             @endif

@@ -20,6 +20,7 @@ use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rules\File as FileRule;
 use Illuminate\Support\Facades\Schema;
+use App\Models\DynamicModel;
 
 class DocumentTypeActionController extends FileController
 {
@@ -27,7 +28,7 @@ class DocumentTypeActionController extends FileController
 
     private const PARENT_OF_DOCUMENTS_DIRECTORY = 'documents';
     private const PARENT_OF_FILES_DIRECTORY = 'documents/files';
-    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temps';
+    private const PARENT_OF_TEMP_FILES_DIRECTORY = 'documents/files/temp_uploads';
 
     /**
      * Handle file upload and recognition using OCR.
@@ -110,7 +111,8 @@ class DocumentTypeActionController extends FileController
                 throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
             }
 
-            $document_type_data = DB::table($document_type->table_name)->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name);
+            $DOCUMENT_TYPE_DATA = $DYNAMIC_DOCUMENT_TYPE_MODEL->leftJoin('files', 'files.id', '=', "$document_type->table_name.file_id")
                 ->select(
                     "{$document_type->table_name}.*",
                     'files.name as file_name',
@@ -159,11 +161,11 @@ class DocumentTypeActionController extends FileController
             }
 
             // check if data is empty for attach action
-            if ($request->action === 'attach' && $document_type_data->isEmpty()) {
+            if ($request->action === 'attach' && $DOCUMENT_TYPE_DATA->isEmpty()) {
                 return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast('Sorry, we couldn\'t find any data where file is not attached for document type \'' . $name . '\' data, please create unattached file data and try again.', 'error'));
             }
 
-            $list_document_data = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $document_type_data, $document_type->schema_table, $request->action);
+            $LIST_DOCUMENT_TYPE_DATA = SchemaBuilder::create_table_thead_from_schema_in_html($document_type->table_name, $document_type->schema_form) . "\n" . SchemaBuilder::create_table_tbody_from_schema_in_html($name, $document_type->table_name, $DOCUMENT_TYPE_DATA, $document_type->schema_table, $request->action);
         } catch (\Exception $e) {
             return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
@@ -185,17 +187,23 @@ class DocumentTypeActionController extends FileController
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'browse.css',
                     'base_path' => asset('/resources/apps/documents/css/')
                 ]
+            ],
+            [
+                [
+                    'href' => 'browse.js',
+                    'base_path' => asset('/resources/apps/documents/js/')
+                ]
             ]
         );
 
-        $resources['list_document_data'] = $list_document_data;
-        $resources['pagination'] = $document_type_data;
+        $resources['list_document_data'] = $LIST_DOCUMENT_TYPE_DATA;
+        $resources['pagination'] = $DOCUMENT_TYPE_DATA;
         $resources['document_type'] = $document_type;
 
         $resources['columns_name'] = SchemaBuilder::get_form_columns_name_from_schema_representation($document_type->table_name, $document_type->schema_form, true);
@@ -227,6 +235,14 @@ class DocumentTypeActionController extends FileController
         $request_data = $request->only(['file_id', 'data_id']);
         $document_type = DocumentType::where('name', $name)->firstOrFail();
 
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+
+        if (empty($document_type->schema_form)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", 'error'));
+        }
+
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields(array_column($document_type->schema_form, 'name'));
+
         // Create custom attribute for better message in client side
         $attribute_names = [];
         if (Arr::has($request_data, 'data_id') && is_array($request_data['data_id'])) {
@@ -249,7 +265,7 @@ class DocumentTypeActionController extends FileController
         $validated = $validator->validated();
         $file = FileModel::where('id', $validated['file_id'])->first();
 
-        $result = DB::table($document_type->table_name)->whereIn('id', $validated['data_id'])->update([
+        $result = $DYNAMIC_DOCUMENT_TYPE_MODEL->whereIn('id', $validated['data_id'])->update([
             'file_id' => $validated['file_id']
         ]);
 
@@ -319,7 +335,7 @@ class DocumentTypeActionController extends FileController
                 ],
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ]
             ],
             [
@@ -369,7 +385,7 @@ class DocumentTypeActionController extends FileController
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ]
             ],
             [
@@ -619,7 +635,7 @@ class DocumentTypeActionController extends FileController
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'insert-update-data.css',
@@ -720,6 +736,7 @@ class DocumentTypeActionController extends FileController
         }
 
         $columns_name = array_column($document_type->schema_form, 'name');
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields($columns_name, true);
 
         // check if schema not corrupted by compare list column in table and schema
         if (
@@ -822,7 +839,7 @@ class DocumentTypeActionController extends FileController
             }
 
             // Insert all data and commit transaction
-            DB::table($document_type->table_name)->insert($data);
+            $DYNAMIC_DOCUMENT_TYPE_MODEL->insert($data);
             DB::commit();
 
             return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("New data for document type '$name' has been created successfully.", 'success'));
@@ -871,8 +888,10 @@ class DocumentTypeActionController extends FileController
             return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name', please create schema for this document type and try again.", 'error'));
         }
 
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields(array_column($document_type->schema_form, 'name'), true);
+
         // get relevant of document type data and related file to update with
-        $document_type_data = DB::table($document_type->table_name)->where('id', $id)->get()->firstOrFail();
+        $document_type_data = $DYNAMIC_DOCUMENT_TYPE_MODEL->where('id', $id)->get()->firstOrFail();
         $file_attachment = FileModel::where('id', $document_type_data->file_id)->first();
 
         try {
@@ -1019,7 +1038,7 @@ class DocumentTypeActionController extends FileController
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'insert-update-data.css',
@@ -1078,6 +1097,7 @@ class DocumentTypeActionController extends FileController
         }
 
         $columns_name = array_column($document_type->schema_form, 'name');
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields($columns_name, true);
 
         // check if schema not corrupted by compare list column in table and schema
         if (
@@ -1159,7 +1179,7 @@ class DocumentTypeActionController extends FileController
                 return array_combine(array_keys($validated), array_column($validated, $index));
             }, range(0, count(reset($validated)) - 1));
 
-            $result = DB::table($document_type->table_name)->upsert($data, 'id', $columns_name);
+            $result = $DYNAMIC_DOCUMENT_TYPE_MODEL->upsert($data, 'id', $columns_name);
             DB::commit();
 
             if ($result) {
@@ -1187,10 +1207,17 @@ class DocumentTypeActionController extends FileController
      * @param int $id The id of the document type data to delete.
      * @return \Illuminate\Http\RedirectResponse Redirects to the document type's browse page with a success or error message.
      */
-    public function destroy(...$args): RedirectResponse
+    public function destroy(...$args): RedirectResponse // That parameter is override effect of destroy func in FileController in PHP
     {
         // get document type by name
         $document_type = DocumentType::where('name', $args[0])->where('is_active', 1)->firstOrFail();
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+
+        if (empty($document_type->schema_form)) {
+            return redirect()->back()->with('message', toast("Sorry, we couldn't find schema for document type '{$args[0]}'.", 'error'));
+        }
+
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name);
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
@@ -1198,7 +1225,7 @@ class DocumentTypeActionController extends FileController
         }
 
         // delete data in table
-        if (DB::table($document_type->table_name)->where('id', $args[1])->delete()) {
+        if ($DYNAMIC_DOCUMENT_TYPE_MODEL->where('id', $args[1])->delete()) {
             return redirect()->back()->with('message', toast("Data in document type '{$args[0]}' has been deleted successfully.", 'success'));
         } else {
             return redirect()->back()->with('message', toast("No data deleted in document type '{$args[0]}'.", 'error'));
@@ -1220,6 +1247,13 @@ class DocumentTypeActionController extends FileController
     {
         // get document type by name
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+
+        if (empty($document_type->schema_form)) {
+            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Sorry, we couldn't find schema for document type '$name'.", 'error'));
+        }
+
+        $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name);
 
         // check if table exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
@@ -1227,7 +1261,7 @@ class DocumentTypeActionController extends FileController
         }
 
         // delete all data in table
-        if (DB::table($document_type->table_name)->delete()) {
+        if ($DYNAMIC_DOCUMENT_TYPE_MODEL->delete()) {
             return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("All data in document type '$name' has been deleted successfully.", 'success'));
         } else {
             return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("No data deleted in document type '$name'.", 'error'));

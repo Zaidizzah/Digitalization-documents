@@ -11,6 +11,7 @@ class DocumentType extends Model implements SearchableContent
     use HasFactory;
 
     protected $casts = [
+        'deleted_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -83,10 +84,5 @@ class DocumentType extends Model implements SearchableContent
     public function file()
     {
         return $this->hasMany(File::class, 'document_type_id', 'id');
-    }
-
-    public function example_file()
-    {
-        return $this->belongsTo(File::class, 'example_file_id', 'id');
     }
 }

@@ -21,6 +21,11 @@ class File extends Model implements SearchableContent
         'extension',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     protected $with = ['document_type'];
 
     /*

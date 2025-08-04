@@ -25,6 +25,7 @@
                             <th class="text-nowrap" scope="col">Status</th>
                             <th class="text-nowrap" scope="col">Created At</th>
                             <th class="text-nowrap" sope="col">Modified At</th>
+                            <th class="text-nowrap" sope="col">Deleted At</th>
                             <th class="text-nowrap" scope="col">Action</th>
                         </tr>
                     </thead>
@@ -41,6 +42,7 @@
                                     <td class="text-nowrap">{!! $document_type->is_active ? '<span class="badge bg-success">active</span>' : '<span class="badge bg-danger">inactive</span>' !!}</td>
                                     <td class="text-nowrap"><time datetime="{{ $document_type->created_at }}">{{ $document_type->created_at->format('d F Y, H:i A') }}</time></td>
                                     <td class="text-nowrap"><time datetime="{{ $document_type->updated_at }}">{{ $document_type->updated_at->format('d F Y, H:i A') }}</time></td>
+                                    <td class="text-nowrap">{!! $document_type->deleted_at !== NULL ? "<time datetime=\"{$document_type->deleted_at}\">{$document_type->deleted_at->format('d F Y, H:i A')}</time>" : '-' !!}</td>
                                     <td class="text-nowrap">
                                         @if ($document_type->is_active)
                                             <a href="{{ route('documents.browse', [$document_type->name, 'action' => 'browse']) }}" type="button" class="btn btn-info btn-sm btn-browse" role="button" title="Button: to browse data of document type '{{ $document_type->name }}'" data-id="{{ $document_type->id }}"><i class="bi bi-search fs-5"></i></a>
@@ -61,6 +63,8 @@
                                                 @method('PUT')
                                                 <button type="submit" class="btn btn-secondary btn-sm" role="button" title="Button: to restore or activate document type '{{ $document_type->name }}'"><i class="bi bi-arrow-counterclockwise fs-5"></i></button>
                                             </form>
+
+                                            <p class="d-inline"><span class="badge bg-danger">Deactivated</span> by "<strong>{{ $document_type->user->name }}</strong>"</p>
                                         @endif
                                     </td>
                                 </tr>

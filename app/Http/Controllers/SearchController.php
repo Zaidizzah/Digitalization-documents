@@ -19,7 +19,7 @@ class SearchController extends Controller
      */
     public function index(Request $request)
     {
-        $search = $request->input('search');
+        $search = $request->input('q');
         $resources = build_resource_array(
             // List of data for the page
             'Search',

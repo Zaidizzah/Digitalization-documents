@@ -6,8 +6,6 @@ use App\Models\User;
 use App\Models\File as FileModel;
 use App\Models\DocumentType;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class DashboardController extends Controller
 {
