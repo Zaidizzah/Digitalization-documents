@@ -1,3 +1,18 @@
+#row-file-list > .col-md-4 {
+    min-width: 300px;
+
+    @media screen and (max-width: 963px) {
+        min-width: unset;
+        width: 100%;
+    }
+}
+
+#row-file-list > .col-md-8 {
+    @media screen and (max-width: 963px) {
+        width: 100%;
+    }
+}
+
 .sticky-panel {
     position: sticky;
     top: calc(53px + 1rem);

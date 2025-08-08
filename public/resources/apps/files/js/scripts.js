@@ -1,5 +1,5 @@
 const uploadQueue = new UploadQueueManager({
-    uploadUrl: "api/documents/files/upload",
+    uploadUrl: `${location.origin}/api/documents/files/upload`,
 });
 
 (() => {

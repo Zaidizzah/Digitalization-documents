@@ -1,14 +1,173 @@
+// CHeck if SHOWDOWN JS is loaded
+if (typeof showdown === "undefined") {
+    throw new Error(
+        "SHOWDOWN JS is not loaded. Please load SHOWDOWN JS first at this time editor is not working."
+    );
+}
+
+// --- ALERT extension for SHOWDOWN JS ---
+showdown.extension("alert", function () {
+    return [
+        {
+            type: "lang",
+            regex: /(^|\n) *> *\[\!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\n((?: *>.*\n?)*)/g,
+            replace: function (_, leading, alertType, content) {
+                const cleanedContent = content
+                    .replace(/^ *> ?/gm, "")
+                    .replace(/\n$/, "");
+
+                const htmlContent = new showdown.Converter().makeHtml(
+                    cleanedContent
+                );
+
+                return `${leading}<div class="alert alert-${alertType.toLowerCase()}" role="alert">
+                        <div class="alert-heading">
+                        <img class="alert-heading-icon" src="${
+                            location.origin
+                        }/resources/images/icons/alert-${alertType.toLowerCase()}.svg" width="24" height="24" alt="${alertType.toLowerCase()}">
+                        <h4>${alertType.toUpperCase()}</h4>
+                        </div>
+                        <div class="alert-content">
+                        ${htmlContent}
+                        </div>
+                        </div>`;
+            },
+        },
+    ];
+});
+// --- TASK LIST extension for SHOWDOWN JS ---
+showdown.extension("tasklist", function () {
+    return [
+        {
+            type: "output",
+            regex: /<li>\s*\[ \]\s*(.*)<\/li>/g,
+            replace: '<li><input type="checkbox" disabled> $1</li>',
+        },
+        {
+            type: "output",
+            regex: /<li>\s*\[x\]\s*(.*)<\/li>/gi,
+            replace: '<li><input type="checkbox" checked disabled> $1</li>',
+        },
+    ];
+});
+// --- SUMMARY extension for SHOWDOWN JS ---
+showdown.extension("summary", function () {
+    return [
+        {
+            type: "lang",
+            regex: /:::summary\s+(.+)\n([\s\S]+?):::/g,
+            replace: function (_, summaryTitle, content) {
+                const innerHtml = new showdown.Converter().makeHtml(
+                    content.trim()
+                );
+                return `<details>
+                <summary>${summaryTitle.trim()}</summary>
+                ${innerHtml}
+                </details>`;
+            },
+        },
+    ];
+});
+// --- NESTED SMART LIST extension for SHOWDOWN JS ---
+showdown.extension("nestedSmartList", function () {
+    return [
+        {
+            type: "lang",
+            regex: /(?:^|\n)([ \t]*)([*+-]|\d+|[a-zA-Z]{1,4})\.\s+(.*?)(?=\n|$)/g,
+            replace: function (_, indentRaw, marker, content) {
+                const indent = indentRaw.replace(/\t/g, "    ").length;
+                let type = "decimal";
+
+                if (/^[IVXLCDM]+$/.test(marker)) type = "upper-roman";
+                else if (/^[ivxlcdm]+$/.test(marker)) type = "lower-roman";
+                else if (/^[A-Z]$/.test(marker)) type = "upper-alpha";
+                else if (/^[a-z]$/.test(marker)) type = "lower-alpha";
+                else if (/^[*+-]$/.test(marker)) type = "unordered";
+
+                return `\n::LIST|${indent}|${type}::${content}`;
+            },
+        },
+        {
+            type: "output",
+            regex: /(?:::LIST\|\d+\|[a-z-]+\:\:.*(?:\n)?)+/g,
+            replace: function (block) {
+                const lines = block.trim().split(/\n/);
+                const stack = [];
+                let html = "";
+
+                lines.forEach((line) => {
+                    const match = line.match(
+                        /^::LIST\|(\d+)\|([a-z-]+)::(.*)$/
+                    );
+                    if (!match) return;
+
+                    const [, indentStr, type, content] = match;
+                    const indent = parseInt(indentStr, 10);
+                    const tag = type === "unordered" ? "ul" : "ol";
+                    const style =
+                        type === "unordered"
+                            ? 'style="list-style-type: disc;"'
+                            : `style="list-style-type: ${type};"`;
+
+                    // Close list if indent up or same but type changed
+                    while (
+                        stack.length &&
+                        (stack[stack.length - 1].indent > indent ||
+                            (stack[stack.length - 1].indent === indent &&
+                                stack[stack.length - 1].type !== type))
+                    ) {
+                        const last = stack.pop();
+                        html +=
+                            "</li></" +
+                            (last.type === "unordered" ? "ul" : "ol") +
+                            ">";
+                    }
+
+                    if (
+                        !stack.length ||
+                        stack[stack.length - 1].indent < indent ||
+                        stack[stack.length - 1].type !== type
+                    ) {
+                        html += `<${tag} ${style}><li>${content}`;
+                        stack.push({ indent, type });
+                    } else {
+                        html += "</li><li>" + content;
+                    }
+                });
+
+                while (stack.length) {
+                    const last = stack.pop();
+                    html +=
+                        "</li></" +
+                        (last.type === "unordered" ? "ul" : "ol") +
+                        ">";
+                }
+
+                return html;
+            },
+        },
+    ];
+});
+
+const SHOWDOWN = new showdown.Converter({
+    extensions: ["alert", "tasklist", "summary", "nestedSmartList"],
+    tables: true,
+    simplifiedAutoLink: true,
+    literalMidWordUnderscores: true,
+    strikethrough: true,
+    ghCompatibleHeaderId: true,
+});
+
 class TextEditorHTML {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
         this.container = document.querySelector(`#${containerId}`);
         this.options = {
-            placeholder: "Type your contents here...",
-            uploadEndpoint: "/api/upload",
-            showSettings: false,
-            showFooter: true,
-            minHeight: "400px",
-            ...options,
+            placeholder: options.placeholder || "Type your contents here...",
+            uploadEndpoint: options.uploadEndpoint || "/api/upload",
+            showSettings: options.showSettings || true,
+            showFooter: options.showFooter || true,
+            minHeight: options.minHeight || "300px",
         };
 
         this.init();
@@ -17,6 +176,30 @@ class TextEditorHTML {
     init() {
         if (!this.container) {
             console.error(`Container with id "${this.containerId}" not found`);
+            return;
+        }
+
+        // check SHOWDOWN is loaded and has extensions
+        if (typeof SHOWDOWN === undefined || typeof showdown === undefined) {
+            console.error(
+                "SHOWDOWN is not loaded. Please load SHOWDOWNJS first and at this time editor is not working"
+            );
+            return;
+        }
+        if (SHOWDOWN.getOptions().extensions.includes("alert") === undefined) {
+            console.error("SHOWDOWN extension 'alert' not found");
+            return;
+        }
+        if (
+            SHOWDOWN.getOptions().extensions.includes("tasklist") === undefined
+        ) {
+            console.error("SHOWDOWN extension 'tasklist' not found");
+            return;
+        }
+        if (
+            SHOWDOWN.getOptions().extensions.includes("summary") === undefined
+        ) {
+            console.error("SHOWDOWN extension 'summary' not found");
             return;
         }
 
@@ -31,9 +214,9 @@ class TextEditorHTML {
         const editorHTML = `
                     <div class="text-editor-html-container">
                         <div class="editor-header">
-                            <div class="tabs">
-                                <button class="tab active" data-tab="write">Write</button>
-                                <button class="tab" data-tab="preview">Preview</button>
+                            <div class="tabs" role="tablist">
+                                <button class="tab active" role="tab" data-tab="write">Write</button>
+                                <button class="tab" role="tab" data-tab="preview">Preview</button>
                             </div>
                             <div class="toolbar">
                                 <!-- Bold Button -->
@@ -123,6 +306,37 @@ class TextEditorHTML {
                                     </svg>
                                 </button>
 
+                                <!-- Summary/Details Button -->
+                                <button class="toolbar-btn" data-action="summary" title="Summary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M2 2h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5.414L2 14V3a1 1 0 0 1 1-1z"/>
+                                        <circle cx="5" cy="7" r="1"/>
+                                        <circle cx="8" cy="7" r="1"/>
+                                        <circle cx="11" cy="7" r="1"/>
+                                    </svg>
+                                </button>
+
+                                <!-- Table Button -->
+                                <button class="toolbar-btn" data-action="table" title="Table">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h11A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11zM2.5 2a.5.5 0 0 0-.5.5V5h12V2.5a.5.5 0 0 0-.5-.5h-11zM14 6H2v4h12V6zM2 11v2.5a.5.5 0 0 0 .5.5H5v-3H2zm4 0v3h4v-3H6zm5 0v3h2.5a.5.5 0 0 0 .5-.5V11h-3z"/>
+                                    </svg>
+                                </button>
+
+                                <!-- Hr Button -->
+                                <button class="toolbar-btn" data-action="hr" title="Hr">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                        <rect x="2" y="7.5" width="12" height="1" rx="0.5"/>
+                                    </svg>
+                                </button>
+
+                                <!-- Alert Button -->
+                                <button class="toolbar-btn" data-action="alert" title="Alert">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M7.938 2.016a.13.13 0 0 1 .125 0l6.857 11.856c.04.069.08.176.08.253 0 .275-.223.5-.5.5H1.5a.5.5 0 0 1-.5-.5c0-.077.04-.184.08-.253L7.938 2.016zM8 5c-.535 0-.954.462-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 5zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+                                    </svg>
+                                </button>
+
                                 <!-- Image Button -->
                                 <button class="toolbar-btn" data-action="image" title="Insert Image">
                                     <svg viewBox="0 0 16 16">
@@ -142,20 +356,6 @@ class TextEditorHTML {
                           </div>
 
                           ${
-                              this.options.showSettings
-                                  ? `
-                          <div class="settings-panel">
-                              <label>
-                                  <strong>Upload Endpoint:</strong>
-                                  <input type="text" class="upload-endpoint" value="${this.options.uploadEndpoint}" placeholder="e.g., /api/upload or https://your-api.com/upload">
-                              </label>
-                              <small>Configure the API endpoint where images will be uploaded. The endpoint should accept multipart/form-data and return JSON with 'url' field.</small>
-                          </div>
-                          `
-                                  : ""
-                          }
-
-                          ${
                               this.options.showFooter
                                   ? `
                           <div class="footer">
@@ -165,7 +365,7 @@ class TextEditorHTML {
                                   : ""
                           }
 
-                          <input type="file" class="file-input" accept="image/*" multiple style="display: none;">
+                          <input type="file" class="file-input" accept="image/png, image/jpg, image/jpeg, image/webp, image/gif, image/svg+xml, image/avif" multiple style="display: none;">
                       </div>
                   `;
 
@@ -179,13 +379,14 @@ class TextEditorHTML {
         this.textarea = this.container.querySelector(".editor-textarea");
         this.previewContent = this.container.querySelector(".preview-content");
         this.fileInput = this.container.querySelector(".file-input");
-        this.uploadEndpointInput =
-            this.container.querySelector(".upload-endpoint");
 
         // Initialize SlashCommands manu
         this.slashCommandsMenu = document.createElement("div");
         this.slashCommandsMenu.className = "slash-commands-menu";
-        document.body.appendChild(this.slashCommandsMenu); // add to body
+        this.slashCommandsMenu.role = "menu";
+        this.slashCommandsMenu.ariaLabel = "Slash commands menu";
+        this.slashCommandsMenu.ariaHidden = "true"; // hidden = "true";
+        this.container.appendChild(this.slashCommandsMenu); // add to body
     }
 
     initEventListeners() {
@@ -199,8 +400,24 @@ class TextEditorHTML {
 
         // Toolbar actions
         this.container.querySelectorAll(".toolbar-btn").forEach((btn) => {
+            const tabPreview = this.container.querySelector(
+                '.tabs .tab[data-tab="preview"]'
+            );
+
             btn.addEventListener("click", (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+
+                console.log("tabPreview: ", tabPreview);
+
+                // Switch to write mode first if in preview mode
+                if (
+                    tabPreview !== undefined &&
+                    tabPreview.classList.contains("active")
+                ) {
+                    this.switchTab("write");
+                }
+
                 this.handleToolbarAction(e.currentTarget.dataset.action);
             });
         });
@@ -234,16 +451,6 @@ class TextEditorHTML {
 
         // Paste image handling
         this.textarea.addEventListener("paste", (e) => this.handlePaste(e));
-
-        // Click outside to close slash commands menu
-        document.addEventListener("click", (e) => {
-            if (
-                !this.slashCommandsMenu.contains(e.target) &&
-                e.target !== this.textarea
-            ) {
-                this.hideSlashCommands();
-            }
-        });
     }
 
     switchTab(tab) {
@@ -265,7 +472,7 @@ class TextEditorHTML {
         }
     }
 
-    handleToolbarAction(action) {
+    async handleToolbarAction(action) {
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const selectedText = this.textarea.value.substring(start, end);
@@ -275,7 +482,15 @@ class TextEditorHTML {
         const currentLine = this.getCurrentLine();
 
         // Check if we need to create a new line for block-level elements
-        const blockElements = ["header", "quote", "task-list", "image"];
+        const blockElements = [
+            "header",
+            "quote",
+            "task-list",
+            "image",
+            "alert",
+            "hr",
+            "summary",
+        ];
         const shouldCreateNewLine =
             blockElements.includes(action) && currentLine.trim().length > 0;
 
@@ -413,6 +628,39 @@ class TextEditorHTML {
                 }
                 cursorOffset = replacement.length - selectedText.length;
                 break;
+            case "alert":
+                if (shouldCreateNewLine) {
+                    replacement = "\n/ ";
+                } else {
+                    replacement = "/ ";
+                }
+                cursorOffset = replacement.length - selectedText.length;
+
+                // show alert slash command menu
+                this.slashCommandActive = true;
+                this.showSlashCommands();
+                break;
+            case "hr":
+                if (shouldCreateNewLine) {
+                    replacement = "\n---\n";
+                } else {
+                    replacement = "---\n";
+                }
+                cursorOffset = replacement.length - selectedText.length;
+                break;
+            case "summary":
+                if (shouldCreateNewLine) {
+                    replacement = "\n:::summary  \n\n:::\n";
+                } else {
+                    replacement = ":::summary  \n\n:::\n";
+                }
+
+                cursorOffset = 11;
+                break;
+            case "table":
+                // show table grid input
+                this.showTableGridInput();
+                break;
         }
 
         this.insertText(replacement, start, end, cursorOffset);
@@ -423,8 +671,8 @@ class TextEditorHTML {
     }
 
     getCurrentLine() {
-        const cursorPos = this.textarea.selectionStart;
         const value = this.textarea.value;
+        const cursorPos = this.textarea.selectionStart;
         let lineStart = cursorPos;
         let lineEnd = cursorPos;
 
@@ -450,6 +698,7 @@ class TextEditorHTML {
         // Set cursor position after inserted text
         const newPos = start + cursorOffset;
         this.textarea.setSelectionRange(newPos, newPos);
+
         this.updatePreview();
     }
 
@@ -457,10 +706,10 @@ class TextEditorHTML {
         const cursorPos = this.textarea.selectionStart;
         const textBeforeCursor = this.textarea.value.substring(0, cursorPos);
 
-        // if text before cursor ends with '/'
+        // if text before cursor ends with '/' or '/ '
         const lastLine = textBeforeCursor.split("\n").pop();
 
-        if (lastLine.startsWith("/")) {
+        if (/^\/(?:\s)?$/.test(lastLine)) {
             this.slashCommandActive = true;
             this.showSlashCommands();
         } else if (this.slashCommandActive) {
@@ -470,18 +719,35 @@ class TextEditorHTML {
     }
 
     handleKeydown(e) {
+        // Tab case adding 4 space
+        if (e.key === ";" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+
+            const currentPos = this.textarea.selectionStart;
+
+            this.insertText("    ", currentPos, currentPos, 4);
+        }
+
         if (e.key === "/" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            // Perbaikan: tambahkan slash jika belum ada
             const cursorPos = this.textarea.selectionStart;
             const textBeforeCursor = this.textarea.value.substring(
                 0,
                 cursorPos
             );
 
-            if (!textBeforeCursor.endsWith("/")) {
-                this.insertText("/", cursorPos, cursorPos);
+            const lastLine = textBeforeCursor.split("\n").pop();
+
+            if (lastLine === "") {
+                this.insertText("/ ", cursorPos, cursorPos, 2);
+            } else if (lastLine.trim().endsWith("/")) {
+                // Set cursor position after one space after slash character
+                this.textarea.setSelectionRange(cursorPos + 1, cursorPos + 1);
+            } else if (lastLine.trim() !== "") {
+                // check if last line doesn't end with / or empty value (string)
+                this.insertText("\n/ ", cursorPos, cursorPos, 3);
             }
+
             this.slashCommandActive = true;
             this.showSlashCommands();
         } else if (e.key === "Escape") {
@@ -581,21 +847,73 @@ class TextEditorHTML {
     }
 
     async uploadImage(file, insertPos = null) {
-        const endpoint = this.uploadEndpointInput
-            ? this.uploadEndpointInput.value.trim() ||
-              this.options.uploadEndpoint
-            : this.options.uploadEndpoint;
+        const ENDPOINT = this.options.uploadEndpoint || location.origin;
 
-        this.showUploadStatus("progress", `Uploading ${file.name}...`);
+        console.log(ENDPOINT);
+
+        // Check if url ENDPOINT is set
+        if (ENDPOINT === null || ENDPOINT === "") {
+            this.showUploadStatus(
+                "error",
+                "The upload endpoint is not set. Please set the 'uploadEndpoint' option."
+            );
+            return;
+        }
+
+        // Check if file is valid and not too large (20mb)
+        if (typeof file !== "object" || !file.type.startsWith("image/")) {
+            this.showUploadStatus(
+                "error",
+                `The file type is not supported. Please choose a file with a type of 'PNG', 'JPG', 'JPEG', 'WEBP', 'AVIF', or 'GIF'.`
+            );
+        }
+
+        if (file.size > 20 * 1024 * 1024) {
+            this.showUploadStatus(
+                "error",
+                `The file size is too large. Please choose a file less than 20MB.`
+            );
+        }
+
+        // Insert uploading status text to editor and add 'POINTER-EVENT: NONE' style to prevent cursor from moving in editor
+        this.textarea.style.pointerEvents = "none";
+        const UPLOADINGTEXT = `<--- Uploading image "${file.name}"... --->\n`;
+
+        // Check if the cursor is at the start of the textarea
+        const isAtStart =
+            this.textarea.selectionStart === 0 &&
+            this.textarea.value.trim() === "";
+        if (isAtStart === false) {
+            UPLOADINGTEXT = `\n${UPLOADINGTEXT}`;
+        }
+
+        if (insertPos !== null) {
+            const value = this.textarea.value;
+            this.textarea.value =
+                value.substring(0, insertPos) +
+                UPLOADINGTEXT +
+                value.substring(insertPos);
+            this.textarea.setSelectionRange(
+                insertPos + UPLOADINGTEXT.length,
+                insertPos + UPLOADINGTEXT.length
+            );
+        } else {
+            const start = this.textarea.selectionStart;
+            this.insertText(UPLOADINGTEXT, start, start);
+        }
 
         try {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("filename", file.name);
+            const FORMDATA = new FormData();
+            FORMDATA.append("file", file);
 
-            const response = await fetch(endpoint, {
+            const response = await fetch(ENDPOINT, {
                 method: "POST",
-                body: formData,
+                headers: {
+                    "X-CSRF-TOKEN": CSRF_TOKEN,
+                    "XSRF-TOKEN": XSRF_TOKEN,
+                },
+                body: FORMDATA,
+                credentials: "include",
             });
 
             if (!response.ok) {
@@ -604,67 +922,140 @@ class TextEditorHTML {
                 );
             }
 
-            const result = await response.json();
+            const RESULT_RESPONSE = await response.json();
 
-            if (!result.url && !result.path && !result.file_url) {
-                throw new Error("Server response missing URL field");
+            if (
+                (RESULT_RESPONSE.hasOwnProperty("path") &&
+                    RESULT_RESPONSE.hasOwnProperty("filename") &&
+                    RESULT_RESPONSE.path === undefined &&
+                    RESULT_RESPONSE.path === null) ||
+                (RESULT_RESPONSE.filename === undefined &&
+                    RESULT_RESPONSE.filename === null)
+            ) {
+                throw new Error(
+                    "Response missing URL field and filename (for ALT text) for uploaded file image. Please try again."
+                );
             }
 
-            const imageUrl =
-                result.url ||
-                result.path ||
-                result.file_url ||
-                result.data?.url;
-            const altText = result.filename || file.name;
+            const MARKDOWN = `![${RESULT_RESPONSE.filename}](${RESULT_RESPONSE.path})\n`;
+            if (isAtStart === false) {
+                MARKDOWN = `\n${MARKDOWN}`;
+            }
 
-            const markdown = `![${altText}](${imageUrl})\n`;
-
+            // Replace uploading status text with image markdown
             if (insertPos !== null) {
-                const value = this.textarea.value;
-                this.textarea.value =
-                    value.substring(0, insertPos) +
-                    markdown +
-                    value.substring(insertPos);
+                this.textarea.value = this.textarea.value.replace(
+                    UPLOADINGTEXT,
+                    MARKDOWN
+                );
                 this.textarea.setSelectionRange(
-                    insertPos + markdown.length,
-                    insertPos + markdown.length
+                    insertPos + MARKDOWN.length,
+                    insertPos + MARKDOWN.length
                 );
             } else {
                 const start = this.textarea.selectionStart;
-                this.insertText(markdown, start, start);
+                this.insertText(MARKDOWN, start, start);
             }
 
+            // Update preview content
             this.updatePreview();
-            this.showUploadStatus(
-                "success",
-                `✓ ${file.name} uploaded successfully!`
-            );
         } catch (error) {
-            console.error("Upload error:", error);
+            console.error(error);
+
+            // Delete uploading status text from editor
+            if (isAtStart === false) {
+                UPLOADINGTEXT = `\n${UPLOADINGTEXT}`;
+            }
+            const start = this.textarea.selectionStart;
+            this.textarea.value = this.textarea.value.replace(
+                UPLOADINGTEXT,
+                ""
+            );
+            this.textarea.setSelectionRange(start, start);
+
             this.showUploadStatus(
                 "error",
-                `❌ Upload failed: ${error.message}`
+                `Upload image failed: ${error.message}`
             );
+        } finally {
+            // Remove 'POINTER-EVENT: NONE' style
+            this.textarea.style.pointerEvents = "auto";
+
+            // Delete or replace uploading status text from editor to empty string
+            if (isAtStart === false) {
+                UPLOADINGTEXT = `\n${UPLOADINGTEXT}`;
+            }
+            const start = this.textarea.selectionStart;
+            this.textarea.value = this.textarea.value.replace(
+                UPLOADINGTEXT,
+                ""
+            );
+            this.textarea.setSelectionRange(start, start);
         }
     }
 
     showUploadStatus(type, message) {
-        const statusEl = document.getElementById("uploadStatus");
-        statusEl.className = `upload-status ${type} show`;
-        statusEl.textContent = message;
+        // Create upload status element
+        const STATUS_ELEMENT = document.createElement("div");
+        STATUS_ELEMENT.id = "upload-status-texteditor";
+        STATUS_ELEMENT.className = `upload-status ${type}`;
+        STATUS_ELEMENT.textContent = message;
+        // Append upload status element to body
+        document.body.appendChild(STATUS_ELEMENT);
 
-        setTimeout(
-            () => {
-                statusEl.classList.remove("show");
-            },
-            type === "error" ? 5000 : 3000
-        );
+        // Show upload status element
+        STATUS_ELEMENT.classList.add("show");
+
+        setTimeout(() => {
+            STATUS_ELEMENT.classList.remove("show");
+            setTimeout(() => {
+                STATUS_ELEMENT.remove();
+            }, 500);
+        }, 5000);
     }
 
     updatePreview() {
         const markdown = this.textarea.value;
-        const html = this.markdownToHtml(markdown);
+        const html = SHOWDOWN.makeHtml(markdown.replace(/\r\n/g, "\n").trim());
         this.previewContent.innerHTML = html;
+
+        // Check if Highlight.js is loaded
+        if (typeof hljs === "undefined") {
+            console.warn(
+                "Highlight.js is not loaded. Code blocks will not be highlighted."
+            );
+            return;
+        }
+        /**
+         * ---------------------
+         * HIGHLIGHT CODE BLOCKS
+         * --------------------
+         */
+        document.querySelectorAll("pre code")?.forEach((block) => {
+            hljs.highlightElement(block);
+        });
+
+        // Initialize line numbers
+        hljs.initLineNumbersOnLoad();
+
+        // Adding copy button to code block
+        this.previewContent.querySelectorAll("pre")?.forEach((block) => {
+            const CODE_ELEMENT = block.querySelector("code");
+
+            const button = document.createElement("button");
+            button.className = "copy-btn";
+            button.textContent = "Copy";
+            button.role = "button";
+            button.addEventListener("click", () => {
+                navigator.clipboard
+                    .writeText(CODE_ELEMENT.innerText)
+                    .then(() => {
+                        button.innerText = "Copied!";
+                        setTimeout(() => (button.innerText = "Copy"), 2000);
+                    });
+            });
+            block.appendChild(button); // Append button to code block
+        });
     }
 
     showSlashCommands() {
@@ -672,7 +1063,7 @@ class TextEditorHTML {
         const cursorCoords = this.getCursorCoordinates(cursorPos);
 
         this.slashCommandsMenu.innerHTML = `
-            <h5 class="slash-commands-header">Slash Commands / Keyboard Shortcuts</h5>
+            <h5 class="slash-commands-header" role="heading">Slash Commands / Keyboard Shortcuts</h5>
             <div class="slash-commands-list" role="list">
               <div class="slash-commands-item" role="listitem" data-command="tip">Tip</div>
               <div class="slash-commands-item" role="listitem" data-command="note">Note</div>
@@ -684,48 +1075,355 @@ class TextEditorHTML {
 
         this.slashCommandsMenu.style.display = "block";
         this.slashCommandsMenu.style.position = "absolute";
-        this.slashCommandsMenu.style.top = `${cursorCoords.top + 20}px`;
-        this.slashCommandsMenu.style.left = `${cursorCoords.left}px`;
+        this.slashCommandsMenu.ariaHidden = "false";
+
+        // get viewport dimensions
+        const viewport = {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            scrollX: window.pageXOffset || document.documentElement.scrollLeft,
+            scrollY: window.pageYOffset || document.documentElement.scrollTop,
+        };
+
+        // Get menu dimensions setelah di-render
+        const menuRect = this.slashCommandsMenu.getBoundingClientRect();
+        const menuWidth = menuRect.width;
+        const menuHeight = menuRect.height;
+
+        // Get textarea bounds untuk reference
+        const textareaRect = this.textarea.getBoundingClientRect();
+
+        // Calculate optimal position
+        const position = this.calculateOptimalPositionForSlashCommands({
+            cursorCoords,
+            menuWidth,
+            menuHeight,
+            viewport,
+            textareaRect,
+        });
+
+        this.slashCommandsMenu.style.top = `${position.top}px`;
+        this.slashCommandsMenu.style.left = `${position.left}px`;
+
+        // Adding class
+        this.slashCommandsMenu.classList.add(...position.classes);
+        this.slashCommandsMenu.style.visibility = "visible";
 
         this.slashCommandsMenu
             .querySelectorAll(".slash-commands-item")
             .forEach((item) => {
                 item.addEventListener("click", (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+
                     this.handleSlashCommand(item.dataset.command);
+                    item.removeEventListener("click", this.handleSlashCommand); // Remove event listener
                 });
             });
+
+        this.addMobileGesturesForSlashCommands();
+
+        // If user click outside slash commands menu, hide it
+        setTimeout(() => {
+            const onClickOutside = (e) => {
+                if (!this.slashCommandsMenu.contains(e.target)) {
+                    this.hideSlashCommands();
+
+                    // Remove all listener
+                    document.removeEventListener("click", onClickOutside);
+                }
+            };
+            document.addEventListener("click", onClickOutside);
+        }, 50);
+    }
+
+    showTableGridInput() {
+        const cursorPos = this.textarea.selectionStart;
+        const coords = this.getCursorCoordinates(cursorPos);
+
+        if (this.tableGridMenu) {
+            this.tableGridMenu.remove();
+        }
+
+        const menu = document.createElement("div");
+        menu.className = "table-grid-menu";
+        menu.innerHTML = `
+            <h5 class="table-grid-menu-header" role="heading">Insert Table</h5>
+            <div class="table-grid-menu-content">
+                <label class="__label" for="table-grid-menu-rows">Rows: <input type="number" class="__input" id="table-grid-menu-rows" min="1" max="25" value="2"></label>
+                <label class="__label" for="table-grid-menu-cols">Cols: <input type="number" class="__input" id="table-grid-menu-cols" min="1" max="25" value="2"></label>
+                <div class="table-grid-menu-preview" id="table-grid-menu-preview"></div>
+            </div>
+            <div class="table-grid-menu-footer">
+                <button type="button" role="button" class="__button" id="table-grid-menu-insert">Insert Table</button>
+            </div>
+        `;
+
+        // Styling & positioning
+        menu.style.position = "absolute";
+        menu.style.top = `${coords.top + 20}px`;
+        menu.style.left = `${coords.left}px`;
+        this.container.appendChild(menu);
+
+        const rowsInput = menu.querySelector(
+            'input[type="number"]#table-grid-menu-rows'
+        );
+        const colsInput = menu.querySelector(
+            'input[type="number"]#table-grid-menu-cols'
+        );
+        const preview = menu.querySelector("div#table-grid-menu-preview");
+
+        const updatePreview = () => {
+            const rows = Math.min(parseInt(rowsInput.value) || 0, 25);
+            const cols = Math.min(parseInt(colsInput.value) || 0, 25);
+            if (rows < 1 || cols < 1) {
+                preview.innerHTML = "<p style='color:red;'>Invalid input</p>";
+                return;
+            }
+
+            let html =
+                '<table class="table-grid-menu-preview-table" id="table-grid-menu-preview-table" role="table">';
+            for (let i = 0; i < rows; i++) {
+                html += "<tr>";
+                for (let j = 0; j < cols; j++) {
+                    html += `<td>${i === 0 ? "H" + (j + 1) : ""}</td>`;
+                }
+                html += "</tr>";
+            }
+            html += "</table>";
+            preview.innerHTML = html;
+        };
+
+        rowsInput.addEventListener("input", updatePreview);
+        colsInput.addEventListener("input", updatePreview);
+        updatePreview();
+
+        // Inserting value of tables grid to editor
+        menu.querySelector(
+            ".__button#table-grid-menu-insert"
+        )?.addEventListener("click", () => {
+            const rows = Math.min(parseInt(rowsInput.value), 25);
+            const cols = Math.min(parseInt(colsInput.value), 25);
+            if (rows < 1 || cols < 1) return;
+
+            let markdown = "|";
+            markdown += " Header |".repeat(cols);
+            markdown += "\n|";
+            markdown += "---|".repeat(cols);
+            for (let i = 1; i < rows; i++) {
+                markdown += "\n|";
+                markdown += " Cell |".repeat(cols);
+            }
+            this.insertText(
+                markdown + "\n",
+                cursorPos,
+                cursorPos,
+                markdown.length + 1
+            );
+            menu.remove();
+        });
+
+        this.tableGridMenu = menu;
+
+        // Close on click outside
+        setTimeout(() => {
+            const onClickOutside = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+
+                    // Remove event listener
+                    document.removeEventListener("click", onClickOutside);
+                    menu.querySelector(
+                        ".__button#table-grid-menu-insert"
+                    )?.removeEventListener("click", () => {});
+                }
+            };
+            document.addEventListener("click", onClickOutside);
+        }, 50);
+    }
+
+    calculateOptimalPositionForSlashCommands({
+        cursorCoords,
+        menuWidth,
+        menuHeight,
+        viewport,
+        textareaRect,
+    }) {
+        const OFFSET = 10;
+        const EDGE_PADDING = 20;
+
+        let top = cursorCoords.top;
+        let left = cursorCoords.left;
+        const classes = [];
+
+        const rightSpace =
+            viewport.width - (cursorCoords.left - viewport.scrollX);
+        const leftSpace = cursorCoords.left - viewport.scrollX;
+
+        if (rightSpace >= menuWidth + EDGE_PADDING) {
+            left = cursorCoords.left + OFFSET;
+            classes.push("position-right");
+        } else if (leftSpace >= menuWidth + EDGE_PADDING) {
+            left = cursorCoords.left - menuWidth - OFFSET;
+            classes.push("position-left");
+        } else {
+            const availableWidth = viewport.width - EDGE_PADDING * 2;
+            const adjustedMenuWidth = Math.min(menuWidth, availableWidth);
+            left = viewport.scrollX + (viewport.width - adjustedMenuWidth) / 2;
+            classes.push("position-center");
+
+            if (menuWidth > availableWidth) {
+                classes.push("scale-width");
+            }
+        }
+
+        const bottomSpace =
+            viewport.height - (cursorCoords.top - viewport.scrollY);
+        const topSpace = cursorCoords.top - viewport.scrollY;
+
+        if (bottomSpace >= menuHeight + EDGE_PADDING) {
+            top = cursorCoords.top + OFFSET;
+            classes.push("position-bottom");
+        } else if (topSpace >= menuHeight + EDGE_PADDING) {
+            top = cursorCoords.top - menuHeight - OFFSET;
+            classes.push("position-top");
+        } else {
+            if (bottomSpace > topSpace) {
+                top = cursorCoords.top + OFFSET;
+                classes.push("position-bottom", "constrain-height");
+            } else {
+                const availableHeight = topSpace - EDGE_PADDING;
+                top = viewport.scrollY + EDGE_PADDING;
+                classes.push("position-top", "constrain-height");
+            }
+        }
+
+        left = Math.max(
+            viewport.scrollX + EDGE_PADDING,
+            Math.min(
+                left,
+                viewport.scrollX + viewport.width - menuWidth - EDGE_PADDING
+            )
+        );
+        top = Math.max(
+            viewport.scrollY + EDGE_PADDING,
+            Math.min(
+                top,
+                viewport.scrollY + viewport.height - menuHeight - EDGE_PADDING
+            )
+        );
+
+        return { top, left, classes };
+    }
+
+    addMobileGesturesForSlashCommands() {
+        let startY = 0;
+        let currentY = 0;
+
+        this.slashCommandsMenu.addEventListener(
+            "touchstart",
+            (e) => {
+                startY = e.touches[0].clientY;
+                currentY = startY;
+            },
+            { passive: true }
+        );
+
+        this.slashCommandsMenu.addEventListener(
+            "touchmove",
+            (e) => {
+                if (!startY) return;
+
+                currentY = e.touches[0].clientY;
+                const diffY = startY - currentY;
+
+                // If user swipes up significantly, close menu
+                if (diffY > 50) {
+                    this.hideSlashCommands();
+                }
+            },
+            { passive: true }
+        );
+
+        this.slashCommandsMenu.addEventListener(
+            "touchend",
+            () => {
+                startY = 0;
+                currentY = 0;
+            },
+            { passive: true }
+        );
     }
 
     getCursorCoordinates(pos) {
+        // Create temporary div untuk mengukur posisi text yang tepat
         const textareaRect = this.textarea.getBoundingClientRect();
         const style = getComputedStyle(this.textarea);
-        const lineHeight = parseInt(style.lineHeight);
-        const paddingTop = parseInt(style.paddingTop);
-        const paddingLeft = parseInt(style.paddingLeft);
 
-        // Hitung baris dan kolom
+        // Extract styles
+        const lineHeight =
+            parseInt(style.lineHeight) || parseInt(style.fontSize) * 1.2;
+        const paddingTop = parseInt(style.paddingTop) || 0;
+        const paddingLeft = parseInt(style.paddingLeft) || 0;
+        const borderLeft = parseInt(style.borderLeftWidth) || 0;
+        const borderTop = parseInt(style.borderTopWidth) || 0;
+
+        // Calculate position more accurately
         const text = this.textarea.value.substring(0, pos);
         const lines = text.split("\n");
-        const currentLine = lines[lines.length - 1];
-        const lineIndex = lines.length - 1;
+        const currentLineIndex = lines.length - 1;
+        const currentLineText = lines[currentLineIndex];
 
-        return {
-            top:
-                textareaRect.top +
-                paddingTop +
-                lineIndex * lineHeight +
-                window.scrollY,
-            left:
-                textareaRect.left +
-                paddingLeft +
-                currentLine.length * 8 +
-                window.scrollX,
-        };
+        // Estimate character width (approximation)
+        const charWidth = this.estimateCharWidth();
+
+        // Calculate coordinates
+        const top =
+            textareaRect.top +
+            borderTop +
+            paddingTop +
+            currentLineIndex * lineHeight +
+            window.pageYOffset;
+
+        const left =
+            textareaRect.left +
+            borderLeft +
+            paddingLeft +
+            currentLineText.length * charWidth +
+            window.pageXOffset;
+
+        return { top, left };
+    }
+
+    estimateCharWidth() {
+        if (this._cachedCharWidth) return this._cachedCharWidth;
+
+        // Create temporary span untuk mengukur lebar karakter
+        const span = document.createElement("span");
+        const style = getComputedStyle(this.textarea);
+
+        span.style.font = style.font;
+        span.style.fontSize = style.fontSize;
+        span.style.fontFamily = style.fontFamily;
+        span.style.visibility = "hidden";
+        span.style.position = "absolute";
+        span.style.top = "-9999px";
+        span.textContent = "M".repeat(10); // Use 'M' as it's typically the widest character
+
+        document.body.appendChild(span);
+        const width = span.offsetWidth / 10; // Average character width
+        document.body.removeChild(span);
+
+        this._cachedCharWidth = width;
+        return width;
     }
 
     hideSlashCommands() {
         this.slashCommandsMenu.style.display = "none";
+        this.slashCommandsMenu.ariaHidden = "true";
+        this.slashCommandActive = false;
+        this.slashCommandsMenu.className = "slash-commands-menu";
+        this.slashCommandActive = false;
     }
 
     handleSlashCommand(command) {
@@ -919,506 +1617,6 @@ class TextEditorHTML {
         return uppercase ? result.toUpperCase() : result;
     }
 
-    markdownToHtml(markdown) {
-        const lines = markdown.split("\n");
-        let html = "";
-        let inParagraph = false;
-        let listStack = []; // { type: 'ul'|'ol'|'task', indent: number, style: string }
-        let inBlockquote = false;
-        let inAlert = false;
-        let inCodeBlock = false;
-        let alertType = "";
-
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            const trimmedLine = line.trim();
-            const nextLine = i < lines.length - 1 ? lines[i + 1] : "";
-            const indent = line.match(/^\s*/)[0].length;
-
-            // Skip empty lines
-            if (!trimmedLine) {
-                if (inParagraph) {
-                    html += "</p>";
-                    inParagraph = false;
-                }
-                continue;
-            }
-
-            // Handle code blocks
-            if (trimmedLine.startsWith("```")) {
-                // Close any open lists
-                this.closeAllLists(listStack, html);
-                listStack = [];
-
-                if (!inCodeBlock) {
-                    // Start of code block
-                    html += "<pre><code>";
-                    inCodeBlock = true;
-                } else {
-                    // End of code block
-                    html += "</code></pre>";
-                    inCodeBlock = false;
-                }
-                continue;
-            }
-
-            // If inside code block, preserve original formatting
-            if (inCodeBlock) {
-                html += line + "\n";
-                continue;
-            }
-
-            // Handle headers
-            if (trimmedLine.match(/^#{1,6} /)) {
-                this.closeAllLists(listStack, (content) => {
-                    html += content;
-                });
-                listStack = [];
-
-                if (inParagraph) {
-                    html += "</p>";
-                    inParagraph = false;
-                }
-
-                const level = trimmedLine.match(/^(#+)/)[1].length;
-                const text = this.processInlineFormatting(
-                    trimmedLine.substring(level + 1).trim()
-                );
-                html += `<h${level}>${text}</h${level}>`;
-                continue;
-            }
-
-            // Handle alert blocks
-            if (trimmedLine.startsWith("> [!") && trimmedLine.endsWith("]")) {
-                this.closeAllLists(listStack, (content) => {
-                    html += content;
-                });
-                listStack = [];
-
-                if (inParagraph) {
-                    html += "</p>";
-                    inParagraph = false;
-                }
-
-                alertType = trimmedLine.match(
-                    /\[!(TIP|NOTE|IMPORTANT|WARNING|CAUTION)\]/
-                )[1];
-                html += `<div class="alert alert-${alertType.toLowerCase()}" role="alert">
-                     <div class="alert-heading"><img class="alert-heading-icon" src="https://github.githubassets.com/images/icons/emoji/${alertType.toLowerCase()}.png" width="24px" height="24px" alt="${alertType}"><h4>${alertType}</h4></div>
-                     <div class="alert-content">`;
-                inAlert = true;
-                continue;
-            }
-
-            // Handle blockquotes
-            if (trimmedLine.startsWith("> ") && !inAlert) {
-                this.closeAllLists(listStack, (content) => {
-                    html += content;
-                });
-                listStack = [];
-
-                if (inParagraph) {
-                    html += "</p>";
-                    inParagraph = false;
-                }
-
-                if (!inBlockquote) {
-                    html += "<blockquote>";
-                    inBlockquote = true;
-                }
-                const blockquoteContent = this.processInlineFormatting(
-                    trimmedLine.substring(2).trim()
-                );
-                html += blockquoteContent;
-                if (!nextLine.trim().startsWith("> ")) {
-                    html += "</blockquote>";
-                    inBlockquote = false;
-                } else {
-                    html += "<br>";
-                }
-                continue;
-            }
-
-            // Improved list detection with better regex patterns
-            const taskListMatch = /^(\s*)[-*+]\s+\[([x ])\]\s+(.*)$/.exec(line);
-            const unorderedMatch = !taskListMatch
-                ? /^(\s*)[-*+]\s+(.*)$/.exec(line)
-                : null;
-
-            // Separate roman numerals from alphabetical to avoid conflicts
-            const romanMatch =
-                /^(\s*)(i{1,4}|i{0,3}v|i{0,3}x|x{1,3}|x{0,2}l|x{0,2}c|c{1,3}|c{0,2}d|c{0,2}m|I{1,4}|I{0,3}V|I{0,3}X|X{1,3}|X{0,2}L|X{0,2}C|C{1,3}|C{0,2}D|C{0,2}M)\.\s+(.*)$/.exec(
-                    line
-                );
-            const orderedMatch = !romanMatch
-                ? /^(\s*)([0-9]+|[a-zA-Z])\.\s+(.*)$/.exec(line)
-                : null;
-
-            const isListItem =
-                taskListMatch || unorderedMatch || orderedMatch || romanMatch;
-
-            if (isListItem) {
-                if (inParagraph) {
-                    html += "</p>";
-                    inParagraph = false;
-                }
-
-                let listType,
-                    listStyle = "",
-                    listContent,
-                    currentIndent;
-
-                if (taskListMatch) {
-                    listType = "task";
-                    currentIndent = taskListMatch[1].length;
-                    const checked = taskListMatch[2] === "x";
-                    listContent = this.processInlineFormatting(
-                        taskListMatch[3]
-                    );
-
-                    // Manage nested lists
-                    this.manageListNesting(
-                        listStack,
-                        listType,
-                        currentIndent,
-                        listStyle,
-                        (content) => {
-                            html += content;
-                        }
-                    );
-
-                    html += `<li><input type="checkbox" disabled${
-                        checked ? " checked" : ""
-                    }> ${listContent}</li>`;
-                } else if (unorderedMatch) {
-                    listType = "ul";
-                    currentIndent = unorderedMatch[1].length;
-                    listContent = this.processInlineFormatting(
-                        unorderedMatch[2]
-                    );
-
-                    this.manageListNesting(
-                        listStack,
-                        listType,
-                        currentIndent,
-                        listStyle,
-                        (content) => {
-                            html += content;
-                        }
-                    );
-
-                    html += `<li>${listContent}</li>`;
-                } else if (orderedMatch) {
-                    listType = "ol";
-                    currentIndent = orderedMatch[1].length;
-                    const marker = orderedMatch[2];
-                    listContent = this.processInlineFormatting(orderedMatch[3]);
-
-                    // Determine list style based on marker
-                    if (/^[0-9]+$/.test(marker)) {
-                        listStyle = ' style="list-style-type: decimal"';
-                    } else if (/^[a-z]$/.test(marker)) {
-                        listStyle = ' style="list-style-type: lower-alpha"';
-                    } else if (/^[A-Z]$/.test(marker)) {
-                        listStyle = ' style="list-style-type: upper-alpha"';
-                    }
-
-                    this.manageListNesting(
-                        listStack,
-                        listType,
-                        currentIndent,
-                        listStyle,
-                        (content) => {
-                            html += content;
-                        }
-                    );
-
-                    html += `<li>${listContent}</li>`;
-                } else if (romanMatch) {
-                    listType = "ol";
-                    currentIndent = romanMatch[1].length;
-                    const marker = romanMatch[2];
-                    listContent = this.processInlineFormatting(romanMatch[3]);
-
-                    // Determine roman numeral style
-                    if (/^[ivxlcdm]+$/.test(marker)) {
-                        listStyle = ' style="list-style-type: lower-roman"';
-                    } else if (/^[IVXLCDM]+$/.test(marker)) {
-                        listStyle = ' style="list-style-type: upper-roman"';
-                    }
-
-                    this.manageListNesting(
-                        listStack,
-                        listType,
-                        currentIndent,
-                        listStyle,
-                        (content) => {
-                            html += content;
-                        }
-                    );
-
-                    html += `<li>${listContent}</li>`;
-                }
-
-                // Check if we need to close lists for next non-list item
-                const nextLineIndent = nextLine
-                    ? nextLine.match(/^\s*/)[0].length
-                    : 0;
-                const nextIsListItem =
-                    nextLine &&
-                    (/^(\s*)[-*+]\s+\[([x ])\]\s+/.test(nextLine) ||
-                        /^(\s*)[-*+]\s+/.test(nextLine) ||
-                        /^(\s*)([0-9]+|[a-zA-Z])\.\s+/.test(nextLine) ||
-                        /^(\s*)(i{1,4}|i{0,3}v|i{0,3}x|x{1,3}|x{0,2}l|x{0,2}c|c{1,3}|c{0,2}d|c{0,2}m|I{1,4}|I{0,3}V|I{0,3}X|X{1,3}|X{0,2}L|X{0,2}C|C{1,3}|C{0,2}D|C{0,2}M)\.\s+/.test(
-                            nextLine
-                        ));
-
-                if (
-                    !nextLine.trim() ||
-                    (!nextIsListItem && nextLineIndent <= currentIndent)
-                ) {
-                    // Close lists that are deeper than next line
-                    while (
-                        listStack.length > 0 &&
-                        listStack[listStack.length - 1].indent >= nextLineIndent
-                    ) {
-                        const { type } = listStack.pop();
-                        html +=
-                            type === "ul" || type === "task"
-                                ? "</ul>"
-                                : "</ol>";
-                    }
-                }
-
-                continue;
-            } else if (listStack.length > 0) {
-                // Close all lists when encountering non-list item
-                this.closeAllLists(listStack, (content) => {
-                    html += content;
-                });
-                listStack = [];
-            }
-
-            // Handle alert content
-            if (inAlert) {
-                let alertContent;
-                if (trimmedLine.startsWith("> ")) {
-                    alertContent = this.processInlineFormatting(
-                        trimmedLine.substring(2)
-                    );
-                } else {
-                    alertContent = this.processInlineFormatting(trimmedLine);
-                }
-                html += alertContent;
-
-                if (!nextLine || !nextLine.trim().startsWith(">")) {
-                    html += "</div></div>";
-                    inAlert = false;
-                } else {
-                    html += "<br>";
-                }
-                continue;
-            }
-
-            // Handle regular text with inline formatting
-            const processedLine = this.processInlineFormatting(trimmedLine);
-
-            if (!inParagraph) {
-                html += "<p>";
-                inParagraph = true;
-            }
-
-            html += processedLine;
-
-            // Add space between lines in same paragraph
-            if (
-                nextLine &&
-                nextLine.trim() &&
-                !nextLine.match(
-                    /^#{1,6} |^> |^[-*+] |^[0-9]+\. |^[a-zA-Z]\. |^(i{1,4}|i{0,3}v|i{0,3}x|x{1,3}|x{0,2}l|x{0,2}c|c{1,3}|c{0,2}d|c{0,2}m|I{1,4}|I{0,3}V|I{0,3}X|X{1,3}|X{0,2}L|X{0,2}C|C{1,3}|C{0,2}D|C{0,2}M)\. |^```/i
-                )
-            ) {
-                html += " ";
-            } else {
-                html += "</p>";
-                inParagraph = false;
-            }
-        }
-
-        // Close any open tags
-        if (inParagraph) html += "</p>";
-        if (inBlockquote) html += "</blockquote>";
-        if (inAlert) html += "</div></div>";
-        if (inCodeBlock) html += "</code></pre>";
-
-        // Close any remaining lists
-        this.closeAllLists(listStack, (content) => {
-            html += content;
-        });
-
-        return html;
-    }
-
-    // Helper method for processing inline formatting
-    processInlineFormatting(text) {
-        return text
-            .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
-            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-            .replace(/\*(.*?)\*/g, "<em>$1</em>")
-            .replace(/__(.*?)__/g, "<strong>$1</strong>")
-            .replace(/_(.*?)_/g, "<em>$1</em>")
-            .replace(/`(.*?)`/g, "<code>$1</code>")
-            .replace(
-                /\[([^\]]+)\]\(([^)]+)\)/g,
-                '<a href="$2" rel="noopener noreferrer" target="_blank">$1</a>'
-            )
-            .replace(
-                /!\[([^\]]*)\]\(([^)]+)\)/g,
-                '<img src="$2" loading="lazy" alt="$1">'
-            );
-    }
-
-    // Helper method for managing list nesting
-    manageListNesting(
-        listStack,
-        listType,
-        currentIndent,
-        listStyle,
-        htmlAppender
-    ) {
-        // Close deeper nested lists
-        while (
-            listStack.length > 0 &&
-            listStack[listStack.length - 1].indent > currentIndent
-        ) {
-            const { type } = listStack.pop();
-            htmlAppender(type === "ul" || type === "task" ? "</ul>" : "</ol>");
-        }
-
-        // Check if we need to open a new list or if we're continuing the same list
-        const needNewList =
-            listStack.length === 0 ||
-            listStack[listStack.length - 1].indent < currentIndent ||
-            listStack[listStack.length - 1].type !== listType ||
-            (listType === "ol" &&
-                listStack[listStack.length - 1].style !== listStyle);
-
-        if (needNewList) {
-            // Close same-level list if different type
-            if (
-                listStack.length > 0 &&
-                listStack[listStack.length - 1].indent === currentIndent
-            ) {
-                const { type } = listStack.pop();
-                htmlAppender(
-                    type === "ul" || type === "task" ? "</ul>" : "</ol>"
-                );
-            }
-
-            // Open new list
-            if (listType === "ul" || listType === "task") {
-                htmlAppender(
-                    `<ul${listType === "task" ? ' class="task-list"' : ""}>`
-                );
-            } else {
-                htmlAppender(`<ol${listStyle}>`);
-            }
-
-            listStack.push({
-                type: listType,
-                indent: currentIndent,
-                style: listStyle,
-            });
-        }
-    }
-
-    // Helper method for closing all lists
-    closeAllLists(listStack, htmlAppender) {
-        while (listStack.length > 0) {
-            const { type } = listStack.pop();
-            htmlAppender(type === "ul" || type === "task" ? "</ul>" : "</ol>");
-        }
-    }
-    // Helper method for processing inline formatting
-    processInlineFormatting(text) {
-        return text
-            .replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>")
-            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-            .replace(/\*(.*?)\*/g, "<em>$1</em>")
-            .replace(/__(.*?)__/g, "<strong>$1</strong>")
-            .replace(/_(.*?)_/g, "<em>$1</em>")
-            .replace(/`(.*?)`/g, "<code>$1</code>")
-            .replace(
-                /\[([^\]]+)\]\(([^)]+)\)/g,
-                '<a href="$2" rel="noopener noreferrer" target="_blank">$1</a>'
-            )
-            .replace(
-                /!\[([^\]]*)\]\(([^)]+)\)/g,
-                '<img src="$2" loading="lazy" alt="$1">'
-            );
-    }
-
-    // Helper method for managing list nesting
-    manageListNesting(
-        listStack,
-        listType,
-        currentIndent,
-        listStyle,
-        htmlAppender
-    ) {
-        // Close deeper nested lists
-        while (
-            listStack.length > 0 &&
-            listStack[listStack.length - 1].indent > currentIndent
-        ) {
-            const { type } = listStack.pop();
-            htmlAppender(type === "ul" || type === "task" ? "</ul>" : "</ol>");
-        }
-
-        // Check if we need to open a new list or if we're continuing the same list
-        const needNewList =
-            listStack.length === 0 ||
-            listStack[listStack.length - 1].indent < currentIndent ||
-            listStack[listStack.length - 1].type !== listType ||
-            (listType === "ol" &&
-                listStack[listStack.length - 1].style !== listStyle);
-
-        if (needNewList) {
-            // Close same-level list if different type
-            if (
-                listStack.length > 0 &&
-                listStack[listStack.length - 1].indent === currentIndent
-            ) {
-                const { type } = listStack.pop();
-                htmlAppender(
-                    type === "ul" || type === "task" ? "</ul>" : "</ol>"
-                );
-            }
-
-            // Open new list
-            if (listType === "ul" || listType === "task") {
-                htmlAppender(
-                    `<ul${listType === "task" ? ' class="task-list"' : ""}>`
-                );
-            } else {
-                htmlAppender(`<ol${listStyle}>`);
-            }
-
-            listStack.push({
-                type: listType,
-                indent: currentIndent,
-                style: listStyle,
-            });
-        }
-    }
-
-    // Helper method for closing all lists
-    closeAllLists(listStack, htmlAppender) {
-        while (listStack.length > 0) {
-            const { type } = listStack.pop();
-            htmlAppender(type === "ul" || type === "task" ? "</ul>" : "</ol>");
-        }
-    }
     getValue() {
         return this.textarea.value;
     }

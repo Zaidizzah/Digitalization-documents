@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\DocumentTypeActionController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 
 /*
@@ -20,32 +21,54 @@ use App\Http\Controllers\UserController;
 */
 
 Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Users Routes
+    |--------------------------------------------------------------------------
+    */
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
     Route::get('users/{id}', [UserController::class, 'get__user_data'])->name('users.data.get');
 
     Route::group(['prefix' => 'documents'], function () {
-        // Schema routes
+        /*
+        |--------------------------------------------------------------------------
+        | Schema Routes
+        |--------------------------------------------------------------------------
+        */
         Route::post('schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         Route::get('schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         Route::get('{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-
         // Get schema attribute columns
         Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get__schema_attribute_columns'])->name('documents.schema.columns'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
 
+        /*
+        |--------------------------------------------------------------------------
+        | Files Routes
+        |--------------------------------------------------------------------------
+        */
         // Get result of file content in create action
         Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-
         // Get more files data
         Route::get('{name?}/files', [DocumentTypeActionController::class, 'index'])->name('documents.files.index.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-
         // Get hashing API token for OCR API
         Route::get('{name}/ocr-space/get-hashing-token', [DocumentTypeActionController::class, 'get__api_hashing_token'])->name('ocr-space.token.get');
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Settings Routes
+    |-------------------------------------------------------------------------
+    */
+    Route::post('settings/user-guide/upload', [SettingController::class, 'upload'])->name('settings.upload');
+
     Route::group(['prefix' => 'documents/files'], function () {
-        // uploading files routes
+        /*
+        |--------------------------------------------------------------------------
+        | Upload files Routes
+        |--------------------------------------------------------------------------
+        */
         Route::post('upload', [FileController::class, 'upload'])->name('documents.files.root.upload'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         Route::post('{name}/upload', [FileController::class, 'upload'])->name('documents.files.upload'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
     });

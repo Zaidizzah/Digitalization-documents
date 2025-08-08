@@ -13,7 +13,7 @@
         </div>
         <div class="tile-body">
             <div class="search-form" id="search-form" aria-label="Search form container">
-                <form action="{{ route('documents.browse', $document_type->name) }}" class="novalidate" method="get">
+                <form action="{{ route('documents.browse', $document_type->name) }}" class="novalidate flex-wrap justify-content-start" method="get">
                     <!-- Hidden input to store the action and file id -->
                     <input type="hidden" name="action" value="{{ request('action') }}" aria-hidden="true">
                     <input type="hidden" name="file" value="{{ request('file') }}" aria-hidden="true">

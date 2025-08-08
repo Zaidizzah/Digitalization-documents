@@ -43,7 +43,7 @@ class DocumentTypeActionController extends FileController
     public function recognize_file_client(Request $req)
     {
         // Check if the request contains a type of 'multipart/form-data' or type 'application/x-www-form-urlencoded'
-        if ($req->header('Content-Type') !== 'application/x-www-form-urlencoded' || $req->header('Content-Type') !== 'multipart/form-data') {
+        if (strpos($req->header('Content-Type'),  'multipart/form-data') === FALSE || strpos($req->header('Content-Type'), 'application/x-www-form-urlencoded') === FALSE) {
             return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
 
@@ -330,12 +330,12 @@ class DocumentTypeActionController extends FileController
             ],
             [
                 [
-                    'href' => 'structure.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
-                ],
-                [
                     'href' => 'menu.css',
                     'base_path' => asset('/resources/apps/')
+                ],
+                [
+                    'href' => 'structure.css',
+                    'base_path' => asset('/resources/apps/documents/css/')
                 ]
             ],
             [

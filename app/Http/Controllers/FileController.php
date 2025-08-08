@@ -51,7 +51,7 @@ class FileController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'styles.css',
@@ -86,14 +86,20 @@ class FileController extends Controller
             }
 
             // change the upload url
-            $upload_url = route('documents.files.upload', $document_type->name);
+            $UPLOAD_ENDPOINT = route('documents.files.upload', $document_type->name);
             array_push($resources['javascript'], [
-                'inline' => "uploadQueue.uploadUrl = '$upload_url'"
+                'inline' => "uploadQueue.uploadUrl = '$UPLOAD_ENDPOINT'"
             ]);
 
             $resources['breadcrumb'] = array_slice($resources['breadcrumb'], 0, array_search("Documents", array_keys($resources['breadcrumb'])) + 1, true)
                 + ["Document type {$document_type->name}"]
                 + array_slice($resources['breadcrumb'], array_search("Documents", array_keys($resources['breadcrumb'])) + 1, null, true);
+        } else {
+            // change the upload url
+            $UPLOAD_ENDPOINT = route('documents.files.root.upload');
+            array_push($resources['javascript'], [
+                'inline' => "uploadQueue.uploadUrl = '$UPLOAD_ENDPOINT'"
+            ]);
         }
 
         $files = FileModel::with(['document_type' => function ($query) {
@@ -243,7 +249,8 @@ class FileController extends Controller
             'size' => $file->getSize(),
             'type' => $file->getClientMimeType(),
             'extension' => strtolower($file->getClientOriginalExtension()),
-        ])->save();
+        ]);
+        $uploaded_file->save();
 
         return [
             $file,
@@ -262,7 +269,7 @@ class FileController extends Controller
     public function upload(Request $req, ?string $name = null)
     {
         // Check if the request contains a type of 'multipart/form-data' or type 'application/x-www-form-urlencoded'
-        if ($req->header('Content-Type') !== 'application/x-www-form-urlencoded' || $req->header('Content-Type') !== 'multipart/form-data') {
+        if (strpos($req->header('Content-Type'), 'multipart/form-data') === FALSE || strpos($req->header('Content-Type'), 'application/x-www-form-urlencoded') === FALSE) {
             return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
         // check if file request exist
@@ -446,7 +453,7 @@ class FileController extends Controller
             [
                 [
                     'href' => 'menu.css',
-                    'base_path' => asset('/resources/apps/documents/css/')
+                    'base_path' => asset('/resources/apps/')
                 ],
                 [
                     'href' => 'styles.css',
@@ -491,10 +498,15 @@ class FileController extends Controller
      * @param string $name The encrypted name of the file to be previewed.
      * @return \Illuminate\Http\Response The streamed file content response.
      */
-    public function get_file_content($name)
+    public function __get_file_content($name)
     {
         // get file data and checking if file exists
         $file = FileModel::where('encrypted_name', $name)->firstOrFail();
+
+        // Check if file exist
+        if (Storage::disk('local')->exists($file->path) === FALSE) {
+            abort(404);
+        }
 
         // return file content/stream
         return response()->file(Storage::path($file->path), [

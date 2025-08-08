@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::group(['prefix' => 'user-guide'], function () {
         Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguide.show.index');
         Route::get('{url}', [SettingController::class, 'user_guide__show'])->name('userguide.show.dynamic');
+        Route::get('content/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguide.content');
     });
 
     Route::middleware('role:Admin')->group(function () {
@@ -143,7 +144,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('delete', [FileController::class, 'destroy'])->name('documents.files.root.delete');
             Route::put('rename', [FileController::class, 'rename'])->name('documents.files.rename');
             // Get file stream/blob content
-            Route::get('content/{name}', [FileController::class, 'get_file_content'])->name('documents.files.content');
+            Route::get('content/{name}', [FileController::class, '__get_file_content'])->name('documents.files.content');
         });
     });
 

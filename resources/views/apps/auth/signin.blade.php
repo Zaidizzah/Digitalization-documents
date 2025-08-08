@@ -12,7 +12,7 @@
         <!-- Font-icon css-->
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
         <!-- Styles CSS -->
-        <link rel="stylesheet" type="text/css" href="{{ asset('resources/apps/main/css/styles.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ asset('resources/apps/styles.css') }}">
 
         <title>{{ config('app.name') }} | Signin</title>
 
@@ -82,6 +82,6 @@
         <script src="{{ asset('assets/vali-admin-master/js/main.js') }}"></script>
         <script type="text/javascript" src="{{ asset('resources/plugins/imgpreview/js/imgpreview.js') }}"></script>
         <!-- The Application javascripts -->
-        <script type="text/javascript" src="{{ asset('resources/apps/main/js/scripts.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('resources/apps/scripts.js') }}"></script>
     </body>
 </html>
