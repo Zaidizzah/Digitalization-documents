@@ -1,0 +1,168 @@
+.user-guides-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 1rem;
+    background-color: #f6f8fa;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+}
+
+.user-guides-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 16px 0 16px;
+}
+
+.user-guides-header .user-guides-header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.user-guides-header .user-guides-header-subtitle {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.user-guides-tree-wrapper {
+    position: relative;
+    border-width: 1px 0 1px 0;
+    border-style: solid;
+    border-color: var(--primary-color);
+    padding: 16px;
+    overflow: hidden;
+}
+
+.user-guides-tree-view {
+    position: relative;
+    max-height: 500px;
+    overflow: auto;
+}
+
+.user-guides-tree-wrapper .user-guides-tree-item {
+    position: relative;
+    min-width: 400px;
+    margin: 4px 0;
+    padding: 8px 12px;
+    background-color: #ffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.user-guides-tree-item:hover {
+    background-color: #f1f8ff;
+    border-color: #0366d6;
+}
+
+.user-guides-tree-item.selected {
+    background-color: #0366d6;
+    color: #ffff;
+    border-color: #0366d6;
+}
+
+.user-guides-tree-item.selected:hover {
+    background-color: #005cc5;
+    border-color: #005cc5;
+}
+
+.user-guides-tree-item .item-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-guides-tree-item .toggle-btn {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--primary-color);
+    background-color: #ffff;
+    color: #586069;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.user-guides-tree-item .toggle-btn:hover {
+    background-color: #f1f8ff;
+    border-color: #0366d6;
+}
+
+.user-guides-tree-item .toggle-btn.collapsed::before {
+    content: "+";
+}
+
+.user-guides-tree-item .toggle-btn.expanded::before {
+    content: "−";
+}
+
+.user-guides-tree-item .toggle-btn.no-children {
+    background-color: #fafbfc;
+    border-color: #e1e4e8;
+    color: #959da5;
+    cursor: default;
+}
+
+.user-guides-tree-item .toggle-btn.no-children:hover {
+    background-color: #fafbfc;
+    border-color: #e1e4e8;
+}
+
+.user-guides-tree-item .radio-input {
+    width: 16px;
+    height: 16px;
+    accent-color: #0366d6;
+    cursor: pointer;
+}
+
+.user-guides-tree-item .item-title {
+    font-weight: 500;
+    font-size: 14px;
+    flex: 1;
+    cursor: pointer;
+    color: inherit;
+}
+
+.user-guides-tree-wrapper .children {
+    margin-left: 24px;
+    border-left: 1px solid #e1e4e8;
+    margin-top: 4px;
+}
+
+.user-guides-tree-wrapper .children.expanded .user-guides-tree-item::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -10px;
+    width: 20px;
+    height: 1px;
+    background-color: #e1e4e8;
+    transform: translate(-50%, -50%);
+}
+
+.user-guides-tree-wrapper .children.collapsed {
+    display: none;
+}
+
+.user-guides-wrapper .user-guides-actions-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-self: self-end;
+    padding: 0 16px 16px 16px;
+    gap: 4px;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-actions-wrapper
+    button.btn-load-more-data:where(:disabled, [disabled], .disabled) {
+    cursor: not-allowed;
+    pointer-events: none;
+}

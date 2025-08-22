@@ -4,7 +4,7 @@
     let OCR_SPACE_API_KEYS = null;
 
     // Fetching data API KEY from storage server
-    LOADER.show();
+    LOADER.show(true);
 
     fetch(
         `${location.origin}/api${location.pathname.replace(
@@ -773,7 +773,7 @@
                     extractionContainerElement.remove();
 
                 try {
-                    LOADER.show();
+                    LOADER.show(true);
                     if (
                         file.size <= 0.5 * (1024 * 1024) &&
                         isPDF &&

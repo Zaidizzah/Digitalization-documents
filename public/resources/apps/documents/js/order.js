@@ -524,7 +524,7 @@ function resetColumns() {
  */
 async function loadColumnsData(url) {
     try {
-        LOADER.show();
+        LOADER.show(true);
         const response = await fetch(url, {
             method: "GET",
             headers: {

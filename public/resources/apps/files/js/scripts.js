@@ -5,7 +5,9 @@ const uploadQueue = new UploadQueueManager({
 (() => {
     "use strict";
 
-    const fileList = document.getElementById("file-list"),
+    const fileList = document.querySelector("#file-list"),
+        fileListContainer = document.querySelector("#file-list-container"),
+        folderList = document.querySelector("#folder-list"),
         renameUrl = "/documents/files/rename";
 
     /**
@@ -54,50 +56,81 @@ const uploadQueue = new UploadQueueManager({
     }
 
     /**
-     * Handles the scroll event on the file list container.
-     * Loads more files when the user scrolls to the bottom of the container.
+     * Handles the scroll event for both files and folders.
+     * Loads more data (files or folders) when the user scrolls to the bottom.
      */
-    let scrolling = false,
-        scrollDiffBefore = 0,
-        page = parseInt(fileList.dataset.currentPage, 10),
-        maxPage = parseInt(fileList.dataset.lastPage, 10);
-    const fileListContainer = document.querySelector("#file-list-container");
+    const listConfigs = {
+            file: {
+                container: document.querySelector("#file-list-container"),
+                list: document.querySelector("#file-list"),
+                currentPage: parseInt(fileList.dataset.currentPage, 10),
+                lastPage: parseInt(fileList.dataset.lastPage, 10),
+            },
+            folder: {
+                container: document.querySelector("#folder-list"),
+                currentPage: parseInt(folderList.dataset.currentPage, 10),
+                lastPage: parseInt(folderList.dataset.lastPage, 10),
+            },
+        },
+        scrolling = {
+            file: false,
+            folder: false,
+        },
+        scrollDiffBefore = {
+            file: 0,
+            folder: 0,
+        };
 
-    fileListContainer?.addEventListener("scroll", function () {
-        let scrollArea = this.scrollHeight,
-            scrollDiff = this.scrollTop + this.clientHeight;
+    Object.keys(listConfigs).forEach((type) => {
+        const config = listConfigs[type];
 
-        if (scrollDiff > scrollDiffBefore) {
-            scrollArea = this.scrollHeight - 50;
-        }
-        scrollDiffBefore = scrollDiff;
+        config.container?.addEventListener("scroll", function () {
+            let scrollArea = this.scrollHeight,
+                scrollDiff = this.scrollTop + this.clientHeight;
 
-        if (scrollDiff >= scrollArea && !scrolling) {
-            if (page < maxPage) {
-                // Assign new page
-                page = loadMoreFiles(page);
-                scrolling = true;
+            if (scrollDiff > scrollDiffBefore[type]) {
+                scrollArea = this.scrollHeight - 50;
             }
-        }
+            scrollDiffBefore[type] = scrollDiff;
+
+            if (scrollDiff >= scrollArea && !scrolling[type]) {
+                if (config.currentPage < config.lastPage) {
+                    // Assign new page
+                    loadMoreData(type);
+                    scrolling[type] = true;
+                } else {
+                    // check if current page is equal than last page then remove the listener
+                    this.removeEventListener("scroll", loadMoreData);
+                }
+            }
+        });
     });
 
-    async function loadMoreFiles(page) {
+    async function loadMoreData(type) {
+        const config = listConfigs[type];
+
         // Assign 1 page to page variable
-        page++;
+        config.currentPage++;
 
-        const loadingFilesElement = document.querySelector("#loading-files");
-        loadingFilesElement.classList.remove("d-none");
+        // declared url variable
+        let url;
+        if (type === "file") {
+            // URL to load more data with 'api' prefix
+            url = `${location.origin}/api${location.pathname}?page=${config.currentPage}`;
 
-        // URL to load more files with 'api' preffix
-        let url = `${location.origin}/api${location.pathname}?page=${page}`;
-
-        // check if queryURL contain value: 'action=attach'
-        const action = new URLSearchParams(window.location.search).get(
-            "action"
-        );
-        if (action) url += `&action=${action}`;
+            // check if queryURL contain value: 'action=attach'
+            const action = new URLSearchParams(window.location.search).get(
+                "action"
+            );
+            if (action) url += `&action=${action}`;
+        } else {
+            url = `${location.origin}/api/documents/folders?page=${config.currentPage}`;
+        }
 
         try {
+            // Initialize LOADER
+            LOADER.show(true, type === "file" ? "bottom-right" : "bottom-left");
+
             const response = await fetch(url, {
                 method: "get",
                 headers: {
@@ -110,98 +143,30 @@ const uploadQueue = new UploadQueueManager({
             });
 
             if (!response.ok) {
-                throw new Error("Failed to load more files. Please try again.");
+                throw new Error("Failed to load more data. Please try again.");
             }
 
             const data = await response.json();
 
-            // check if data is not empty
-            if (data === null || data === undefined)
-                window.removeEventListener("scroll", loadMoreFiles);
-
-            // insert data to file list if files data is not empty
-            if (data.hasOwnProperty("files"))
-                fileList.insertAdjacentHTML("beforeend", data.files);
-
-            scrolling = false;
-            loadingFilesElement.classList.add("d-none");
-
-            return page;
-        } catch (error) {
-            console.error(error);
-
-            return page--;
-        }
-    }
-
-    const paginationFileWarapper = document.querySelector(
-        ".pagination-file-wrapper"
-    );
-
-    if (
-        paginationFileWarapper &&
-        paginationFileWarapper.querySelectorAll("a").length > 0
-    ) {
-        // delegation event for clicking paginasi link
-        document.addEventListener("click", async function (event) {
-            const element = event.target;
-
-            if (
-                element.classList.contains("page-link") &&
-                element.tagName === "A" &&
-                element.closest(".pagination-file-wrapper")
-            ) {
-                event.preventDefault();
-
-                const url = element.getAttribute("href");
-
-                // Fetching the data
-                const response = await getPaginateData(url);
-
-                // set new html structure to file list container
-                fileList.innerHTML = response.files;
-
-                // change the displayed links to new element
-                paginationFileWarapper.innerHTML = response.links;
+            // insert data to list if available
+            if (type === "file" && data.hasOwnProperty(`${type}s`)) {
+                config.list.insertAdjacentHTML("beforeend", data[`${type}s`]);
             }
-        });
-
-        /**
-         * Fetches paginated data from the specified URL and returns it as JSON.
-         *
-         * @param {string} url - The URL to fetch data from.
-         * @param {string} [type="files"] - The type of data being fetched, used for error messages.
-         * @throws Will throw an error if the response is not ok.
-         * @returns {Promise<Object>} The JSON data from the response.
-         */
-        async function getPaginateData(url, type = "files") {
-            LOADER.show();
-            const response = await fetch(url, {
-                method: "GET",
-                headers: {
-                    Accept: "application/json",
-                    "Content-type": "application/json",
-                    "X-CSRF-TOKEN": CSRF_TOKEN,
-                    "XSRF-TOKEN": XSRF_TOKEN,
-                },
-                credentials: "include",
-            })
-                .catch((error) => {
-                    console.log(error);
-
-                    toast(
-                        `Failed to getting more ${type} data. Please try again.`
-                    );
-                })
-                .finally(() => LOADER.hide());
-
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to getting more ${type} data. Please try again.`
+            if (type === "folder" && data.data.hasOwnProperty(`${type}s`)) {
+                config.container.insertAdjacentHTML(
+                    "beforeend",
+                    data[`${type}s`]
                 );
             }
 
-            return await response.json();
+            scrolling[type] = false;
+        } catch (error) {
+            console.error(error);
+
+            config.currentPage--;
+        } finally {
+            // Hide current LOADER
+            LOADER.hide();
         }
     }
 

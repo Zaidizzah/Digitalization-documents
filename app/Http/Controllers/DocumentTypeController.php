@@ -693,17 +693,21 @@ class DocumentTypeController extends Controller
                     'src' => 'insert.js',
                     'base_path' => asset('/resources/apps/documents/js/')
                 ],
-                [
-                    'inline' => <<<JS
-                        schemaBuilder.hasSavedSchema = $has_saved_schema;
-                    JS
-                ]
             ]
         );
 
         $resources['has_saved_schema'] = $has_saved_schema;
         $resources['document_type'] = $document_type;
         $resources['except_attributes_name'] = $except_attributes_name;
+
+        // Check if user or creator has saved schema in temporary storage
+        if ($has_saved_schema === TRUE) {
+            array_push($resources['javascript'], [
+                'inline' => <<<JS
+                    schemaBuilder.hasSavedSchema = true;
+                JS
+            ]);
+        }
 
         return view('apps.documents.insert-schema', $resources);
     }

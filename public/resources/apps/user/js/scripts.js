@@ -112,7 +112,7 @@
                 );
 
                 try {
-                    LOADER.show();
+                    LOADER.show(true);
                     /**
                      * GET request to get the data of the user
                      */
@@ -137,6 +137,15 @@
                     }
 
                     const data = await response.json();
+
+                    if (
+                        data.hasOwnProperty("success") &&
+                        data.success !== true
+                    ) {
+                        throw new Error(
+                            "Failed to get user data. Please try again."
+                        );
+                    }
 
                     // Set the form data
                     const inputName =

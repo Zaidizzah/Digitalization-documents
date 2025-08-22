@@ -43,10 +43,9 @@ class DocumentTypeActionController extends FileController
     public function recognize_file_client(Request $req)
     {
         // Check if the request contains a type of 'multipart/form-data' or type 'application/x-www-form-urlencoded'
-        if (strpos($req->header('Content-Type'),  'multipart/form-data') === FALSE || strpos($req->header('Content-Type'), 'application/x-www-form-urlencoded') === FALSE) {
+        if (strpos($req->header('Content-Type'), 'multipart/form-data') === FALSE) {
             return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
-
         // Check if the request contains a file input
         if (!$req->hasFile('file') || empty($req->file('file'))) {
             return $this->error_response("File not found", null, Response::HTTP_NOT_FOUND);
@@ -63,6 +62,10 @@ class DocumentTypeActionController extends FileController
         }
 
         try {
+            if (method_exists(OcrService::class, 'process_file')) {
+                return $this->error_response("OCR service is error or unvailable, please contact dev support to fix this.", null, Response::HTTP_SERVICE_UNAVAILABLE);
+            }
+
             $OCR_result = OcrService::process_file($stored_file, $file_name);
 
             // delete uploaded file

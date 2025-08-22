@@ -48,10 +48,9 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
         | Files Routes
         |--------------------------------------------------------------------------
         */
-        // Get result of file content in create action
         Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-        // Get more files data
         Route::get('{name?}/files', [DocumentTypeActionController::class, 'index'])->name('documents.files.index.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+        Route::get('folders', [DocumentTypeActionController::class, '__get_folders'])->name('documents.folders.get');
         // Get hashing API token for OCR API
         Route::get('{name}/ocr-space/get-hashing-token', [DocumentTypeActionController::class, 'get__api_hashing_token'])->name('ocr-space.token.get');
     });
@@ -61,7 +60,10 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
     | Settings Routes
     |-------------------------------------------------------------------------
     */
-    Route::post('settings/user-guide/upload', [SettingController::class, 'upload'])->name('settings.upload');
+    Route::group(['prefix' => 'settings/user-guide'], function () {
+        Route::post('upload', [SettingController::class, 'upload'])->name('settings.upload');
+        Route::get('get', [SettingController::class, '__get_user_guide_create_edit__tree_items'])->name('userguides.get');
+    });
 
     Route::group(['prefix' => 'documents/files'], function () {
         /*

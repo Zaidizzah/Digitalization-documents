@@ -127,14 +127,45 @@ textarea:invalid {
  */
 .loader-container {
     display: none;
+    position: relative;
+    z-index: 1550 !important;
+}
+
+.loader-container.fixed {
     position: fixed;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1550 !important;
-    justify-content: center;
-    align-items: center;
+
+    &.center {
+        top: 0;
+        left: 0;
+        justify-content: center;
+        align-items: center;
+    }
+
+    &:not(.center) {
+        width: auto;
+        height: auto;
+    }
+
+    &.top {
+        top: 1rem;
+    }
+    &.top.right {
+        right: 1rem;
+    }
+    &.top.left {
+        left: 1rem;
+    }
+    &.bottom {
+        bottom: 1rem;
+    }
+    &.bottom.left {
+        left: 1rem;
+    }
+    &.bottom.right {
+        right: 1rem;
+    }
 }
 
 .loader-box {

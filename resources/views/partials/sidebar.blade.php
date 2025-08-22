@@ -24,6 +24,6 @@
       <li role="menuitem"><a class="app-menu__item {{ set_active('users*') }}" href="{{ route('users.index') }}" title="Manage Users"><i class="app-menu__icon bi bi-people"></i><span class="app-menu__label">Manage Users</span></a></li>
     @endcan
     <li role="menuitem"><a class="app-menu__item {{ set_active('documents*') }}" href="{{ route('documents.index') }}" title="Manage Documents"><i class="app-menu__icon bi bi-files"></i><span class="app-menu__label">Manage Documents</span></a></li>
-    <li role="menuitem"><a class="app-menu__item {{ set_active('userguide.*') }}" href="{{ route('userguide.show.index') }}" title="User Guide or application documentary"><i class="app-menu__icon bi bi-code-square"></i><span class="app-menu__label">User Guide</span></a></li>
+    <li role="menuitem"><a class="app-menu__item {{ set_active('userguide.*') }}" href="{{ route('userguides.show.index') }}" title="User Guide or application documentary"><i class="app-menu__icon bi bi-code-square"></i><span class="app-menu__label">User Guide</span></a></li>
   </ul>
 </aside>

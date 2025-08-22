@@ -156,6 +156,7 @@ const SHOWDOWN = new showdown.Converter({
     literalMidWordUnderscores: true,
     strikethrough: true,
     ghCompatibleHeaderId: true,
+    emojies: true,
 });
 
 class TextEditorHTML {
@@ -163,11 +164,10 @@ class TextEditorHTML {
         this.containerId = containerId;
         this.container = document.querySelector(`#${containerId}`);
         this.options = {
-            placeholder: options.placeholder || "Type your contents here...",
             uploadEndpoint: options.uploadEndpoint || "/api/upload",
             showSettings: options.showSettings || true,
             showFooter: options.showFooter || true,
-            minHeight: options.minHeight || "300px",
+            attributes: options.attributes || {},
         };
 
         this.init();
@@ -201,6 +201,84 @@ class TextEditorHTML {
         ) {
             console.error("SHOWDOWN extension 'summary' not found");
             return;
+        }
+
+        // Set attributes value to attributes element for textarea editor
+        this.texteditorAttributes = "";
+        if (this.options.attributes) {
+            if (this.options.attributes.hasOwnProperty("name")) {
+                this.texteditorAttributes += `name="${
+                    this.options.attributes.name || "content"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("spellcheck")) {
+                this.texteditorAttributes += ` spellcheck="${
+                    this.options.attributes.spellcheck || "false"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("placeholder")) {
+                this.texteditorAttributes += ` placeholder="${
+                    this.options.attributes.placeholder ||
+                    "Type your contents here..."
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("class")) {
+                this.texteditorAttributes += ` class="${
+                    this.options.attributes.class || ""
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("style")) {
+                this.texteditorAttributes += ` style="${
+                    this.options.attributes.style || "min-height: 300px;"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("rows")) {
+                this.texteditorAttributes += ` rows="${
+                    this.options.attributes.rows || "3"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("cols")) {
+                this.texteditorAttributes += ` cols="${
+                    this.options.attributes.cols || "5"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("autofocus")) {
+                this.texteditorAttributes += ` autofocus="${
+                    this.options.attributes.autofocus || "false"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("minlength")) {
+                this.texteditorAttributes += ` minlength="${
+                    this.options.attributes.minlength || "0"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("maxlength")) {
+                if (
+                    this.options.attributes.maxlength !== 0 &&
+                    this.options.attributes.maxlength > 0
+                ) {
+                    this.texteditorAttributes += ` maxlength="${
+                        this.options.attributes.maxlength || "0"
+                    }"`;
+                }
+            }
+            if (this.options.attributes.hasOwnProperty("required")) {
+                this.texteditorAttributes += ` required="${
+                    this.options.attributes.required || "true"
+                }" aria-required="${
+                    this.options.attributes.required || "true"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("disabled")) {
+                this.texteditorAttributes += ` disabled="${
+                    this.options.attributes.disabled || "false"
+                }"`;
+            }
+            if (this.options.attributes.hasOwnProperty("readonly")) {
+                this.texteditorAttributes += ` readonly="${
+                    this.options.attributes.readonly || "false"
+                }"`;
+            }
         }
 
         this.createEditorHTML();
@@ -347,11 +425,9 @@ class TextEditorHTML {
                             </div>
                           </div>
                           <div class="editor-content">
-                              <textarea class="editor-textarea" placeholder="${
-                                  this.options.placeholder
-                              }" style="min-height: ${
-            this.options.minHeight
-        };"></textarea>
+                              <textarea class="editor-textarea" id="--editor-textarea" ${
+                                  this.texteditorAttributes
+                              }></textarea>
                               <div class="preview-content"></div>
                           </div>
 
@@ -387,6 +463,16 @@ class TextEditorHTML {
         this.slashCommandsMenu.ariaLabel = "Slash commands menu";
         this.slashCommandsMenu.ariaHidden = "true"; // hidden = "true";
         this.container.appendChild(this.slashCommandsMenu); // add to body
+
+        // Adding value to texteditor if attributes value already set
+        if (
+            this.options.attributes.hasOwnProperty("value") &&
+            this.textarea !== undefined
+        ) {
+            this.textarea.value = this.options.attributes.value
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"');
+        }
     }
 
     initEventListeners() {
@@ -1046,6 +1132,7 @@ class TextEditorHTML {
             button.className = "copy-btn";
             button.textContent = "Copy";
             button.role = "button";
+            button.type = "button";
             button.addEventListener("click", () => {
                 navigator.clipboard
                     .writeText(CODE_ELEMENT.innerText)
@@ -1615,6 +1702,21 @@ class TextEditorHTML {
         }
 
         return uppercase ? result.toUpperCase() : result;
+    }
+
+    setValue(value) {
+        // Check if textarea property has beend declared and initialized with HTMLElement instance
+        if (
+            this.hasOwnProperty("textarea") &&
+            (this.textarea instanceof Element ||
+                this.textarea instanceof HTMLTextAreaElement)
+        ) {
+            this.textarea.value = value;
+        } else {
+            console.error(
+                "Failed to set a new value of texteditor, because textarea editor property does'nt declared or initialized ELEMENT/HTMLTEXTAREAELEMENT instance."
+            );
+        }
     }
 
     getValue() {

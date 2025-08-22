@@ -56,9 +56,9 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::group(['prefix' => 'user-guide'], function () {
-        Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguide.show.index');
-        Route::get('{url}', [SettingController::class, 'user_guide__show'])->name('userguide.show.dynamic');
-        Route::get('content/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguide.content');
+        Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguides.show.index');
+        Route::get('{url}', [SettingController::class, 'user_guide__show'])->name('userguides.show.dynamic');
+        Route::get('content/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguides.content');
     });
 
     Route::middleware('role:Admin')->group(function () {
@@ -69,9 +69,16 @@ Route::middleware('auth')->group(function () {
         */
         Route::prefix('settings')->group(function () {
             Route::get('/', [SettingController::class, 'index'])->name('settings.index');
-            Route::put('/', [SettingController::class, 'update'])->name('settings.update');
-            Route::get('user-guide', [SettingController::class, 'user_guide'])->name('userguides.index');
-            Route::put('user-guide', [SettingController::class, 'user_guide__update'])->name('userguides.update');
+            Route::put('/update', [SettingController::class, 'update'])->name('settings.update');
+
+            Route::get('user-guide', [SettingController::class, 'user_guide__index'])->name('userguides.index');
+            Route::get('user-guide/create', [SettingController::class, 'user_guide__create'])->name('userguides.create');
+            Route::post('user-guide/store', [SettingController::class, 'user_guide__store'])->name('userguides.store');
+            Route::post('user-guide/activate/{id}', [SettingController::class, 'user_guide__activate'])->name('userguides.activate');
+            Route::get('user-guide/edit/{id}', [SettingController::class, 'user_guide__edit'])->name('userguides.edit');
+            Route::put('user-guide/update/{id}', [SettingController::class, 'user_guide__update'])->name('userguides.update');
+            Route::delete('user-guide/delete/{id}', [SettingController::class, 'user_guide__destroy'])->name('userguides.destroy');
+            Route::put('user-guide/activate/{id}', [SettingController::class, 'user_guide__activate'])->name('userguides.activate');
         });
 
         /*

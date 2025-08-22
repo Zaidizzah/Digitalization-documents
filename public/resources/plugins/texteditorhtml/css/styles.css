@@ -184,7 +184,11 @@
     margin-top: 16px;
 }
 
-.preview-content blockquote {
+.preview-content blockquote,
+#--accordion-editor-helper-guide
+    #--accordion-editor-helper-guide-content
+    .markdown-output
+    blockquote {
     padding: 8px 16px;
     color: #656d76;
     background-color: #fbfbfb;
@@ -203,6 +207,7 @@
 }
 
 .preview-content pre {
+    position: relative;
     font-size: 1rem;
     padding: 0.66001rem 0 9.5px;
     line-height: 2rem;
@@ -667,9 +672,6 @@
     #--accordion-editor-helper-guide-content
     .markdown-output
     blockquote {
-    padding: 0 1em;
-    color: #6a737d;
-    border-left: 0.25em solid #dfe2e5;
     margin: 1em 0;
 }
 

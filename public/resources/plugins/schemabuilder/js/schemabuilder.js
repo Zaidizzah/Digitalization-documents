@@ -158,7 +158,7 @@ class DocumentSchemaBuilder {
         }
 
         // Fetching to load/get the attributes schema to the database
-        LOADER.show();
+        LOADER.show(true);
 
         try {
             const response = await fetch(url, {
@@ -260,7 +260,7 @@ class DocumentSchemaBuilder {
             this.validateAttributes(schema);
 
             // Fetching or submitting/saving the attributes schema to the database
-            LOADER.show();
+            LOADER.show(true);
             const response = await fetch(url, {
                 method: "POST",
                 headers: {

@@ -55,7 +55,7 @@
                             </div>
                         </div>
                         <div class="tile-body">
-                            <div class="folder-list" id="folder-list" aria-label="Folder list container">
+                            <div class="folder-list" id="folder-list" data-current-page="{{ $document_types->currentPage() }}" data-last-page="{{ $document_types->lastPage() }}" aria-label="Folder list container">
                                 <!-- Link for to main folder -->
                                 <a href="{{ route('documents.files.root.index') }}" role="button" class="text-decoration-none">
                                     <div class="folder-item p-3 {{ $document_type === null ? 'main-folder' : '' }}" aria-label="Main folder" title="Main folder">
@@ -73,20 +73,7 @@
                                 </a>
 
                                 <!-- List of folders -->
-                                @foreach ($document_types as $d)
-                                    <a href="{{ route('documents.files.index', $d->name) }}" role="button" class="text-decoration-none">
-                                        <div class="folder-item p-3 {{ $document_type !== null && $document_type->name === $d->name ? 'main-folder' : '' }}" aria-label="Folder {{ $d->name }}" title="Folder {{ $d->name }}">
-                                            <div class="folder-info" aria-label="Info for folder {{ $d->name }}">
-                                                <div class="fw-semibold">
-                                                    {{ $d->name }}
-                                                </div>
-                                                <div class="small text-muted">
-                                                    <span>Created on <time datetime="{{ $d->created_at }}">{{ date('d F Y, H:i A', strtotime($d->created_at)) }}</time>.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </a>
-                                @endforeach
+                                @include('apps.files.list-folder', ['document_types' => $document_types, 'document_type' => $document_type])
                             </div>
                         </div>
                     </div>
@@ -280,9 +267,6 @@
                                         </div>
                                     @endforeach
                                 @endif
-                            </div>
-                            <div class="text-center d-none" id="loading-files" role="alert" aria-label="Loading files" aria-labelledby="loading-files-label" aria-hidden="true">
-                                <h5 class="mb-3" id="loading-files-label">Loading...</h5>
                             </div>
                         </div>
 

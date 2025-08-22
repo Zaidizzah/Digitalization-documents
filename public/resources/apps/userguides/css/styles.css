@@ -1,0 +1,304 @@
+.user-guides-trees {
+    position: relative;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 3px;
+    padding: 20px;
+    border: 1px solid var(--primary-color);
+    -webkit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+        0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12),
+        0 3px 1px -2px rgba(0, 0, 0, 0.2);
+    margin-bottom: 30px;
+    -webkit-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+}
+
+.user-guides-trees-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.user-guides-trees-header .header-content h2 {
+    font-size: calc(1.278125rem + 0.3375vw);
+}
+
+.user-guides-trees-header .header-content small {
+    font-size: 1.09375rem;
+}
+
+/* Main Content */
+.user-guides-trees-content {
+    border-radius: 3px;
+    border: 1px solid #e2e8f0;
+    overflow-x: auto;
+}
+
+/* Tree View */
+.tree-view {
+    display: block;
+    min-width: 550px;
+    transition: border 0.3s ease-in;
+}
+
+.tree-view .tree-item:first-child {
+    border-radius: 3px 3px 0 0;
+}
+
+.tree-view .tree-item:last-child {
+    border-radius: 0 0 3px 3px;
+}
+
+.tree-view .tree-item:not(:last-child) {
+    border-bottom: 1px solid #e6e6e6;
+}
+
+.tree-view .tree-item:hover {
+    border: 2px dotted var(--primary-color);
+
+    &:first-child,
+    &:last-child {
+        border-radius: 0;
+    }
+}
+
+.tree-view .tree-item .children-container .tree-item:hover {
+    border-width: 2px 0 2px 0;
+    border-style: dotted;
+    border-color: var(--primary-color);
+
+    &:last-child {
+        border-width: 2px 0 0 0;
+    }
+}
+
+.tree-view .tree-item .tree-item-content {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background-color: #f8fafc;
+    transition: background-color 0.2s;
+}
+
+.tree-view .tree-item.level-0 .tree-item-content {
+    background-color: #fafafa;
+}
+.tree-view .tree-item.level-1 .tree-item-content {
+    padding-left: 40px;
+}
+.tree-view .tree-item.level-2 .tree-item-content {
+    padding-left: 60px;
+}
+.tree-view .tree-item.level-3 .tree-item-content {
+    padding-left: 80px;
+}
+.tree-view .tree-item.level-4 .tree-item-content {
+    padding-left: 100px;
+}
+.tree-view .tree-item.level-5 .tree-item-content {
+    padding-left: 120px;
+}
+.tree-view .tree-item.level-6 .tree-item-content {
+    padding-left: 140px;
+}
+
+.tree-view .tree-item .tree-item-content .expand-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    margin-right: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.tree-view .tree-item .tree-item-content .expand-btn:hover {
+    background: #e2e8f0;
+}
+
+.tree-view .tree-item .tree-item-content .expand-btn i {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.tree-view .tree-item .tree-item-content .item-icon {
+    margin-right: 12px;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.tree-view .tree-item .tree-item-content .item-icon i {
+    font-size: 16px;
+}
+
+.tree-view .tree-item .tree-item-content .item-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.tree-view .tree-item .tree-item-content .item-details .item-title {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.tree-view .tree-item .tree-item-content .item-details .item-slug {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta .badge {
+    position: relative;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta .badge.badge-general {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta .badge.badge-specific {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta button.badge.badge-active {
+    background: #dcfce7;
+    color: #166534;
+    border: none;
+}
+
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    button.badge.badge-inactive {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+}
+
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    button.badge.badge-inactive:hover {
+    background-color: rgba(220, 38, 38, 0.12);
+}
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    button.badge.badge-active:hover {
+    background-color: rgba(22, 101, 52, 0.12);
+}
+
+.tree-view .tree-item .tree-item-content .item-meta .action-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.tree-view .tree-item .tree-item-content .item-meta .action-buttons .btn-icon {
+    padding: 6px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    .action-buttons
+    .btn-icon:hover {
+    background: #f1f5f9;
+}
+
+.tree-view .tree-item .tree-item-content .action-buttons .btn-icon i {
+    font-size: 14px;
+}
+
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    .action-buttons
+    .btn-icon.btn-view
+    i,
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    .action-buttons
+    .btn-icon.btn-edit
+    i {
+    color: #6b7280;
+}
+
+.tree-view
+    .tree-item
+    .tree-item-content
+    .item-meta
+    .action-buttons
+    .btn-icon.btn-delete
+    i {
+    color: #dc2626;
+}
+
+/* Children container */
+.tree-item:where(
+        .level-0,
+        .level-1,
+        .level-2,
+        .level-3,
+        .level-4,
+        .level-5,
+        .level-6
+    )
+    .children-container {
+    display: none;
+}
+
+.tree-item:where(
+        .level-0,
+        .level-1,
+        .level-2,
+        .level-3,
+        .level-4,
+        .level-5,
+        .level-6
+    )
+    .children-container.expanded {
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .user-guides-trees .user-guides-trees-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tree-view .tree-item .tree-item-content .item-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

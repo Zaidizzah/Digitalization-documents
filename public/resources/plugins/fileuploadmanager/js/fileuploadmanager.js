@@ -20,49 +20,6 @@ class UploadQueueManager {
             "application/pdf",
         ];
         this.maxFileSize = 20 * 1024 * 1024;
-        this.createModal();
-    }
-
-    /**
-     * Creates and inserts an upload progress modal into the DOM.
-     * The modal displays a spinner, the number of files uploaded out of the total,
-     * and a progress bar reflecting the upload progress.
-     * Initializes references to modal elements for later use.
-     */
-    createModal() {
-        const modalHtml = `
-            <div class="modal fade" id="upload-progress-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="upload-progress-modal-label" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-body text-center p-4">
-                            <div class="spinner-border text-primary mb-3" role="status">
-                                <span class="visually-hidden">Processing...</span>
-                            </div>
-                            <h5 class="modal-title mb-3" id="upload-progress-modal-label">Uploading Files</h5>
-                            <p class="mb-2">Uploaded <span id="uploaded-count">0</span> out of <span id="total-count">0</span> files</p>
-                            <div class="progress">
-                                <div id="upload-progress" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-
-        document
-            .querySelector("main.app-content")
-            .insertAdjacentHTML("beforeend", modalHtml);
-        this.modal = new bootstrap.Modal(
-            document.querySelector(".modal#upload-progress-modal")
-        );
-        this.progressBar = document.querySelector(
-            ".modal#upload-progress-modal #upload-progress"
-        );
-        this.uploadedCountEl = document.querySelector(
-            ".modal#upload-progress-modal #uploaded-count"
-        );
-        this.totalCountEl = document.querySelector(
-            ".modal#upload-progress-modal #total-count"
-        );
     }
 
     /**
@@ -95,18 +52,6 @@ class UploadQueueManager {
     }
 
     /**
-     * Updates the progress bar and displayed counts of uploaded and total files
-     * in the modal.
-     */
-    updateProgress() {
-        const progress = (this.uploadedFiles / this.totalFiles) * 100;
-        this.progressBar.style.width = `${progress}%`;
-        this.progressBar.setAttribute("aria-valuenow", progress);
-        this.uploadedCountEl.textContent = this.uploadedFiles;
-        this.totalCountEl.textContent = this.totalFiles;
-    }
-
-    /**
      * Adds files to the upload queue and starts uploading if the queue wasn't
      * already being processed.
      * @param {File[]} files - The files to add to the upload queue.
@@ -115,8 +60,6 @@ class UploadQueueManager {
     async addToQueue(files) {
         this.queue.push(...files);
         this.totalFiles = this.queue.length;
-        this.updateProgress();
-        this.modal.show();
 
         if (!this.isUploading) {
             this.isUploading = true;
@@ -139,15 +82,17 @@ class UploadQueueManager {
         while (this.queue.length > 0) {
             const file = this.queue.shift();
             try {
+                // Initialize LOADER
+                LOADER.show(true, "bottom-left");
+
                 const response = await this.uploadFile(this.uploadUrl, file);
                 this.uploadedFiles++;
-                this.updateProgress();
 
                 // show toast notification on success
                 toast(
                     response.message,
                     response.success ? "success" : "error",
-                    response.success === false ? false : true
+                    true
                 );
 
                 if (response.success) {
@@ -161,7 +106,7 @@ class UploadQueueManager {
                 }
             } catch (error) {
                 // show toast notification on error
-                toast(error.message, "error", false);
+                toast(error.message, "error", true);
 
                 // Handle error and add to failed uploads list
                 fileErrorsMetadata.unshift({
@@ -169,9 +114,11 @@ class UploadQueueManager {
                     error: error.message,
                 });
                 this.uploadedFiles++;
-                this.updateProgress();
 
                 console.error(error);
+            } finally {
+                // Hide current loader
+                LOADER.hide();
             }
         }
 
@@ -179,9 +126,6 @@ class UploadQueueManager {
         this.isUploading = false;
         this.totalFiles = 0;
         this.uploadedFiles = 0;
-        setTimeout(() => {
-            this.modal.hide();
-        }, 1000);
 
         return { fileSuccessMetadata, fileErrorsMetadata };
     }

@@ -90,6 +90,9 @@ trait ApiResponse
         array|string $errors,
         array $headers = []
     ): JsonResponse {
+        // SET additional headers value
+        $this->setAdditionalHeaders($headers);
+
         return $this->error_response(
             message: $message,
             additional: $errors,
@@ -110,6 +113,9 @@ trait ApiResponse
         ?array $errors = [],
         array $headers = []
     ): JsonResponse {
+        // SET additional headers value
+        $this->setAdditionalHeaders($headers);
+
         return $this->error_response(
             message: $message,
             additional: $errors,

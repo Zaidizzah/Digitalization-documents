@@ -108,13 +108,18 @@ class FileController extends Controller
 
         // If request is Fetch request send paginating files data to client
         if ($req->wantsJson()) {
+            // Check if paginate request is not grater than page 1 
+            if ($req->input('page') !== NULL && (int)$req->input('page') < 2) {
+                $this->error_response("Invalid parameter to getting another file data's!", null, Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             return $this->success_response("Files loaded successfully.", [
                 'files' => view('apps.files.list', ['on_upload' => false, 'on_attach' => $req->action === 'attach', 'files' => $files, 'document_type' => $document_type ?? null])->render(),
             ]);
         }
 
         $resources['files'] = $files;
-        $resources['document_types'] = DocumentType::orderBy('created_at', 'desc')->where('is_active', 1)->get();
+        $resources['document_types'] = DocumentType::orderBy('created_at', 'desc')->where('is_active', 1)->paginate(25)->appends($req->all())->withQueryString();
         $resources['document_type'] = $document_type ?? null;
 
         return view('apps.files.index', $resources);
@@ -269,7 +274,7 @@ class FileController extends Controller
     public function upload(Request $req, ?string $name = null)
     {
         // Check if the request contains a type of 'multipart/form-data' or type 'application/x-www-form-urlencoded'
-        if (strpos($req->header('Content-Type'), 'multipart/form-data') === FALSE || strpos($req->header('Content-Type'), 'application/x-www-form-urlencoded') === FALSE) {
+        if (strpos($req->header('Content-Type'), 'multipart/form-data') === FALSE) {
             return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
         // check if file request exist
@@ -319,7 +324,7 @@ class FileController extends Controller
             }])->where('id', $FILE_MODEL->id)->get();
 
             // metadata to return to client
-            $metadata_uploaded_file = view('apps.files.list', ['on_upload' => true, 'files' => $files, 'document_type' => $document_type ?? null])->render();
+            $metadata_uploaded_file = view('apps.files.list', ['on_attach' => false, 'on_upload' => true, 'files' => $files, 'document_type' => $document_type ?? null])->render();
 
             // links for pagination
             // $paginator = new LengthAwarePaginator([], FileModel::all()->count(), 25, Paginator::resolveCurrentPage(), [
@@ -447,7 +452,7 @@ class FileController extends Controller
             [
                 "Dashboard" => route('dashboard.index'),
                 "Documents" => route('documents.index'),
-                "Manage document files" => route('documents.files.root.index'),
+                "Manage document files" => $name === NULL ? route('documents.files.root.index') : route('documents.files.index', $name),
                 "$file->name.$file->extension" => URL::full()
             ],
             [
@@ -512,6 +517,30 @@ class FileController extends Controller
         return response()->file(Storage::path($file->path), [
             'Content-Type' => $file->type,
             'Content-Disposition' => "inline; filename=\"{$file->name}.{$file->extension}\"",
+        ]);
+    }
+
+    public function __get_folders(Request $request)
+    {
+        // Check if user response want JSON
+        if ($request->wantsJson() === FALSE) {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+        }
+
+        // Check if paginate request is not grater than page 1 
+        if ($request->input('page') !== NULL && (int)$request->input('page') < 2) {
+            $this->error_response("Invalid parameter to getting another file data's!", null, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Get paginate data's
+        $FOLDERS = DocumentType::select('id', 'name', 'long_name', 'created_at', 'updated_at')->where('is_active', 1)->paginate(25);
+
+        if ($FOLDERS->isEmpty()) {
+            return $this->not_found_response("Folders data for page {$request->page('page')} is not found.", ['folders' => null]);
+        }
+
+        return $this->success_response("Folders loaded successfully", [
+            'folders' => view('apps.files.list-folder', ['document_types' => $FOLDERS, 'document_type' => NULL])->render()
         ]);
     }
 }

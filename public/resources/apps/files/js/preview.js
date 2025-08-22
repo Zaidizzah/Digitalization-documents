@@ -84,7 +84,7 @@
         }
 
         // Load the PDF
-        LOADER.show();
+        LOADER.show(true);
         pdfjsLib
             .getDocument({
                 url: pdfPreviewUrl,

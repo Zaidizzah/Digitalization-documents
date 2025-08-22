@@ -28,6 +28,10 @@ class DocumentType extends Model implements SearchableContent
         'schema_form'
     ];
 
+    protected $without = [
+        'user_guides'
+    ];
+
     /*
      * ------------------------------------------------------------------------
      * Implementing SearchableContent interface for search content function
@@ -84,5 +88,10 @@ class DocumentType extends Model implements SearchableContent
     public function file()
     {
         return $this->hasMany(File::class, 'document_type_id', 'id');
+    }
+
+    public function user_guides()
+    {
+        return $this->hasMany(UserGuides::class, 'document_type_id', 'id');
     }
 }

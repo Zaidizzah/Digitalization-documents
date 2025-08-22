@@ -138,10 +138,10 @@
 
     window.LOADER = {
         structure: `
-        <div id="loader" class="loader-container">
+        <div id="--loader-element" class="loader-container" role="status" aria-describedby="--loader-element-describe">
             <div class="loader-box">
                 <div class="loader-spinner"></div>
-                <div class="loader-text">Processing...</div>
+                <div class="loader-text" id="--loader-element-describe">Processing...</div>
             </div>
         </div>`,
         remove: function (loaderElement) {
@@ -149,22 +149,47 @@
                 loaderElement.remove();
             }
         },
-        show: function () {
-            let loaderElement = document.getElementById("loader");
-            if (!loaderElement) {
+        show: function (isFixed = false, position = "center") {
+            const fixedPosition = [
+                "center",
+                "top-right",
+                "top-left",
+                "bottom-right",
+                "bottom-left",
+            ];
+
+            let loaderElement = document.querySelector(
+                ".loader-container#--loader-element"
+            );
+
+            if (loaderElement === null) {
                 document
                     .querySelector("body")
                     .insertAdjacentHTML("beforeend", this.structure);
-                loaderElement = document.getElementById("loader");
+                loaderElement = document.querySelector(
+                    ".loader-container#--loader-element"
+                );
             }
+
             loaderElement.style.display = "flex";
+            // Set fixed class if isFixed variable is true and the position [center, top-right, top-left, bottom-right, bottom-left]
+            if (isFixed) {
+                loaderElement.classList.add("fixed");
+                if (fixedPosition.includes(position)) {
+                    loaderElement.classList.add(...position.split("-", 2));
+                } else {
+                    loaderElement.classList.add("center");
+                }
+            }
 
             // Disable pointer events on the document
             document.body.classList.add("pointer-events-none");
         },
 
         hide: function () {
-            let loaderElement = document.getElementById("loader");
+            let loaderElement = document.querySelector(
+                ".loader-container#--loader-element"
+            );
             if (loaderElement) {
                 loaderElement.style.display = "none";
                 setTimeout(() => this.remove(loaderElement), 500);
