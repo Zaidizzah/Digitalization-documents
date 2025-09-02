@@ -39,7 +39,7 @@
                     role=\"treeitem\"
                     data-level=\"{$LEVEL}\"
                     data-id=\"{$id}\"
-                    style=\"margin-left:" . ($LEVEL * 20) . "px\">
+                    style=\"margin-left:" . ($LEVEL * 10) . "px\">
                     <div class=\"item-content\">
                         <button
                             class=\"toggle-btn " . ($hasChildren ? ($childExpanded ? 'expanded' : 'collapsed') : 'no-children') . " btn-toggle-children-vibility btn-toggle-children-visibility\"
@@ -57,6 +57,11 @@
                             id=\"user-guides-radio-{$id}\" " . ($isSelected ? 'checked' : '') . " aria-checked=\"" . ($isSelected ? 'true' : 'false') . "\">
 
                         <span class=\"item-title\">{$title}</span>
+
+                        <div class=\"badge-group d-inline-flex gap-2\">
+                            <span class=\"badge badge-" . ($item->document_type !== NULL && $item->document_type !== NULL ? "specific" : "general") . "\">" . ($item->document_type !== NULL && $item->document_type !== NULL ? "Document type {$item->document_type->name}" : "General") . "</span>
+                            <span class=\"badge badge-" . ($item->is_active ? "active" : "inactive") . "\">" . ($item->is_active ? "Active" : "Inactive") . "</span>
+                        </div>
                     </div>
                 </div>
             ";

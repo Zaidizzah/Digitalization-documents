@@ -1552,7 +1552,7 @@ class SchemaBuilder
      *
      * @param string $table_name The original table name
      * @param string $new_table_name The new table name
-     * @return void
+     * @return bool
      * 
      * @throws \RuntimeException when table does not exist or fails to rename table
      */

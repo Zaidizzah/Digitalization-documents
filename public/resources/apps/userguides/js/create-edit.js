@@ -214,4 +214,18 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
         };
         btnLoadMoreData.addEventListener("click", loadMoreData);
     }
+
+    const formSettings = document.querySelector("form#form-settings");
+    if (formSettings) {
+        formSettings.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const confirmation = confirm(
+                `Are you sure you want to ${formSettings.dataset.action} this user guide data?`
+            );
+            if (confirmation) {
+                formSettings.submit();
+            }
+        });
+    }
 })();

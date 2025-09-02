@@ -45,7 +45,7 @@
     position: relative;
     min-width: 400px;
     margin: 4px 0;
-    padding: 8px 12px;
+    padding: 8px 8px;
     background-color: #ffff;
     border: 1px solid #e1e4e8;
     border-radius: 6px;
@@ -131,20 +131,25 @@
 }
 
 .user-guides-tree-wrapper .children {
+    position: relative;
     margin-left: 24px;
+    padding-left: 12px;
     border-left: 1px solid #e1e4e8;
-    margin-top: 4px;
 }
 
-.user-guides-tree-wrapper .children.expanded .user-guides-tree-item::before {
+.user-guides-tree-wrapper .user-guides-tree-item:not([data-level="0"])::before {
     content: "";
     position: absolute;
     top: 50%;
-    left: -10px;
-    width: 20px;
+    left: -32px;
+    width: 32px;
     height: 1px;
     background-color: #e1e4e8;
-    transform: translate(-50%, -50%);
+}
+
+/* hapus garis vertikal setelah node terakhir */
+.user-guides-tree-wrapper .user-guides-tree-item:last-child::after {
+    height: 50%;
 }
 
 .user-guides-tree-wrapper .children.collapsed {
@@ -165,4 +170,69 @@
     button.btn-load-more-data:where(:disabled, [disabled], .disabled) {
     cursor: not-allowed;
     pointer-events: none;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge {
+    position: relative;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-general {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-specific {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-active {
+    background-color: #dcfce7;
+    color: #166534;
+    border: none;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-inactive {
+    background-color: #fee2e2;
+    color: #dc2626;
+    border: none;
+}
+
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-inactive:hover {
+    background-color: rgba(220, 38, 38, 0.12);
+}
+.user-guides-tree-wrapper
+    .user-guides-tree-item
+    .item-content
+    .badge-group
+    .badge.badge-active:hover {
+    background-color: rgba(22, 101, 52, 0.12);
 }

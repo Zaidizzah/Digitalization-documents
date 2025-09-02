@@ -17,6 +17,7 @@ use App\Services\SchemaBuilder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ExampleExport;
 use App\Models\DynamicModel;
+use PhpParser\Node\Expr\Instanceof_;
 
 class FileController extends Controller
 {
@@ -104,7 +105,7 @@ class FileController extends Controller
 
         $files = FileModel::with(['document_type' => function ($query) {
             $query->select('id', 'name', 'long_name');
-        }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(25)->appends($req->all())->withQueryString();
+        }])->filesWithFilter($req->only(['type', 'search']), $name)->orderBy('created_at', 'desc')->paginate(12)->appends($req->all())->withQueryString();
 
         // If request is Fetch request send paginating files data to client
         if ($req->wantsJson()) {
@@ -369,14 +370,11 @@ class FileController extends Controller
                 return redirect()->back()->with('message', toast("Sorry, we couldn't find a document type with the name '$name'. Please try again.", 'error'));
             }
 
-            $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields(array_column($document_type->schema_form, 'name'), true);
-
-            $DATA = $DYNAMIC_DOCUMENT_TYPE_MODEL->where('file_id', $file->id);
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = (new DynamicModel())->__setConnection('mysql')->__setTableName($document_type->table_name)->__setFillableFields(array_column($document_type->schema_form, 'name'), true)->where('file_id', $file->id);
             if ($keep == 'erase') {
-                $DATA->delete();
+                $DYNAMIC_DOCUMENT_TYPE_MODEL->delete();
             } else {
-                $DATA->file_id = null;
-                $DATA->save();
+                $DYNAMIC_DOCUMENT_TYPE_MODEL->update(['file_id' => null]);
             }
         }
 
@@ -503,8 +501,18 @@ class FileController extends Controller
      * @param string $name The encrypted name of the file to be previewed.
      * @return \Illuminate\Http\Response The streamed file content response.
      */
-    public function __get_file_content($name)
+    public function __get_file_content(Request $request, $name)
     {
+        // Chek header value of "Sec-Fetch-Dest"
+        if ($request->header('Sec-Fetch-Dest') !== 'image') {
+            abort(403, 'Forbidden');
+        }
+
+        // Chek Accept headers
+        if (! str_contains($request->header('Accept', ''), 'image')) {
+            abort(406, 'Not Acceptable');
+        }
+
         // get file data and checking if file exists
         $file = FileModel::where('encrypted_name', $name)->firstOrFail();
 

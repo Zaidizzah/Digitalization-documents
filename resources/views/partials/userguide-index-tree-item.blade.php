@@ -1,6 +1,21 @@
 @php
     // If url variable has a value and has been declared, then adding next url value to evaluate new url for the list of children
     if (isset($url) && $url !== "") $url .= "/{$user_guide->slug}"; else $url = "{$user_guide->slug}";
+
+    // set route to activate, edit, and delete method
+    $ROUTE = [
+        'switch-status' => ['route' => (route_check('userguides.index') ? 'userguides.switch-status' : 'userguides.switch-status.named')],
+        'activate' => ['route' => (route_check('userguides.index') ? 'userguides.activate' : 'userguides.activate.named')],
+        'edit' => ['route' => (route_check('userguides.index') ? 'userguides.edit' : 'userguides.edit.named')],
+        'delete' => ['route' => (route_check('userguides.index') ? 'userguides.destroy' : 'userguides.destroy.named')]
+    ];
+
+    foreach($ROUTE as $key => $value) {
+        $ROUTE[$key]['params'] = [
+            'id' => $user_guide->id,
+        ];  
+        if (route_check('userguides.index.named')) $ROUTE[$key]['params']['name'] = $user_guide->document_type->name;
+    }
 @endphp
 
 <div class="tree-item level-{{ $level }}" role="treeitem" data-id="{{ $user_guide->id }}">
@@ -18,20 +33,21 @@
         </div>
         
         <div class="item-details">
-            <div class="item-title">{{ $user_guide->title }}</div>
-            <div class="item-slug">{{ $user_guide->slug }}</div>
+            <p class="item-title">{{ $user_guide->title }}</p>
+            <p class="item-slug">{{ $user_guide->slug }}</p>
+            <p class="item-created-at">Created on <time datetime="{{ $user_guide->created_at }}">{{ $user_guide->created_at->format('d F Y, H:i A') }}</time></p>
         </div>
         
         <div class="item-meta">
-            <span class="badge badge-{{ $user_guide->document_type_id !== NULL ? 'specific' : 'general' }}">
-                {{ ($user_guide->document_type !== NULL && $user_guide->document_type->isNotEmpty()) ? "Document type {$user_guide->document_type->name}" : 'General' }}
+            <span class="badge badge-{{ $user_guide->document_type !== NULL && $user_guide->document_type !== NULL ? "specific" : "general" }}">
+                {{ ($user_guide->document_type !== NULL && $user_guide->document_type !== NULL) ? "Document type {$user_guide->document_type->name}" : "General" }}
             </span>
-            <form action="{{ route('userguides.activate', $user_guide->id) }}" class="d-inline form-activate-user-guide-data" data-title="{{ $user_guide->title }}" data-switch-to="{{ $user_guide->is_active ? 'Active' : 'Inactive' }}" method="post">
+            <form action="{{ route($ROUTE['activate']['route'], $ROUTE['activate']['params']) }}" class="d-inline form-activate-user-guide-data" data-title="{{ $user_guide->title }}" data-switch-to="{{ $user_guide->is_active ? 'Active' : 'Inactive' }}" method="post">
                 @csrf
 
                 @method('PUT')
-                <button type="submit" role="button" class="badge badge-{{ $user_guide->is_active ? 'active' : 'inactive' }}" title="Button: to toggle visibility user guide data">
-                    {{ $user_guide->is_active ? 'Active' : 'Inactive' }}
+                <button type="submit" role="button" class="badge badge-{{ $user_guide->is_active ? "active" : "inactive" }}" title="Button: to toggle visibility user guide data">
+                    {{ $user_guide->is_active ? "Active" : "Inactive" }}
                 </button>
             </form>
             
@@ -39,10 +55,10 @@
                 <a href="{{ route('userguides.show.dynamic', $url) }}" class="btn btn-icon btn-view" role="button" title="View the user guide content">
                     <i class="bi bi-eye"></i>
                 </a>
-                <a href="{{ route('userguides.edit', $user_guide->id) }}" class="btn btn-icon btn-edit" role="button" title="Edit the user guide content">
+                <a href="{{ route($ROUTE['edit']['route'], $ROUTE['edit']['params']) }}" class="btn btn-icon btn-edit" role="button" title="Edit the user guide content">
                     <i class="bi bi-pencil"></i>
                 </a>
-                <form action="{{ route('userguides.destroy', $user_guide->id) }}" class="d-inline form-delete-user-guide-data" data-title="{{ $user_guide->title }}" method="post">
+                <form action="{{ route($ROUTE['delete']['route'], $ROUTE['delete']['params']) }}" class="d-inline form-delete-user-guide-data" data-title="{{ $user_guide->title }}" method="post">
                     @csrf
 
                     @method('DELETE')
@@ -58,7 +74,7 @@
         <div class="children-container" id="--tree-item-children-{{ $user_guide->id }}">
             @if ($user_guide->children !== NULL && $user_guide->children instanceof Illuminate\Database\Eloquent\Collection)
                 @foreach($user_guide->children as $child)
-                    @include('partials.userguide-index-tree-item', ['user_guide' => $child, 'level' => ($level ?? 0) + 1, 'url' => $url])
+                    @include('partials.userguide-index-tree-item', ['document_type' => $document_type, 'user_guide' => $child, 'level' => ($level ?? 0) + 1, 'url' => $url])
                 @endforeach
             @endif
         </div>

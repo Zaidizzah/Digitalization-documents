@@ -2,7 +2,7 @@
 
 @section("content")
 
-    @include('partials.setting-menu');
+    @include('partials.setting-menu')
 
     <div class="tile" aria-label="Tile section of users" aria-labelledby="tile-users-label">
         <div class="tile-title-w-btn flex-wrap">  

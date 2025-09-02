@@ -34,7 +34,7 @@ class DocumentTypeController extends Controller
                 'required',
                 'string',
                 'max:' . SchemaBuilder::__get_max_length_for_field_name(),
-                'regex:/^(?!.* {2})[a-zA-Z][a-zA-Z0-9_\s]{0,63}$/',
+                'regex:/^(?=.*[a-zA-Z])[a-zA-Z0-9_\s]{0,63}$/',
                 Rule::unique('document_types', 'name')->where('is_active', 1),
             ],
             'description' => 'nullable|string',
@@ -411,7 +411,9 @@ class DocumentTypeController extends Controller
      */
     public function update(Request $request, string $name)
     {
-        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->with('example_file')->firstOrFail();
+        $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
+        $ORG_table_name = $document_type->table_name;
+        $ORG_name = $document_type->name;
 
         $validator = Validator::make(
             $request->only(['name', 'description', 'long_name']),
@@ -424,21 +426,24 @@ class DocumentTypeController extends Controller
 
         try {
             $validated = $validator->validated();
-            $document_type->table_name = Str::snake(trim($validated['name']));
-            $original_table_name = $document_type->table_name;
+            $NEW_TABLE_NAME = Str::snake(trim($validated['name']));
+            // dd("Name value from request HTTP: '{$validated['name']}'", "New table name: '$NEW_TABLE_NAME'", "Old table name: '$ORG_table_name'", "Old name: '$ORG_name'", ($ORG_table_name !== $NEW_TABLE_NAME), ($ORG_name !== $validated['name']), SchemaBuilder::rename_table($ORG_table_name, $NEW_TABLE_NAME), SchemaBuilder::table_exists($NEW_TABLE_NAME));
 
-            DB::beginTransaction();
-            if ($validated['name'] && $original_table_name !== $document_type->table_name) {
-                // changes the name of the table
-                SchemaBuilder::rename_table($original_table_name, $document_type->table_name);
-
+            if ($validated['name'] && ($ORG_table_name !== $NEW_TABLE_NAME) && ($ORG_name !== $validated['name']) && SchemaBuilder::rename_table($ORG_table_name, $NEW_TABLE_NAME) && SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
                 $document_type->name = $validated['name'];
+                $document_type->table_name = $NEW_TABLE_NAME;
+                $document_type->description = $validated['description'];
+                $document_type->long_name = $validated['long_name'];
+            } else {
+                // Throw exception if table cannot be renamed
+                throw new \RuntimeException(
+                    "Sorry, we couldn't rename table of document type '$name' to new table name '$NEW_TABLE_NAME', please try again.",
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
             }
 
-            $document_type->description = $validated['description'];
-            $document_type->long_name = $validated['long_name'];
-
-            if ($document_type->isDirty('name')) {
+            DB::beginTransaction();
+            if ($document_type->isDirty(['name', 'table_name', 'description', 'long_name']) && SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
                 // rename existing directory
                 if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
                     if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
@@ -448,51 +453,36 @@ class DocumentTypeController extends Controller
                         );
                     }
                 }
-
-                // rename existing example file
-                if (Storage::disk('local')->exists($document_type->example_file->file_path)) {
-                    if (!Storage::disk('local')->move($document_type->example_file->file_path, str_replace($name, $document_type->name, $document_type->example_file->file_path))) {
-                        throw new \RuntimeException(
-                            "Sorry, we couldn't rename example file from previous name '" . $document_type->example_file->file_path . " to new name '" . str_replace($name, $document_type->name, $document_type->example_file->file_path) . "' of document type '$name', please try again.",
-                            Response::HTTP_INTERNAL_SERVER_ERROR
-                        );
-                    }
-                }
+            } else {
+                // Throw exception if table doesn't exists
+                throw new \RuntimeException(
+                    "Sorry, we couldn't find table of document type '$name' or it doesn't exists, please try again.",
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
             }
-
-            // Save updated example file
-            $document_type->example_file->name = str_replace($name, $document_type->name, $document_type->example_file->name);
-            $document_type->example_file->encrypted_name = str_replace($name, $document_type->name, $document_type->example_file->encrypted_name); // because example file is not encrypted
-            $document_type->example_file->path = str_replace($name, $document_type->name, $document_type->example_file->path);
-            $document_type->example_file->save();
 
             // Save updated document type
             $document_type->save();
             DB::commit();
 
-            return redirect()->route("documents.settings", $document_type->table_name)->with('message', toast("Document type '$name' has been updated successfully.", 'success'));
+            return redirect()->route("documents.settings", $document_type->name)->with('message', toast("Document type '$name' has been updated successfully.", 'success'));
         } catch (\Exception $e) {
+            dd($e);
             // rollback transaction if any exception occurs and transaction level is active or greater than 0
             if (DB::transactionLevel() > 0) DB::rollBack();
 
             // rollback renamed table name to previous table name
-            if (SchemaBuilder::table_exists($document_type->table_name)) SchemaBuilder::rename_table($document_type->table_name, $original_table_name);
+            if (SchemaBuilder::table_exists($NEW_TABLE_NAME)) SchemaBuilder::rename_table($NEW_TABLE_NAME, $ORG_table_name);
 
             // rollback renamed directory name to previous directory name
             if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
                 Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}", self::PARENT_OF_FILES_DIRECTORY . "/{$name}");
             }
 
-            // rollback renamed example file name to previous example file name
-            if (Storage::disk('local')->exists(str_replace($document_type->name, $name, $document_type->example_file->file_path))) {
-                Storage::disk('local')->move(str_replace($name, $document_type->name, $document_type->example_file->file_path), str_replace($document_type->name, $name, $document_type->example_file->file_path));
-            }
-
             // refresh all model
             $document_type->refresh();
-            $document_type->example_file->refresh();
 
-            return redirect()->route("documents.settings", $name)->with('message', toast($e->getMessage(), 'error'));
+            return redirect()->route("documents.settings", $document_type->name)->with('message', toast($e->getMessage(), 'error'));
         }
     }
 

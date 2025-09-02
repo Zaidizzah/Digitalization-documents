@@ -49,8 +49,9 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::post('{name}/recognize', [DocumentTypeActionController::class, 'recognize_file_client'])->name('documents.data.recognize'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-        Route::get('{name?}/files', [DocumentTypeActionController::class, 'index'])->name('documents.files.index.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
-        Route::get('folders', [DocumentTypeActionController::class, '__get_folders'])->name('documents.folders.get');
+        Route::get('files', [FileController::class, 'index'])->name('documents.files.index.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+        Route::get('{name}/files', [FileController::class, 'index'])->where('name', '^(?!files$).*')->name('documents.files.index.get.named'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+        Route::get('folders', [FileController::class, '__get_folders'])->name('documents.folders.get');
         // Get hashing API token for OCR API
         Route::get('{name}/ocr-space/get-hashing-token', [DocumentTypeActionController::class, 'get__api_hashing_token'])->name('ocr-space.token.get');
     });

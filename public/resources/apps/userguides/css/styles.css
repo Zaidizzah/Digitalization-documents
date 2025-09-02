@@ -168,17 +168,17 @@
 }
 
 .tree-view .tree-item .tree-item-content .item-meta .badge.badge-general {
-    background: #dcfce7;
+    background-color: #dcfce7;
     color: #166534;
 }
 
 .tree-view .tree-item .tree-item-content .item-meta .badge.badge-specific {
-    background: #dbeafe;
+    background-color: #dbeafe;
     color: #1e40af;
 }
 
 .tree-view .tree-item .tree-item-content .item-meta button.badge.badge-active {
-    background: #dcfce7;
+    background-color: #dcfce7;
     color: #166534;
     border: none;
 }
@@ -188,7 +188,7 @@
     .tree-item-content
     .item-meta
     button.badge.badge-inactive {
-    background: #fee2e2;
+    background-color: #fee2e2;
     color: #dc2626;
     border: none;
 }

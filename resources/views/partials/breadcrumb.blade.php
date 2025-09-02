@@ -1,4 +1,4 @@
-<section class="app-title gap-2 flex-wrap border-bottom border-1 border-success" aria-label="page title" aria-labelledby="page-title">
+<header class="app-title main-header gap-2 flex-wrap border-bottom border-1 border-success" aria-label="page title" aria-labelledby="page-title">
     <div class="page-title">
         <h1 id="page-title">{!! $icon_page !!} {!! $subtitle !!}</h1>
         <p>{!! $description_page !!}</p>
@@ -17,4 +17,4 @@
             @endif
         @endforeach
     </ul>
-</section>
+</header>

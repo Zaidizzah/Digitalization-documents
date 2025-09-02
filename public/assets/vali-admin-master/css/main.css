@@ -14108,7 +14108,7 @@ fieldset:disabled .btn {
 .app-content {
     min-height: calc(100vh - 50px);
     margin-top: 50px;
-    padding: 30px;
+    padding: 30px 8px;
     background-color: #e5e5e5;
     -webkit-transition: margin-left 0.3s ease;
     transition: margin-left 0.3s ease;
@@ -14637,6 +14637,20 @@ fieldset:disabled .btn {
     left: auto;
     right: 0;
 }
+.dropdown-menu.settings-menu.dropdown-menu-right li
+    a.dropdown-item:hover {
+    border-width: 1px 0 1px 0;
+    border-style: solid;
+    border-color: #00695c;
+}
+.dropdown-menu.settings-menu.dropdown-menu-right li:first-child
+    a.dropdown-item:hover {
+    border-width: 0 0 1px 0;
+}
+.dropdown-menu.settings-menu.dropdown-menu-right li:last-child
+    a.dropdown-item:hover {
+    border-width: 1px 0 0 0;
+}
 .dropdown-item .bi,
 .dropdown-item .icon {
     margin-right: 5px;
@@ -14679,7 +14693,7 @@ fieldset:disabled .btn {
     -ms-flex-direction: row;
     flex-direction: row;
     background-color: #fff;
-    margin: -30px -30px 30px;
+    margin: -30px -8px 30px;
     padding: 20px 30px;
     -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);

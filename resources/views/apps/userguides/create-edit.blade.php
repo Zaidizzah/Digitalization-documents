@@ -1,11 +1,27 @@
-{{-- @dd($user_guides) --}}
+@php
+    // Declaring variable to provide actual route from url route
+    $FORM_ROUTE = NULL;
+    if (route_check("userguides.create")) {
+        $FORM_ROUTE = route("userguides.store");
+    } else if (route_check("userguides.create.named")) {
+        $FORM_ROUTE = route("userguides.store.named", ($document_type instanceof App\Models\DocumentType ? $document_type->name : NULL));
+    } else if (route_check("userguides.edit")) {
+        $CURRENT_DATA = $CURRENT_DATA ?? NULL;
+        $FORM_ROUTE = route("userguides.edit", ($CURRENT_DATA instanceof App\Models\UserGuides ? $CURRENT_DATA->id : NULL));
+    } else {
+        $CURRENT_DATA = $CURRENT_DATA ?? NULL;
+        $FORM_ROUTE = route("userguides.edit.named", ['name' => ($document_type instanceof App\Models\DocumentType ? $document_type->name : NULL), 'id' => ($CURRENT_DATA instanceof App\Models\UserGuides ? $CURRENT_DATA->id : NULL)]);
+    }
+@endphp 
+
 @extends("layouts.main")
 
 @section("content")
 
-    @include('partials.setting-menu')
+    @includeWhen($document_type instanceof App\Models\DocumentType, 'partials.document-type-action-menu', ['document_type' => $document_type])
+    @includeWhen(($document_type instanceof App\Models\DocumentType) === FALSE, 'partials.setting-menu', ['document_type' => NULL])
 
-    <form action="{{ route("userguides.store") }}" method="POST" id="form-settings">
+    <form action="{{ $FORM_ROUTE }}" method="POST" id="form-settings" data-action="{{ (route_check("userguides.edit", "userguide.edit.named") ? "update" : "create") }}">
         @csrf
 
         <!-- Accordion helper for writing in editor -->
@@ -393,7 +409,7 @@
             <div class="user-guides-wrapper" id="user-guides-wrapper" aria-labelledby="user-guides-header" role="region">
                 <div class="user-guides-header" role="heading">
                     <h3 class="user-guides-header-title" id="user-guides-header">User Guides Selector</h3>
-                    <p class="user-guides-header-subtitle">Pick a user guides data for new user guides content or not choosing any will create for new user guides content</p>
+                    <p class="user-guides-header-subtitle">Pick an available user guides data for new <mark>General</mark> user guides content or not choosing any will create for new <mark>General</mark> user guides content</p>
                 </div>
 
                 <div class="user-guides-tree-wrapper" id="user-guides-tree-wrapper">

@@ -4,7 +4,7 @@
     const formDeleteAll = document.querySelector("form.form-delete-all");
     const formDelete = document.querySelector("form.form-delete");
     const formModifyDocumentType = document.querySelector(
-        "form.form-modify-document-type"
+        "form#form-modify-document-type"
     );
 
     if (formDelete) {

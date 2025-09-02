@@ -3,7 +3,6 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
-use PhpParser\Node\Expr\Cast\Array_;
 use Symfony\Component\HttpFoundation\Response;
 
 trait ApiResponse

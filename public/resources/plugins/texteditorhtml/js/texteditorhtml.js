@@ -286,6 +286,7 @@ class TextEditorHTML {
         this.initEventListeners();
         this.updatePreview();
         this.slashCommandActive = false;
+        this.dragSelection = null;
     }
 
     createEditorHTML() {
@@ -516,6 +517,9 @@ class TextEditorHTML {
         }
 
         // Direct drag and drop to textarea
+        this.textarea.addEventListener("dragstart", (e) =>
+            this.handleTextareaDragStart(e)
+        );
         this.textarea.addEventListener("dragover", (e) =>
             this.handleTextareaDragOver(e)
         );
@@ -892,9 +896,30 @@ class TextEditorHTML {
         e.target.value = "";
     }
 
+    handleTextareaDragStart(e) {
+        this.dragSelection = {
+            start: this.textarea.selectionStart,
+            end: this.textarea.selectionEnd,
+            text: this.textarea.value.substring(
+                this.textarea.selectionStart,
+                this.textarea.selectionEnd
+            ),
+        };
+    }
+
     handleTextareaDragOver(e) {
         e.preventDefault();
         this.textarea.classList.add("drag-over");
+
+        if (e.dataTransfer.types.includes("text/plain")) {
+            const rect = this.textarea.getBoundingClientRect();
+            const x = e.clientX - rect.left + this.textarea.scrollLeft;
+            const y = e.clientY - rect.top + this.textarea.scrollTop;
+
+            // Hitung posisi caret akurat dengan mirror
+            const pos = this.getCaretIndexFromCoordinates(x, y);
+            this.textarea.setSelectionRange(pos, pos); // update caret indicator
+        }
     }
 
     handleTextareaDragLeave(e) {
@@ -909,27 +934,82 @@ class TextEditorHTML {
         const files = Array.from(e.dataTransfer.files).filter((file) =>
             file.type.startsWith("image/")
         );
+
         if (files.length > 0) {
-            // Get cursor position from drop coordinates
-            const rect = this.textarea.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            // Estimate cursor position (this is approximate)
-            const lineHeight = parseInt(
-                getComputedStyle(this.textarea).lineHeight
-            );
-            const charWidth = 8; // Approximate character width
-            const lines = this.textarea.value
-                .substring(0, this.textarea.selectionStart)
-                .split("\n");
-            const line = Math.floor(y / lineHeight);
-            const char = Math.floor(x / charWidth);
-
             files.forEach((file) => {
                 this.uploadImage(file, this.textarea.selectionStart);
             });
+        } else {
+            const text = e.dataTransfer.getData("text/plain");
+            if (text) {
+                const dropPos = this.textarea.selectionStart;
+
+                // Jika drag berasal dari textarea ini sendiri → pindahkan, bukan duplikat
+                if (this.dragSelection && text === this.dragSelection.text) {
+                    const { start, end } = this.dragSelection;
+
+                    // Hapus teks asal hanya jika posisi drop berbeda
+                    if (!(dropPos >= start && dropPos <= end)) {
+                        this.textarea.setRangeText("", start, end, "start");
+
+                        // karena teks awal sudah dihapus, sesuaikan dropPos
+                        const adjust =
+                            dropPos > start ? dropPos - (end - start) : dropPos;
+
+                        this.textarea.setRangeText(text, adjust, adjust, "end");
+                    }
+                } else {
+                    // drag dari luar, cukup insert
+                    this.textarea.setRangeText(text, dropPos, dropPos, "end");
+                }
+            }
         }
+
+        this.dragSelection = null;
+    }
+
+    getCaretIndexFromCoordinates(x, y) {
+        const ta = this.textarea;
+        const div = document.createElement("div");
+        const style = getComputedStyle(ta);
+
+        // clone styling
+        for (const prop of style) {
+            if (
+                prop.startsWith("font") ||
+                prop === "white-space" ||
+                prop.includes("padding") ||
+                prop.includes("line-height") ||
+                prop.includes("letter-spacing")
+            ) {
+                div.style[prop] = style[prop];
+            }
+        }
+        div.style.position = "absolute";
+        div.style.visibility = "hidden";
+        div.style.whiteSpace = "pre-wrap";
+        div.style.wordWrap = "break-word";
+        div.style.width = ta.offsetWidth + "px";
+
+        // isi mirror dengan teks + span marker
+        div.textContent = ta.value;
+        document.body.appendChild(div);
+
+        let pos = ta.value.length;
+        for (let i = 0; i < ta.value.length; i++) {
+            const span = document.createElement("span");
+            span.textContent = ta.value[i] || " ";
+            div.insertBefore(span, div.childNodes[i]);
+
+            const rect = span.getBoundingClientRect();
+            if (y < rect.bottom && x < rect.right) {
+                pos = i;
+                break;
+            }
+        }
+
+        document.body.removeChild(div);
+        return pos;
     }
 
     async uploadImage(file, insertPos = null) {

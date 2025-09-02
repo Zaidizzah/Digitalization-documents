@@ -2,7 +2,8 @@
 
 @section('content')
 
-    @include('partials.setting-menu')
+    @includeWhen($document_type instanceof App\Models\DocumentType, 'partials.document-type-action-menu', ['document_type' => $document_type])
+    @includeWhen(($document_type instanceof App\Models\DocumentType) === FALSE, 'partials.setting-menu', ['document_type' => NULL])
     
     <!-- Tree items for user guides data list -->
     <div class="user-guides-trees" id="--user-guides-trees" role="region" aria-labelledby="--user-guides-trees-title" aria-describedby="--user-guides-trees-subtitle">
@@ -14,7 +15,7 @@
     
         
             <a
-                href="{{ route('userguides.create') }}"
+                href="{{ ($document_type instanceof App\Models\DocumentType) ? route('userguides.create.named', ['name' => $document_type->name]) : route('userguides.create') }}"
                 class="btn btn-primary btn-sm"
                 type="button"
                 role="button"
@@ -29,7 +30,7 @@
             @if ($user_guides->isNotEmpty()) 
                 <div class="tree-view" role="tree">
                     @foreach($user_guides as $guide)
-                        @include('partials.userguide-index-tree-item', ['user_guide' => $guide, 'level' => 0])
+                        @include('partials.userguide-index-tree-item', ['document_type' => $document_type ?? NULL, 'user_guide' => $guide, 'level' => 0])
                     @endforeach
                 </div>
             @else
