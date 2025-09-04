@@ -415,6 +415,11 @@ class DocumentTypeController extends Controller
         $ORG_table_name = $document_type->table_name;
         $ORG_name = $document_type->name;
 
+        // Ignore the name field if it's the same as the original name
+        if ($this->VALIDATION_RULES['name'][4] instanceof \Illuminate\Validation\Rules\Unique) {
+            $this->VALIDATION_RULES['name'][4] = $this->VALIDATION_RULES['name'][4]->ignore($document_type->id, 'id');
+        }
+
         $validator = Validator::make(
             $request->only(['name', 'description', 'long_name']),
             $this->VALIDATION_RULES
@@ -427,47 +432,49 @@ class DocumentTypeController extends Controller
         try {
             $validated = $validator->validated();
             $NEW_TABLE_NAME = Str::snake(trim($validated['name']));
-            // dd("Name value from request HTTP: '{$validated['name']}'", "New table name: '$NEW_TABLE_NAME'", "Old table name: '$ORG_table_name'", "Old name: '$ORG_name'", ($ORG_table_name !== $NEW_TABLE_NAME), ($ORG_name !== $validated['name']), SchemaBuilder::rename_table($ORG_table_name, $NEW_TABLE_NAME), SchemaBuilder::table_exists($NEW_TABLE_NAME));
 
-            if ($validated['name'] && ($ORG_table_name !== $NEW_TABLE_NAME) && ($ORG_name !== $validated['name']) && SchemaBuilder::rename_table($ORG_table_name, $NEW_TABLE_NAME) && SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
-                $document_type->name = $validated['name'];
-                $document_type->table_name = $NEW_TABLE_NAME;
-                $document_type->description = $validated['description'];
-                $document_type->long_name = $validated['long_name'];
-            } else {
-                // Throw exception if table cannot be renamed
-                throw new \RuntimeException(
-                    "Sorry, we couldn't rename table of document type '$name' to new table name '$NEW_TABLE_NAME', please try again.",
-                    Response::HTTP_INTERNAL_SERVER_ERROR
-                );
+            if ($validated['name'] && ($ORG_table_name !== $NEW_TABLE_NAME) && ($ORG_name !== $validated['name'])) {
+                if (SchemaBuilder::rename_table($ORG_table_name, $NEW_TABLE_NAME) && SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
+                    $document_type->name = $validated['name'];
+                    $document_type->table_name = $NEW_TABLE_NAME;
+                } else {
+                    // Throw exception if table cannot be renamed
+                    throw new \RuntimeException(
+                        "Sorry, we couldn't rename table of document type '$name' to new table name '$NEW_TABLE_NAME', please try again.",
+                        Response::HTTP_INTERNAL_SERVER_ERROR
+                    );
+                }
             }
 
             DB::beginTransaction();
-            if ($document_type->isDirty(['name', 'table_name', 'description', 'long_name']) && SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
-                // rename existing directory
-                if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
-                    if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
-                        throw new \RuntimeException(
-                            "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.",
-                            Response::HTTP_INTERNAL_SERVER_ERROR
-                        );
+            if ($document_type->isDirty(['name', 'table_name'])) {
+                if (SchemaBuilder::table_exists($NEW_TABLE_NAME)) {
+                    // rename existing directory
+                    if (Storage::disk('local')->exists(self::PARENT_OF_FILES_DIRECTORY . "/{$name}")) {
+                        if (!Storage::disk('local')->move(self::PARENT_OF_FILES_DIRECTORY .  "/$name", self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name}")) {
+                            throw new \RuntimeException(
+                                "Sorry, we couldn't rename directory from previous name '" . self::PARENT_OF_FILES_DIRECTORY . "/{$document_type->name} to new name '" . self::PARENT_OF_FILES_DIRECTORY  . "/{$validated['name']}' of document type '$name', please try again.",
+                                Response::HTTP_INTERNAL_SERVER_ERROR
+                            );
+                        }
                     }
+                } else {
+                    // Throw exception if table doesn't exists
+                    throw new \RuntimeException(
+                        "Sorry, we couldn't find table of document type '$name' or it doesn't exists, please try again.",
+                        Response::HTTP_INTERNAL_SERVER_ERROR
+                    );
                 }
-            } else {
-                // Throw exception if table doesn't exists
-                throw new \RuntimeException(
-                    "Sorry, we couldn't find table of document type '$name' or it doesn't exists, please try again.",
-                    Response::HTTP_INTERNAL_SERVER_ERROR
-                );
             }
 
             // Save updated document type
+            $document_type->description = $validated['description'];
+            $document_type->long_name = $validated['long_name'];
             $document_type->save();
             DB::commit();
 
             return redirect()->route("documents.settings", $document_type->name)->with('message', toast("Document type '$name' has been updated successfully.", 'success'));
         } catch (\Exception $e) {
-            dd($e);
             // rollback transaction if any exception occurs and transaction level is active or greater than 0
             if (DB::transactionLevel() > 0) DB::rollBack();
 

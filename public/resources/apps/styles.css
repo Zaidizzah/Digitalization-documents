@@ -122,6 +122,18 @@ textarea:invalid {
     color: var(--bs-gray-200);
 }
 
+/* Coming soon card */
+.feature-cooming-soon--card {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background-color: #ededed;
+    border: 1px solid var(--primary-color);
+    text-align: center;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
 /*
  * Loader 
  */

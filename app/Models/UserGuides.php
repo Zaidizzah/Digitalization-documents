@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Interfaces\SearchableContent;
 
 class UserGuides extends Model
 {
@@ -28,6 +29,11 @@ class UserGuides extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
+
+    // public function search(string $query): array // Implementing SearchableContent interface to search user guides content
+    // {
+    //     return [];
+    // }
 
     public function document_type()
     {

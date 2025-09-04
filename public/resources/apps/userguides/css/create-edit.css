@@ -58,14 +58,23 @@
 }
 
 .user-guides-tree-item.selected {
-    background-color: #0366d6;
+    background-color: rgba(3, 102, 214, 0.45);
     color: #ffff;
     border-color: #0366d6;
 }
 
 .user-guides-tree-item.selected:hover {
-    background-color: #005cc5;
-    border-color: #005cc5;
+    background-color: rgba(3, 102, 214, 0.75);
+}
+
+.user-guides-tree-item.active {
+    background-color: rgba(99, 172, 255, 0.45);
+    border-color: #3080dc;
+}
+
+.user-guides-tree-item.active:hover {
+    background-color: rgba(99, 172, 255, 0.75);
+    border-color: #3080dc;
 }
 
 .user-guides-tree-item .item-content {
@@ -220,19 +229,4 @@
     background-color: #fee2e2;
     color: #dc2626;
     border: none;
-}
-
-.user-guides-tree-wrapper
-    .user-guides-tree-item
-    .item-content
-    .badge-group
-    .badge.badge-inactive:hover {
-    background-color: rgba(220, 38, 38, 0.12);
-}
-.user-guides-tree-wrapper
-    .user-guides-tree-item
-    .item-content
-    .badge-group
-    .badge.badge-active:hover {
-    background-color: rgba(22, 101, 52, 0.12);
 }

@@ -156,6 +156,10 @@ class SettingController extends Controller
                 [
                     'href' => 'menu.css',
                     'base_path' => asset('/resources/apps/')
+                ],
+                [
+                    'href' => 'styles.css',
+                    'base_path' => asset('/resources/apps/setting/css/')
                 ]
             ]
         );
@@ -241,18 +245,28 @@ class SettingController extends Controller
         return view('apps.userguides.index', $resources);
     }
 
-    public function user_guide__activate(?string $name = null, int $id)
+    public function user_guide__activate(...$params)
     {
-        $USER_GUIDE = UserGuides::where(function ($query) use ($name) {
-            if ($name !== null) {
-                $query->whereHas('document_type', function ($query) use ($name) {
-                    $query->where('name', $name);
-                })->where('document_type_id', function ($query) use ($name) {
-                    $query->select('id')->from('document_types')->where('name', $name);
-                });
+        // Check if length of $params is more than 2
+        if (count($params) > 2) {
+            abort(404);
+        }
+
+        $id = $name = null;
+        for ($i = 0; $i < count($params); $i++) {
+            if (empty($params[$i]) !== true && is_numeric($params[$i])) {
+                $id = (int)$params[$i];
             } else {
-                $query->whereNull('document_type_id');
+                $name = $params[$i];
             }
+        }
+
+        $USER_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+            $query->where(function ($query) use ($name) {
+                $query->whereHas('document_type', function ($query) use ($name) {
+                    $query->where('name', $name)->where('is_active', 1);
+                });
+            });
         })->findOrFail($id);
 
         $status = $USER_GUIDE->is_active === 0 ? "Inactivate" : "Activate";
@@ -345,11 +359,9 @@ class SettingController extends Controller
         if ($request->get('parent_id') !== null) {
             $PARENT_GUIDE = UserGuides::where(function ($query) use ($name) {
                 $query->whereHas('document_type', function ($query) use ($name) {
-                    $query->where('name', $name);
-                })->where('document_type_id', function ($query) use ($name) {
-                    $query->select('id')->from('document_types')->where('name', $name);
+                    $query->where('name', $name)->where('is_active', 1);
                 });
-            })->findOrFail((int)$request->input('parent_id'));
+            })->findOrFail((int) $request->input('parent_id'));
         }
 
         $request->validate([
@@ -380,7 +392,7 @@ class SettingController extends Controller
         return redirect()->route(($name !== null ? 'userguides.create.named' : 'userguides.create'), $name ?? [])->with('message', toast('User guide was created successfully!', 'success'));
     }
 
-    public function user_guide__edit(...$params)
+    public function user_guide__edit(mixed ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -478,43 +490,75 @@ class SettingController extends Controller
         return view('apps.userguides.create-edit', $resources);
     }
 
-    public function user_guide__update(Request $request, int $id, ?string $name = null)
+    public function user_guide__update(Request $request, ...$params)
     {
-        $USER_GUIDE = UserGuides::where(function ($query) use ($name) {
-            $query->whereHas('document_type', function ($query) use ($name) {
-                $query->where('name', $name);
-            })->where('document_type_id', function ($query) use ($name) {
-                $query->select('id')->from('document_types')->where('name', $name);
+        // Check if length of $params is more than 2
+        if (count($params) > 2) {
+            abort(404);
+        }
+
+        $id = $name = null;
+        for ($i = 0; $i < count($params); $i++) {
+            if (empty($params[$i]) !== true && is_numeric($params[$i])) {
+                $id = (int)$params[$i];
+            } else {
+                $name = $params[$i];
+            }
+        }
+
+        $USER_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+            $query->where(function ($query) use ($name) {
+                $query->whereHas('document_type', function ($query) use ($name) {
+                    $query->where('name', $name)->where('is_active', 1);
+                });
             });
         })->findOrFail($id);
 
         $request->validate([
-            'title' => 'required|string|max:150',
+            'title' => "required|string|max:150|unique:user_guides,title,{$USER_GUIDE->id},id",
             'parent_id' => 'nullable|integer|exists:user_guides,id',
             'content' => 'required|string|max:4294967295' // Max length for LONGTEXT type is 4294967295 characters
         ]);
 
         // Check if slug already exist
-        if (UserGuides::where('slug', Str::slug($request->input('title')))->exists()) {
+        if (UserGuides::where('slug', Str::slug($request->input('title')))->where('id', '!=', $USER_GUIDE->id)->exists()) {
             return redirect()->back()->with('message', toast('User guide title already exist!', 'error'))->withInput();
         }
 
         $USER_GUIDE->title = $request->input('title');
-        $USER_GUIDE->parent_id = $request->input('parent_id') ?? NULL;
+        if ($USER_GUIDE->parent_id !== (int) $request->input('parent_id') && $USER_GUIDE->id !== (int) $request->input('parent_id')) $USER_GUIDE->parent_id = $request->input('parent_id') ?? NULL; // Prevent updating parent_id if it's not changed and it's not same with the ID
         $USER_GUIDE->content = $request->input('content');
         $USER_GUIDE->is_active = 1;
         $USER_GUIDE->save();
 
-        return redirect()->route('userguides.create')->with('message', toast('User guide was updated successfully!', 'success'));
+        // Checking route type for redirecting user to correct route
+        if (route_check("userguides.update")) {
+            return redirect()->route('userguides.edit', $USER_GUIDE->id)->with('message', toast('User guide was updated successfully!', 'success'));
+        }
+        return redirect()->route('userguides.edit.named', [$name, $USER_GUIDE->id])->with('message', toast('User guide was updated successfully!', 'success'));
     }
 
-    public function user_guide__destroy(int $id, ?string $name = null)
+    public function user_guide__destroy(...$params)
     {
-        $USER_GUIDE = UserGuides::where(function ($query) use ($name) {
-            $query->whereHas('document_type', function ($query) use ($name) {
-                $query->where('name', $name);
-            })->where('document_type_id', function ($query) use ($name) {
-                $query->select('id')->from('document_types')->where('name', $name);
+        // Check if length of $params is more than 2
+        if (count($params) > 2) {
+            abort(404);
+        }
+
+        $id = $name = null;
+        for ($i = 0; $i < count($params); $i++) {
+            if (empty($params[$i]) !== true && is_numeric($params[$i])) {
+                $id = (int)$params[$i];
+            } else {
+                $name = $params[$i];
+            }
+        }
+
+        $USER_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+            $query->where(function ($query) use ($name) {
+                $query->whereHas('document_type', function ($query) use ($name) {
+                    $query->where('name', $name)->where('is_active', 1);
+                });
             });
         })->findOrFail($id);
         $USER_GUIDE->delete();

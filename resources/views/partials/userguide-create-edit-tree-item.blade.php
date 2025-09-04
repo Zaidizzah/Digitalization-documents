@@ -17,7 +17,8 @@
             $id    = (int) $item->id;
             $title = str_replace("\"", "\\\"", e($item->title));
 
-            $isSelected = $CURRENT_DATA && (int) $CURRENT_DATA->id === $id;
+            $isSelected = $CURRENT_DATA->parent_id && (int) $CURRENT_DATA->parent_id === $id;
+            $isActive = $CURRENT_DATA->id && (int) $CURRENT_DATA->id === $id;
             // dump($isSelected, "Current data id value: {$CURRENT_DATA->id}, Item id value: {$item->id}");
 
             // render children
@@ -29,12 +30,12 @@
                 $childExpanded = $childResult['expanded'];
             }
 
-            if ($isSelected || $childExpanded) {
+            if ($isSelected || $isActive || $childExpanded) {
                 $expandedAny = true; // propagate ke parent
             }
 
             $HTML .= "
-                <div class=\"user-guides-tree-item\"
+                <div class=\"user-guides-tree-item " . ($isSelected ? 'selected' : '') . " " . ($isActive ? 'active' : '') . "\"
                     title=\"{$title}\"
                     role=\"treeitem\"
                     data-level=\"{$LEVEL}\"
@@ -54,7 +55,7 @@
                             name=\"parent_id\"
                             value=\"{$id}\"
                             class=\"radio-input\"
-                            id=\"user-guides-radio-{$id}\" " . ($isSelected ? 'checked' : '') . " aria-checked=\"" . ($isSelected ? 'true' : 'false') . "\">
+                            id=\"user-guides-radio-{$id}\" " . ($isSelected ? 'checked' : '') . " aria-checked=\"" . ($isSelected ? 'true' : 'false') . "\" " . ($isActive ? "disabled aria-disabled=\"true\"" : "aria-disabled=\"false\"") . "\">
 
                         <span class=\"item-title\">{$title}</span>
 
