@@ -199,7 +199,7 @@
                                                         @endif
                                                     </div>
                                                     <div class="small text-muted">
-                                                        <span>{{ format_size_file($f->size) }} - Uploaded on <time datetime="{{ $f->created_at }}">{{ date('d F Y, H:i A', strtotime($f->created_at)) }}</time>.</span>
+                                                        <span>{{ Number::fileSize($f->size) }} - Uploaded on <time datetime="{{ $f->created_at }}">{{ date('d F Y, H:i A', strtotime($f->created_at)) }}</time>.</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -215,7 +215,7 @@
                                                                 aria-label="Browse file {{ "$f->name.$f->extension" }}" title="Button: to browse file {{ "$f->name.$f->extension" }}" 
                                                                 data-bs-toggle="modal" data-bs-target="#modal-files"
                                                                 data-file-id="{{ $f->id }}" data-file-name="{{ $f->name }}" data-file-extension="{{ $f->extension }}" 
-                                                                data-file-size="{{ format_size_file($f->size) }}"
+                                                                data-file-size="{{ Number::fileSize($f->size) }}"
                                                                 data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($f->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($f->updated_at)) }}" 
                                                                 data-file-document-name="{{ $f->document_type->name ?? '' }}" data-file-document-long-name="{{ $f->document_type->long_name ?? '' }}"
                                                                 aria-label="File {{ $f->name }}" title="File {{ "$f->name.$f->extension" }}">

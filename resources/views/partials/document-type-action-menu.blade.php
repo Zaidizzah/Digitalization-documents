@@ -62,7 +62,7 @@
                 </a>
             </li>   
             <li class="nav-item">
-                <a href="{{ route('userguides.index.named', $document_type->name) }}" class="nav-link {{ set_active('userguides.index.named', 'userguides.create.named', 'userguides.edit.named') }}" title="User Guides">
+                <a href="{{ route('userguides.index.named', $document_type->name) }}" class="nav-link {{ set_active('userguides.index.named', 'userguides.create.named', 'userguides.edit.named', 'userguides.show.dynamic') }}" title="User Guides">
                     <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
                         <path d="M21 6V4c0-.6-.4-1-1-1h-1v3h2zm-3-3H6c-.6 0-1 .4-1 1v2h13V3zm0 4H5v10c0 .6.4 1 1 1h12c.6 0 1-.4 1-1V7z" opacity="0.3"/>

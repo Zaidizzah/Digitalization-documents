@@ -17,13 +17,21 @@
 
             // Merge all results or flatting the values
             $results_final_data = array_merge(...array_values($results));
+            $searched_resources = array_map(function ($key) {
+                $word   = ucwords(preg_replace('/(?<!^)([A-Z])/', ' $1', $key));
+
+                if (!str_ends_with($word, 's')) {
+                    $word .= 's';
+                }
+                return $word;
+            }, array_keys($results));
         @endphp
     @endif
 
     <div class="app-search__results">
         <div class="app-search__results_header" aria-labelledby="app-search__results_header_title" aria-describedby="app-search__results_header_summary">
             <h1 class="app-search__results_header_title" id="app-search__results_header_title">Searching results for search query "<mark>{{ request('q') }}</mark>"</h1>
-            <p class="app-search__results_header_summary" id="app-search__results_header_summary">Found <strong>{{ $results !== null ? $count_found_value : 0 }} results</strong> from <strong>{{ $results !== null ? count($results) : 0 }} sources</strong>{!! $results !== null ? " (<span style='font-style: italic'>".implode(", ", array_keys($results))."</span>)" : "" !!}.</p>
+            <p class="app-search__results_header_summary" id="app-search__results_header_summary">Found <strong>{{ $results !== null ? $count_found_value : 0 }} results</strong> from <strong>{{ $results !== null ? count($results) : 0 }} sources</strong>{!! $results !== null ? " (<span style='font-style: italic'>".implode(", ", $searched_resources)."</span>)" : "" !!}.</p>
         </div>
 
         <div class="app-search__results_content" id="app-search__results_content" role="list">

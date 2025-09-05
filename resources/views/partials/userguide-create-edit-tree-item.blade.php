@@ -17,8 +17,8 @@
             $id    = (int) $item->id;
             $title = str_replace("\"", "\\\"", e($item->title));
 
-            $isSelected = $CURRENT_DATA->parent_id && (int) $CURRENT_DATA->parent_id === $id;
-            $isActive = $CURRENT_DATA->id && (int) $CURRENT_DATA->id === $id;
+            $isSelected = $CURRENT_DATA instanceof \App\Models\UserGuides && $CURRENT_DATA->parent_id && (int) $CURRENT_DATA->parent_id === $id;
+            $isActive = $CURRENT_DATA instanceof \App\Models\UserGuides && $CURRENT_DATA->id && (int) $CURRENT_DATA->id === $id;
             // dump($isSelected, "Current data id value: {$CURRENT_DATA->id}, Item id value: {$item->id}");
 
             // render children

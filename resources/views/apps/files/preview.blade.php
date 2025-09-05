@@ -62,7 +62,7 @@
                                 </tr>
                                 <tr>
                                     <td>Size</td>
-                                    <td>{{ format_size_file($file->size) }}</td>
+                                    <td>{{ Number::fileSize($file->size) }}</td>
                                 </tr>
                                 <tr>
                                     <td>Last Modified</td>

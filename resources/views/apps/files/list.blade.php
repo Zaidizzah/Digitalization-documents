@@ -39,7 +39,7 @@
                     </span>
                 </div>
                 <div class="small text-muted">
-                    <span>{{ format_size_file($file->size) }} - Uploaded on <time datetime="{{ $file->created_at }}">{{ date('d F Y, H:i A', strtotime($file->created_at)) }}</time>.</span>
+                    <span>{{ Number::fileSize($file->size) }} - Uploaded on <time datetime="{{ $file->created_at }}">{{ date('d F Y, H:i A', strtotime($file->created_at)) }}</time>.</span>
                 </div>
             </div>
         </div>
@@ -55,7 +55,7 @@
                             aria-label="Browse file {{ "$file->name.$file->extension" }}" title="Button: to browse file {{ "$file->name.$file->extension" }}" 
                             data-bs-toggle="modal" data-bs-target="#modal-files"
                             data-file-id="{{ $file->id }}" data-file-name="{{ "{$file->name}.{$file->extension}" }}" data-file-extension="{{ $file->extension }}" 
-                            data-file-size="{{ format_size_file($file->size) }}"
+                            data-file-size="{{ Number::fileSize($file->size) }}"
                             data-file-uploaded-at="{{ date('d F Y, H:i A', strtotime($file->created_at)) }}" data-file-modified-at="{{ date('d F Y, H:i A', strtotime($file->updated_at)) }}" 
                             data-file-document-name="{{ $file->document_type->name ?? '' }}" data-file-document-long-name="{{ $file->document_type->long_name ?? '' }}"
                             aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "$file->name.$file->extension" }}">

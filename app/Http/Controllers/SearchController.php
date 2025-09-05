@@ -7,6 +7,7 @@ use App\Models\DocumentType;
 use App\Models\User;
 use App\Models\File;
 use App\Models\TempSchema;
+use App\Models\UserGuides;
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -46,7 +47,8 @@ class SearchController extends Controller
             'User' => User::class,
             'File' => File::class,
             'DocumentType' => DocumentType::class,
-            'TempSchema' => TempSchema::class
+            'TempSchema' => TempSchema::class,
+            'UserGuides' => UserGuides::class
         ];
 
         $results = [];

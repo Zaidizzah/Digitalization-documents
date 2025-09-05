@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Interfaces\SearchableContent;
 
-class UserGuides extends Model
+class UserGuides extends Model implements SearchableContent
 {
     use HasFactory;
 
@@ -30,10 +30,31 @@ class UserGuides extends Model
         'updated_at' => 'datetime'
     ];
 
-    // public function search(string $query): array // Implementing SearchableContent interface to search user guides content
-    // {
-    //     return [];
-    // }
+    /*
+     * ------------------------------------------------------------------------
+     * Implementing SearchableContent interface for search content function
+     * ------------------------------------------------------------------------
+     */
+    public static function search(string $query): array
+    {
+        return self::where('title', 'like', "%{$query}%")
+            ->get()
+            ->whenNotEmpty(function ($collection) {
+                return $collection->flatMap(function ($item) {
+                    $PAGES = [
+                        [
+                            'type' => 'User Guides',
+                            'title' => "User guide - with title: '{$item->title}'",
+                            'url' => route('userguides.show.dynamic', $item->path),
+                        ],
+                    ];
+
+                    return $PAGES;
+                })->toArray();
+            }, function () {
+                return [];
+            });
+    }
 
     public function document_type()
     {

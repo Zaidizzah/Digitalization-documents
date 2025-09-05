@@ -55,9 +55,9 @@ Route::middleware('auth')->group(function () {
     | Users Routes
     |--------------------------------------------------------------------------
     */
-    Route::group(['prefix' => 'user-guide'], function () {
+    Route::group(['prefix' => 'user-guides'], function () {
         Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguides.show.index');
-        Route::get('{url}', [SettingController::class, 'user_guide__show'])->name('userguides.show.dynamic');
+        Route::get('{path}.html', [SettingController::class, 'user_guide__show'])->where('path', '.*')->name('userguides.show.dynamic');
         Route::get('content/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguides.content');
     });
 
@@ -71,14 +71,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [SettingController::class, 'index'])->name('settings.index');
             Route::put('/update', [SettingController::class, 'update'])->name('settings.update');
 
-            Route::get('user-guide/create', [SettingController::class, 'user_guide__create'])->name('userguides.create');
-            Route::post('user-guide/store', [SettingController::class, 'user_guide__store'])->name('userguides.store');
-            Route::get('user-guide/edit/{id}', [SettingController::class, 'user_guide__edit'])->name('userguides.edit');
-            Route::put('user-guide/update/{id}', [SettingController::class, 'user_guide__update'])->name('userguides.update');
-            Route::delete('user-guide/delete/{id}', [SettingController::class, 'user_guide__destroy'])->name('userguides.destroy');
-            Route::put('user-guide/activate/{id}', [SettingController::class, 'user_guide__activate'])->name('userguides.activate');
+            Route::get('user-guides/create', [SettingController::class, 'user_guide__create'])->name('userguides.create');
+            Route::post('user-guides/store', [SettingController::class, 'user_guide__store'])->name('userguides.store');
+            Route::get('user-guides/edit/{id}', [SettingController::class, 'user_guide__edit'])->name('userguides.edit');
+            Route::put('user-guides/update/{id}', [SettingController::class, 'user_guide__update'])->name('userguides.update');
+            Route::delete('user-guides/delete/{id}', [SettingController::class, 'user_guide__destroy'])->name('userguides.destroy');
+            Route::put('user-guides/activate/{id}', [SettingController::class, 'user_guide__activate'])->name('userguides.activate');
             // Index User Guide route adding in last route sequence to provide the highest priority
-            Route::get('user-guide', [SettingController::class, 'user_guide__index'])->name('userguides.index');
+            Route::get('user-guides', [SettingController::class, 'user_guide__index'])->name('userguides.index');
         });
 
         /*
@@ -122,14 +122,14 @@ Route::middleware('auth')->group(function () {
             | Named user guide Routes
             |--------------------------------------------------------------------------
             */
-            Route::get('{name}/user-guide/create', [SettingController::class, 'user_guide__create'])->where('name', '^(?!create$).*')->name('userguides.create.named');
-            Route::post('{name}/user-guide/store', [SettingController::class, 'user_guide__store'])->where('name', '^(?!store$).*')->name('userguides.store.named');
-            Route::get('{name}/user-guide/edit/{id}', [SettingController::class, 'user_guide__edit'])->where('name', '^(?!edit$).*')->name('userguides.edit.named');
-            Route::put('{name}/user-guide/update/{id}', [SettingController::class, 'user_guide__update'])->where('name', '^(?!update$).*')->name('userguides.update.named');
-            Route::delete('{name}/user-guide/delete/{id}', [SettingController::class, 'user_guide__destroy'])->where('name', '^(?!delete$).*')->name('userguides.destroy.named');
-            Route::put('{name}/user-guide/activate/{id}', [SettingController::class, 'user_guide__activate'])->where('name', '^(?!activate$).*')->name('userguides.activate.named');
+            Route::get('{name}/user-guides/create', [SettingController::class, 'user_guide__create'])->where('name', '^(?!create$).*')->name('userguides.create.named');
+            Route::post('{name}/user-guides/store', [SettingController::class, 'user_guide__store'])->where('name', '^(?!store$).*')->name('userguides.store.named');
+            Route::get('{name}/user-guides/edit/{id}', [SettingController::class, 'user_guide__edit'])->where('name', '^(?!edit$).*')->name('userguides.edit.named');
+            Route::put('{name}/user-guides/update/{id}', [SettingController::class, 'user_guide__update'])->where('name', '^(?!update$).*')->name('userguides.update.named');
+            Route::delete('{name}/user-guides/delete/{id}', [SettingController::class, 'user_guide__destroy'])->where('name', '^(?!delete$).*')->name('userguides.destroy.named');
+            Route::put('{name}/user-guides/activate/{id}', [SettingController::class, 'user_guide__activate'])->where('name', '^(?!activate$).*')->name('userguides.activate.named');
             // Index User Guide route adding in last route sequence to provide the highest priority
-            Route::get('{name}/user-guide', [SettingController::class, 'user_guide__index'])->name('userguides.index.named');
+            Route::get('{name}/user-guides', [SettingController::class, 'user_guide__index'])->name('userguides.index.named');
 
             /*
             |--------------------------------------------------------------------------

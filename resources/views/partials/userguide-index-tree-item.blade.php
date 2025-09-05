@@ -1,7 +1,4 @@
 @php
-    // If url variable has a value and has been declared, then adding next url value to evaluate new url for the list of children
-    if (isset($url) && $url !== "") $url .= "/{$user_guide->slug}"; else $url = "{$user_guide->slug}";
-
     // set route to activate, edit, and delete method
     $ROUTE = [
         'switch-status' => ['route' => (route_check('userguides.index') ? 'userguides.switch-status' : 'userguides.switch-status.named')],
@@ -34,7 +31,7 @@
         
         <div class="item-details">
             <p class="item-title">{{ $user_guide->title }}</p>
-            <p class="item-slug">{{ $user_guide->slug }}</p>
+            <p class="item-slug" {!! Str::length($user_guide->path) > 40 ? "title=\"Actual length: " . Str::length($user_guide->path) . " characters\"" : "" !!}>{{ Str::limit($user_guide->path, 40) }}</p>
             <p class="item-created-at">Created on <time datetime="{{ $user_guide->created_at }}">{{ $user_guide->created_at->format('d F Y, H:i A') }}</time></p>
         </div>
         
@@ -52,7 +49,7 @@
             </form>
             
             <div class="action-buttons">
-                <a href="{{ route('userguides.show.dynamic', $url) }}" class="btn btn-icon btn-view" role="button" title="View the user guide content">
+                <a href="{{ route('userguides.show.dynamic', $user_guide->path) }}" class="btn btn-icon btn-view" role="button" title="View the user guide content">
                     <i class="bi bi-eye"></i>
                 </a>
                 <a href="{{ route($ROUTE['edit']['route'], $ROUTE['edit']['params']) }}" class="btn btn-icon btn-edit" role="button" title="Edit the user guide content">
@@ -74,7 +71,7 @@
         <div class="children-container" id="--tree-item-children-{{ $user_guide->id }}">
             @if ($user_guide->children !== NULL && $user_guide->children instanceof Illuminate\Database\Eloquent\Collection)
                 @foreach($user_guide->children as $child)
-                    @include('partials.userguide-index-tree-item', ['document_type' => $document_type, 'user_guide' => $child, 'level' => ($level ?? 0) + 1, 'url' => $url])
+                    @include('partials.userguide-index-tree-item', ['document_type' => $document_type, 'user_guide' => $child, 'level' => ($level ?? 0) + 1])
                 @endforeach
             @endif
         </div>

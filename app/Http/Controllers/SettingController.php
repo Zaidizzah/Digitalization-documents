@@ -225,7 +225,21 @@ class SettingController extends Controller
             ]
         );
 
-        if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+        if (empty($name) !== true) {
+            $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+
+            $resources['breadcrumb'] = array_merge(
+                array_slice($resources['breadcrumb'], 0, 1, true),
+                [
+                    'Documents' => route('documents.index'),
+                    "Document type {$DOCUMENT_TYPE->name}"
+                ],
+                array_slice($resources['breadcrumb'], 1, 1, true)
+            );
+
+            // Change correct route for 'User Guides' element in breadcrumb
+            $resources['breadcrumb']['User Guide'] = route('userguides.index.named', $name);
+        }
         // Get user guides data just ID, PARENT_ID, and TITLE fields
         $DATA = UserGuides::with(['document_type' => function ($query) {
             $query->select('id', 'name', 'long_name');
@@ -245,7 +259,7 @@ class SettingController extends Controller
         return view('apps.userguides.index', $resources);
     }
 
-    public function user_guide__activate(...$params)
+    public function user_guide__activate(array ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -356,12 +370,16 @@ class SettingController extends Controller
         if ($name !== null) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
 
         // Get document_type_id from parent list 
-        if ($request->get('parent_id') !== null) {
+        if ($request->input('parent_id') !== null) {
             $PARENT_GUIDE = UserGuides::where(function ($query) use ($name) {
                 $query->whereHas('document_type', function ($query) use ($name) {
                     $query->where('name', $name)->where('is_active', 1);
                 });
-            })->findOrFail((int) $request->input('parent_id'));
+            })->find((int) $request->input('parent_id'));
+
+            if ($PARENT_GUIDE === NULL) {
+                return redirect()->back()->with('message', toast('Parent for new user guide is not found. Please choose another valid parent user guide.', 'error'))->withInput();
+            }
         }
 
         $request->validate([
@@ -370,10 +388,13 @@ class SettingController extends Controller
             'content' => 'required|string|max:4294967295' // Max length for LONGTEXT type is 4294967295 characters
         ]);
 
-        $SLUG = Str::slug($request->input('title'));
-        // Check if slug already exist
-        if (UserGuides::where('slug', $SLUG)->exists()) {
-            return redirect()->back()->with('message', toast('User guide title already exist!', 'error'))->withInput();
+        $PATH = Str::slug($request->input('title'));
+        if (isset($PARENT_GUIDE)) {
+            $PATH = "{$PARENT_GUIDE->path}/$PATH";
+            // Check if path already exist
+            if (UserGuides::where('parent_id', $PARENT_GUIDE->id)->where('is_active', 1)->where('path', $PATH)->exists()) {
+                return redirect()->back()->with('message', toast('New user guide already exist or duplicated. Please try again or change with another title.', 'error'))->withInput();
+            }
         }
 
         $DATA = new UserGuides();
@@ -383,7 +404,7 @@ class SettingController extends Controller
         }
 
         $DATA->title = $request->input('title');
-        $DATA->slug = $SLUG;
+        $DATA->path = $PATH;
         $DATA->parent_id = $request->input('parent_id');
         $DATA->document_type_id = $DOCUMENT_TYPE->id ?? NULL;
         $DATA->content = $request->input('content');
@@ -392,7 +413,7 @@ class SettingController extends Controller
         return redirect()->route(($name !== null ? 'userguides.create.named' : 'userguides.create'), $name ?? [])->with('message', toast('User guide was created successfully!', 'success'));
     }
 
-    public function user_guide__edit(mixed ...$params)
+    public function user_guide__edit(array ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -490,7 +511,7 @@ class SettingController extends Controller
         return view('apps.userguides.create-edit', $resources);
     }
 
-    public function user_guide__update(Request $request, ...$params)
+    public function user_guide__update(Request $request, array ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -520,13 +541,32 @@ class SettingController extends Controller
             'content' => 'required|string|max:4294967295' // Max length for LONGTEXT type is 4294967295 characters
         ]);
 
-        // Check if slug already exist
-        if (UserGuides::where('slug', Str::slug($request->input('title')))->where('id', '!=', $USER_GUIDE->id)->exists()) {
-            return redirect()->back()->with('message', toast('User guide title already exist!', 'error'))->withInput();
+        // Get document_type_id from parent list 
+        if ($request->input('parent_id') !== null) {
+            $PARENT_GUIDE = UserGuides::where(function ($query) use ($name) {
+                $query->whereHas('document_type', function ($query) use ($name) {
+                    $query->where('name', $name)->where('is_active', 1);
+                });
+            })->find((int) $request->input('parent_id'));
+
+            if ($PARENT_GUIDE === NULL) {
+                return redirect()->back()->with('message', toast('Parent for new user guide is not found. Please choose another valid parent user guide.', 'error'))->withInput();
+            }
+        }
+
+        // Check if path already exist
+        $PATH = Str::slug($request->input('title'));
+        if (isset($PARENT_GUIDE)) {
+            $PATH = "{$PARENT_GUIDE->path}/$PATH";
+            // Check if path already exist
+            if (UserGuides::where('parent_id', $PARENT_GUIDE->id)->where('is_active', 1)->where('id', '!=', $USER_GUIDE->id)->where('path', $PATH)->exists()) {
+                return redirect()->back()->with('message', toast('New user guide already exist or duplicated. Please try again or change with another title.', 'error'))->withInput();
+            }
         }
 
         $USER_GUIDE->title = $request->input('title');
-        if ($USER_GUIDE->parent_id !== (int) $request->input('parent_id') && $USER_GUIDE->id !== (int) $request->input('parent_id')) $USER_GUIDE->parent_id = $request->input('parent_id') ?? NULL; // Prevent updating parent_id if it's not changed and it's not same with the ID
+        $USER_GUIDE->path = $PATH;
+        if ($USER_GUIDE->parent_id !== (int) $request->input('parent_id') && $USER_GUIDE->id !== (int) $request->input('parent_id')) $USER_GUIDE->parent_id = $request->input('parent_id'); // Prevent updating parent_id if it's not changed and it's not same with the ID
         $USER_GUIDE->content = $request->input('content');
         $USER_GUIDE->is_active = 1;
         $USER_GUIDE->save();
@@ -538,7 +578,7 @@ class SettingController extends Controller
         return redirect()->route('userguides.edit.named', [$name, $USER_GUIDE->id])->with('message', toast('User guide was updated successfully!', 'success'));
     }
 
-    public function user_guide__destroy(...$params)
+    public function user_guide__destroy(array ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -564,5 +604,83 @@ class SettingController extends Controller
         $USER_GUIDE->delete();
 
         return redirect()->back()->with('message', toast('User guide was deleted successfully!', 'success'));
+    }
+
+    public function user_guide__show(?string $path = null)
+    {
+        $breadcrumbs = [
+            'Dashboard' => route('dashboard.index'),
+            'User Guide' => route('userguides.index'),
+            'Index' => route('userguides.show.index')
+        ];
+
+        if ($path !== null) {
+            // Unset the last element from the array breadcrumbs
+            unset($breadcrumbs[array_key_last($breadcrumbs)]);
+
+            $USER_GUIDE = UserGuides::with('document_type')->where('path', $path)->firstOrFail();
+
+            // Change correct route for 'User Guides' element in breadcrumb
+            if ($USER_GUIDE->document_type instanceof \App\Models\DocumentType) {
+                $breadcrumbs = array_merge(
+                    array_slice($breadcrumbs, 0, 1, true),
+                    [
+                        'Documents' => route('documents.index'),
+                        "Document type {$USER_GUIDE->document_type->name}"
+                    ],
+                    array_slice($breadcrumbs, 1, 1, true)
+                );
+
+                $breadcrumbs['User Guide'] = route('userguides.index.named', $USER_GUIDE->document_type->name);
+            }
+
+            $segments = explode('/', $USER_GUIDE->path);
+            $pathBuild = "";
+
+            foreach ($segments as $i => $segment) {
+                $pathBuild .= ($i > 0 ? '/' : '') . $segment;
+
+                if ($i === array_key_last($segments)) {
+                    $breadcrumbs[ucwords(str_replace('-', ' ', $segment))] = route('userguides.show.dynamic', [$pathBuild]);
+                } else {
+                    $breadcrumbs[ucwords(str_replace('-', ' ', $segment))] = route('userguides.show.dynamic', [$pathBuild]);
+                }
+            }
+        }
+
+        $resources = build_resource_array(
+            "User Guide - " . (isset($USER_GUIDE) ? $USER_GUIDE->title : "Index"),
+            "User Guide - " . (isset($USER_GUIDE) ? $USER_GUIDE->title : "Index"),
+            '<i class="bi bi-code-square"></i> ',
+            "A page for displaying a list of content for the user guide: " . (isset($USER_GUIDE) ? $USER_GUIDE->title : "Index") . ".",
+            $breadcrumbs,
+            [
+                [
+                    'href' => 'menu.css',
+                    'base_path' => asset('/resources/apps/')
+                ],
+                [
+                    'href' => 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css'
+                ],
+            ],
+            [
+                [
+                    'src' => 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js',
+                ],
+                [
+                    'src' => 'https://cdn.jsdelivr.net/npm/highlightjs-line-numbers.js@2.8.0/dist/highlightjs-line-numbers.min.js',
+                ],
+                [
+                    'src' => 'https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js',
+                ],
+                [
+                    'src' => 'show.js',
+                    'base_path' => asset('resources/apps/userguides/js/')
+                ]
+            ]
+        );
+        if (isset($USER_GUIDE)) $resources['user_guide'] = $USER_GUIDE;
+
+        return view('apps/userguides.show', $resources);
     }
 }
