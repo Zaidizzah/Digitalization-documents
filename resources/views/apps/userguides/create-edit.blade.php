@@ -410,7 +410,7 @@
 
         @isset($user_guides)
             <!-- User Guides Tree for picking -->
-            <div class="user-guides-wrapper" id="user-guides-wrapper" aria-labelledby="user-guides-header" role="region">
+            <div class="user-guides-wrapper" id="user-guides-wrapper" data-is-edit="{{ route_check('userguides.edit', 'userguides.edit.named') ? 'true' : 'false' }}" data-is-create="{{ route_check('userguides.create', 'userguides.create.named') ? 'true' : 'false' }}" aria-labelledby="user-guides-header" role="region">
                 <div class="user-guides-header" role="heading">
                     <h3 class="user-guides-header-title" id="user-guides-header">User Guides Selector</h3>
                     <p class="user-guides-header-subtitle">Pick an available user guides data for new <mark>{{ $document_type instanceof App\Models\DocumentType ? "Document type '{$document_type->name}'" : 'General' }}</mark> user guides content or not choosing any will create for new <mark>{{ $document_type instanceof App\Models\DocumentType ? "Document type '{$document_type->name}'" : 'General' }}</mark> user guides content</p>
@@ -432,6 +432,11 @@
                         @if ($user_guides->lastPage() > 1)
                             <button type="button" role="button" class="btn btn-info btn-load-more-data" id="user-guides-load-more-data-btn" title="Button: to load more user guide data's" data-current-page="{{ $user_guides->currentPage() }}" data-last-page="{{ $user_guides->lastPage() }}" aria-controls="user-guides-tree-view">
                                 Load More
+                            </button>
+                        @endif
+                        @if (route_check('userguides.edit.named', 'userguides.edit'))
+                            <button type="button" role="button" class="btn btn-primary btn-clear-uncheck-current-selection" id="user-guides-clear-uncheck-current-selection-btn" title="Button: to clear and uncheck current input has selected before">
+                                Clear and Uncheck
                             </button>
                         @endif
                         <button type="button" role="button" class="btn btn-secondary btn-clear-selection" id="user-guides-clear-selection-btn" title="Button: to clear input has selected before">

@@ -102,26 +102,17 @@
                     <div class="search-file" id="search-file" aria-label="Search file container">
                         <form action="{{ $document_type === null ? route('documents.files.root.index') : route('documents.files.index', $document_type->name) }}" class="novalidate" method="get">
                             <input type="hidden" name="action" value="{{ request('action') }}" aria-hidden="true">
-                            <div class="row g-3 flex-wrap">
-                                <div class="col-md-4">
-                                    <div class="input-group" aria-label="Input group for type file">
-                                        <label for="type-file" class="input-group-text">Type</label>
-                                        <select name="type" class="form-control" id="type-file">
-                                            <option value="">All</option>
-                                            <option value="png" @selected(request('type') === "png")>.png</option>
-                                            <option value="jpg" @selected(request('type') === "jpg")>.jpg</option>
-                                            <option value="jpeg" @selected(request('type') === "jpeg")>.jpeg</option>
-                                            <option value="webp" @selected(request('type') === "webp")>.webp</option>
-                                            <option value="pdf" @selected(request('type') === "pdf")>.pdf</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="input-group">
-                                        <input type="search" class="form-control" name="search" placeholder="Search" value="{{ request('search') ?? '' }}">
-                                        <button type="submit" class="btn btn-primary" aria-label="Button: to apply filtering data" title="Button: to apply filtering data">Search</button>
-                                    </div>
-                                </div>
+                            <div class="input-group">
+                                <select name="type" class="form-control" id="type-file" aria-label="Select file type to search">
+                                    <option value="">All</option>
+                                    <option value="png" @selected(request('type') === "png")>.png</option>
+                                    <option value="jpg" @selected(request('type') === "jpg")>.jpg</option>
+                                    <option value="jpeg" @selected(request('type') === "jpeg")>.jpeg</option>
+                                    <option value="webp" @selected(request('type') === "webp")>.webp</option>
+                                    <option value="pdf" @selected(request('type') === "pdf")>.pdf</option>
+                                </select>
+                                <input type="search" class="form-control" name="search" placeholder="Search" value="{{ request('search') ?? '' }}">
+                                <button type="submit" class="btn btn-primary" aria-label="Button: to apply filtering data" title="Button: to apply filtering data">Search</button>
                             </div>
                         </form>
                     </div>

@@ -59,20 +59,11 @@ const uploadQueue = new UploadQueueManager({
      * Handles the scroll event for both files and folders.
      * Loads more data (files or folders) when the user scrolls to the bottom.
      */
-    const listConfigs = {
-            file: {
-                container: document.querySelector("#file-list-container"),
-                list: document.querySelector("#file-list"),
-                currentPage: parseInt(fileList.dataset.currentPage, 10),
-                lastPage: parseInt(fileList.dataset.lastPage, 10),
-            },
-            folder: {
-                container: document.querySelector("#folder-list"),
-                currentPage: parseInt(folderList.dataset.currentPage, 10),
-                lastPage: parseInt(folderList.dataset.lastPage, 10),
-            },
-        },
-        scrolling = {
+    let listConfigs = {
+        file: {},
+        folder: {},
+    };
+    const scrolling = {
             file: false,
             folder: false,
         },
@@ -80,6 +71,25 @@ const uploadQueue = new UploadQueueManager({
             file: 0,
             folder: 0,
         };
+
+    // Check if both #folder-list and #file-list-container elements are exist, then assign file and folder properties object to listConfigs variable
+    if (document.querySelector("#file-list-container")) {
+        listConfigs.file.container = document.querySelector(
+            "#file-list-container"
+        );
+        listConfigs.file.list = document.querySelector("#file-list");
+        listConfigs.file.currentPage = fileList.hasAttribute("current-page")
+            ? parseInt(fileList.dataset.currentPage, 10)
+            : null;
+        listConfigs.file.lastPage = parseInt(fileList.dataset.lastPage, 10);
+    }
+    if (document.querySelector("#folder-list")) {
+        listConfigs.folder.container = document.querySelector("#folder-list");
+        listConfigs.folder.currentPage = fileList.hasAttribute("current-page")
+            ? parseInt(fileList.dataset.currentPage, 10)
+            : null;
+        listConfigs.folder.lastPage = parseInt(fileList.dataset.lastPage, 10);
+    }
 
     Object.keys(listConfigs).forEach((type) => {
         const config = listConfigs[type];
@@ -147,6 +157,10 @@ const uploadQueue = new UploadQueueManager({
             }
 
             const data = await response.json();
+
+            if (data.hasOwnProperty("success") && data.success !== true) {
+                throw new Error(data.message);
+            }
 
             // insert data to list if available
             if (type === "file" && data.hasOwnProperty(`${type}s`)) {

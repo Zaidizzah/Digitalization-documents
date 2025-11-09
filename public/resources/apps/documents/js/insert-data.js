@@ -22,28 +22,47 @@
             credentials: "include",
         }
     )
-        .then((response) => {
-            if (!response.ok) {
+        .then(
+            (response) => {
+                if (!response.ok) {
+                    throw new Error(
+                        "Failed to load evironment resource. Please reload this page and try again later."
+                    );
+                }
+
+                return response.json();
+            },
+            (error) => {
                 throw new Error(
                     "Failed to load evironment resource. Please reload this page and try again later."
                 );
             }
+        )
+        .then(
+            ({
+                success,
+                message,
+                status,
+                OCR_SPACE_API_KEY_HASH,
+                OCR_SPACE_SPARE_API_KEY_HASH,
+            }) => {
+                if (success !== true) {
+                    throw new Error(message);
+                }
 
-            return response.json();
-        })
-        .then(({ OCR_SPACE_API_KEY_HASH, OCR_SPACE_SPARE_API_KEY_HASH }) => {
-            // Set API key
-            OCR_SPACE_API_KEYS = {
-                OCR_SPACE_API_KEY: removeCharacter(
-                    OCR_SPACE_API_KEY_HASH,
-                    "-RajshIks"
-                ),
-                OCR_SPACE_SPARE_API_KEY: removeCharacter(
-                    OCR_SPACE_SPARE_API_KEY_HASH,
-                    "-234567890"
-                ),
-            };
-        })
+                // Set API key
+                OCR_SPACE_API_KEYS = {
+                    OCR_SPACE_API_KEY: removeCharacter(
+                        OCR_SPACE_API_KEY_HASH,
+                        "-RajshIks"
+                    ),
+                    OCR_SPACE_SPARE_API_KEY: removeCharacter(
+                        OCR_SPACE_SPARE_API_KEY_HASH,
+                        "-234567890"
+                    ),
+                };
+            }
+        )
         .catch((error) => {
             // Display error
             toast(error.message, "error");
@@ -706,6 +725,12 @@
                 }
 
                 const data = await response.json();
+
+                if (data.hasOwnProperty("success") && data.success !== true) {
+                    throw new Error(
+                        `Failed to upload and recognize text from file: ${file.name}. Please try again.`
+                    );
+                }
 
                 toast(data.message, data.success ? "success" : "error");
                 // If status succes is false return and die the next code/program

@@ -1,14 +1,12 @@
 // Columns data
-let initialColumns = null;
-let columns = null;
-
-// Tracking for drag & drop in touch events
-let draggedItem = null;
-let dragStartY = 0;
-let currentDropIndicator = null;
-let isDragging = false;
-let dragOffsetY = 0;
-let ghostElement = null;
+let initialColumns = null,
+    columns = null,
+    draggedItem = null,
+    dragStartY = 0,
+    currentDropIndicator = null,
+    isDragging = false,
+    dragOffsetY = 0,
+    ghostElement = null;
 
 /**
  * Renders all columns in the UI, sorted by sequence number. This function
@@ -541,6 +539,10 @@ async function loadColumnsData(url) {
         }
 
         const data = await response.json();
+
+        if (data.hasOwnProperty("success") && data.success !== true) {
+            throw new Error(data.message);
+        }
 
         // create new object of data columns
         initialColumns = JSON.parse(JSON.stringify(data.columns));

@@ -3,6 +3,7 @@
     $ROUTE = [
         'switch-status' => ['route' => (route_check('userguides.index') ? 'userguides.switch-status' : 'userguides.switch-status.named')],
         'activate' => ['route' => (route_check('userguides.index') ? 'userguides.activate' : 'userguides.activate.named')],
+        'deactivate' => ['route' => (route_check('userguides.index') ? 'userguides.deactivate' : 'userguides.deactivate.named')],
         'edit' => ['route' => (route_check('userguides.index') ? 'userguides.edit' : 'userguides.edit.named')],
         'delete' => ['route' => (route_check('userguides.index') ? 'userguides.destroy' : 'userguides.destroy.named')]
     ];
@@ -39,7 +40,7 @@
             <span class="badge badge-{{ $user_guide->document_type !== NULL && $user_guide->document_type !== NULL ? "specific" : "general" }}">
                 {{ ($user_guide->document_type !== NULL && $user_guide->document_type !== NULL) ? "Document type {$user_guide->document_type->name}" : "General" }}
             </span>
-            <form action="{{ route($ROUTE['activate']['route'], $ROUTE['activate']['params']) }}" class="d-inline form-activate-user-guide-data" data-title="{{ $user_guide->title }}" data-switch-to="{{ $user_guide->is_active ? 'Active' : 'Inactive' }}" method="post">
+            <form action="{{ route($ROUTE[((int) $user_guide->is_active === 0 ? 'activate' : 'deactivate')]['route'], $ROUTE['activate']['params']) }}" class="d-inline form-activate-user-guide-data" data-title="{{ $user_guide->title }}" data-switch-to="{{ $user_guide->is_active ? 'Inactive' : 'Active' }}" method="post">
                 @csrf
 
                 @method('PUT')

@@ -33,22 +33,25 @@ class ImagePreview {
         document.body.appendChild(this.previewContainer);
 
         // Tambahkan event listeners untuk menutup preview
-        this.closeButton.onclick = () => this.hidePreview();
-        this.previewContainer.onclick = (e) => {
+        this.closeButton.addEventListener("click", this.hidePreview);
+        this.previewContainer.addEventListener("click", function (e) {
             if (e.target === this.previewContainer) {
                 this.hidePreview();
             }
-        };
-
-        // Tambahkan event listener untuk keyboard
-        document.addEventListener("keydown", (e) => {
-            if (
-                e.key === "Escape" &&
-                this.previewContainer.style.display !== "none"
-            ) {
-                this.hidePreview();
-            }
         });
+
+        // Cek jika event listener keyboard sudah ada
+        if (!document.imgPreviewKeyEventListened) {
+            document.addEventListener("keydown", (e) => {
+                if (
+                    e.key === "Escape" &&
+                    this.previewContainer.style.display !== "none"
+                ) {
+                    this.hidePreview();
+                }
+            });
+            document.imgPreviewKeyEventListened = true;
+        }
     }
 
     initializeImages() {

@@ -180,6 +180,10 @@ class DocumentSchemaBuilder {
 
             const data = await response.json();
 
+            if (data.hasOwnProperty("success") && data.success !== true) {
+                throw new Error(data.message);
+            }
+
             toast(data.message, data.success ? "success" : "error");
 
             if (data.success) {
@@ -280,6 +284,10 @@ class DocumentSchemaBuilder {
             }
 
             const data = await response.json();
+
+            if (data.hasOwnProperty("success") && data.success !== true) {
+                throw new Error(data.message);
+            }
 
             toast(data.message, data.success ? "success" : "error");
 
@@ -1030,9 +1038,6 @@ class DocumentSchemaBuilder {
                     if (input.type === "checkbox") {
                         attribute.rules[ruleName] = input.checked;
                     } else {
-                        if (ruleName === "defaultValue")
-                            console.log(input.value);
-
                         attribute.rules[ruleName] = input.value || null;
                     }
                 }
@@ -1179,6 +1184,12 @@ class DocumentSchemaBuilder {
                         "Select type must have at least one option"
                     );
                 }
+            }
+
+            // Validate Datetime rules
+            if (type === "datetime" && ruleName === "format") {
+                if (value === null)
+                    throw new Error(`Rule "${ruleName}" must not be null`);
             }
         }
 

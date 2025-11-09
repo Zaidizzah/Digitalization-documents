@@ -1534,6 +1534,20 @@ class SchemaBuilder
                 'table' => $new_schema_table,
                 'form' => $new_schema_form
             ];
+        } catch (\RuntimeException $e) {
+            // Check if schema form rule fields has been modified
+            if ($e->getCode() === Response::HTTP_NOT_MODIFIED) {
+                // Return the original table and old form schema if any attributes has changed or midified by user
+                if (self::detect_schema_form_metadata_changes($old_form_schema, $new_form_schema)) {
+                    return [
+                        'table_name' => $table_name,
+                        'table' => $old_table_schema,
+                        'form' => self::update_schema_for_table_and_form($old_form_schema, $new_form_schema, $table_name)
+                    ];
+                } else {
+                    throw $e;
+                }
+            }
         } catch (\Exception $e) {
             throw new \RuntimeException(
                 sprintf(
@@ -1733,8 +1747,6 @@ class SchemaBuilder
      */
     public static function add_column(string $table_name, array $old_table_schema, array $new_table_schema)
     {
-        // dd($table_name, $old_table_schema, $new_table_schema, empty($new_table_schema));
-
         // check if table nama is not empty
         if (empty($table_name))
             throw new \InvalidArgumentException(
@@ -2078,7 +2090,7 @@ class SchemaBuilder
                     }
                 )
             );
-            $metadata_changes = self::detect_schema_metadata_changes($old_column_value, $new_column_value);
+            $metadata_changes = self::detect_schema_table_metadata_changes($old_column_value, $new_column_value);
             $name_changed = $old_column_name !== $new_column_name;
 
             if ($name_changed || $metadata_changes) {
@@ -2092,7 +2104,7 @@ class SchemaBuilder
         }
 
         if (empty($updates)) {
-            throw new \Exception('No updates needed.', Response::HTTP_NOT_MODIFIED);
+            throw new \RuntimeException('No updates needed.', Response::HTTP_NOT_MODIFIED);
         }
 
         foreach ($updates as $update) {
@@ -2112,13 +2124,50 @@ class SchemaBuilder
      * @param array $new_column The new column definition.
      * @return bool Whether any metadata changes are needed.
      */
-    private static function detect_schema_metadata_changes(array $old_column, array $new_column): bool
+    private static function detect_schema_table_metadata_changes(array $old_column, array $new_column): bool
     {
         $fields = ['type', 'maxLength', 'nullable', 'unique', 'default', 'enumValues'];
         foreach ($fields as $field) {
             if (Arr::has($old_column, $field) && Arr::has($new_column, $field)) {
                 if ($old_column[$field] !== $new_column[$field]) {
                     return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Detects if any schema metadata changes are needed between two form schema arrays.
+     *
+     * This function compares the two form schema arrays and returns true if any
+     * metadata fields have changed (name, type, required, unique, and rules).
+     * It is used to optimize form schema updates by only applying changes when
+     * actual changes are needed. And then merge the new form schema with the old form schema.
+     *
+     * @param array $old_form_schema The old form schema definition.
+     * @param array $new_form_schema The new form schema definition.
+     * @return bool Whether any metadata changes are needed.
+     */
+    private static function detect_schema_form_metadata_changes(array $old_form_schema, array $new_form_schema): bool
+    {
+        $FILTERED_OLD_SCHEMA_ATTRIBUTES = array_filter($old_form_schema, function ($value, $key) use ($new_form_schema) {
+            return array_key_exists($key, $new_form_schema);
+        }, ARRAY_FILTER_USE_BOTH);
+
+        foreach ($new_form_schema as $new_column_key => $new_column_value) {
+            $fields = array_diff(array_keys($new_form_schema[$new_column_key]), ['updated_at', 'id', 'created_at', 'sequence_number']);
+
+            foreach ($fields as $field) {
+                if (Arr::has($FILTERED_OLD_SCHEMA_ATTRIBUTES, $new_column_key)) {
+                    if ($FILTERED_OLD_SCHEMA_ATTRIBUTES[$new_column_key][$field] !== $new_form_schema[$new_column_key][$field]) {
+                        if (gettype($FILTERED_OLD_SCHEMA_ATTRIBUTES[$new_column_key][$field]) !== 'array') return true;
+                        else {
+                            foreach ($FILTERED_OLD_SCHEMA_ATTRIBUTES[$new_column_key][$field] as $key => $value) {
+                                if ($value !== $new_form_schema[$new_column_key][$field][$key]) return true;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2183,7 +2232,7 @@ class SchemaBuilder
                 // log error
                 Log::error(
                     sprintf(
-                        "System error: failed to roll back changes columns to table '%s'. Error: %s",
+                        "System error: failed to rollback changes for table columnc in table '%s'. Error: %s",
                         $table_name,
                         $e->getMessage()
                     )
@@ -2191,7 +2240,7 @@ class SchemaBuilder
 
                 throw new \RuntimeException(
                     sprintf(
-                        "System error: failed to roll back changes to table '%s'.",
+                        "System error: failed to rollback changes for table '%s'.",
                         $table_name
                     ),
                     Response::HTTP_INTERNAL_SERVER_ERROR

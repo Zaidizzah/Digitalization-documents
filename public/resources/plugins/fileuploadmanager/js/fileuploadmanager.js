@@ -86,6 +86,14 @@ class UploadQueueManager {
                 LOADER.show(true, "bottom-left");
 
                 const response = await this.uploadFile(this.uploadUrl, file);
+
+                if (
+                    response.hasOwnProperty("success") &&
+                    response.success !== true
+                ) {
+                    throw new Error(response.message);
+                }
+
                 this.uploadedFiles++;
 
                 // show toast notification on success

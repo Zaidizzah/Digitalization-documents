@@ -35,7 +35,7 @@
             }
 
             $HTML .= "
-                <div class=\"user-guides-tree-item " . ($isSelected ? 'selected' : '') . " " . ($isActive ? 'active' : '') . "\"
+                <div class=\"user-guides-tree-item " . ($isActive ? 'active' : '') . "\"
                     title=\"{$title}\"
                     role=\"treeitem\"
                     data-level=\"{$LEVEL}\"
@@ -55,7 +55,7 @@
                             name=\"parent_id\"
                             value=\"{$id}\"
                             class=\"radio-input\"
-                            id=\"user-guides-radio-{$id}\" " . ($isSelected ? 'checked' : '') . " aria-checked=\"" . ($isSelected ? 'true' : 'false') . "\" " . ($isActive ? "disabled aria-disabled=\"true\"" : "aria-disabled=\"false\"") . "\">
+                            id=\"user-guides-radio-{$id}\" " . ($isActive ? 'checked' : '') . " aria-checked=\"" . ($isActive ? 'true' : 'false') . "\" " . ($isActive ? 'disabled aria-disabled=\"true\"' : 'aria-disabled=\"false\"') . " role=\"radio\">
 
                         <span class=\"item-title\">{$title}</span>
 

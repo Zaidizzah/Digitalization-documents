@@ -142,9 +142,7 @@
                         data.hasOwnProperty("success") &&
                         data.success !== true
                     ) {
-                        throw new Error(
-                            "Failed to get user data. Please try again."
-                        );
+                        throw new Error(data.message);
                     }
 
                     // Set the form data

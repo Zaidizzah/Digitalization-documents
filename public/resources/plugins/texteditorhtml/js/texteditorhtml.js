@@ -160,6 +160,22 @@ const SHOWDOWN = new showdown.Converter({
 });
 
 class TextEditorHTML {
+    containerId;
+    container;
+    options;
+    texteditorAttributes;
+    slashCommandActive;
+    dragSelection;
+    editorContainer;
+    textarea;
+    previewContent;
+    fileInput;
+    slashCommandsMenu;
+    _cachedCharWidth;
+    tableGridMenu;
+    options;
+    static IinitCounter = 0;
+
     constructor(containerId, options = {}) {
         this.containerId = containerId;
         this.container = document.querySelector(`#${containerId}`);
@@ -168,12 +184,19 @@ class TextEditorHTML {
             showSettings: options.showSettings || true,
             showFooter: options.showFooter || true,
             attributes: options.attributes || {},
+            ...options,
         };
 
         this.init();
     }
 
     init() {
+        // Check if Init has already been called and more than one
+        if (TextEditorHTML.IinitCounter > 1) {
+            console.error("TextEditorHTML has already been initialized");
+            return;
+        }
+
         if (!this.container) {
             console.error(`Container with id "${this.containerId}" not found`);
             return;
@@ -287,6 +310,7 @@ class TextEditorHTML {
         this.updatePreview();
         this.slashCommandActive = false;
         this.dragSelection = null;
+        TextEditorHTML.IinitCounter++;
     }
 
     createEditorHTML() {
@@ -299,7 +323,7 @@ class TextEditorHTML {
                             </div>
                             <div class="toolbar">
                                 <!-- Bold Button -->
-                                <button class="toolbar-btn" data-action="bold" title="Bold (Ctrl+B)">
+                                <button class="toolbar-btn" type="button" role="button" data-action="bold" title="Bold (Ctrl+B)">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M6 4h8.5a4.5 4.5 0 0 1 3.256 7.606A5 5 0 0 1 15.5 20H6V4zm2.5 2.5v5h5.5a2 2 0 1 0 0-4H8.5zm0 7.5v4h7a2.5 2.5 0 0 0 0-5H8.5z"
                                             fill="currentColor"/>
@@ -307,7 +331,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Italic Button -->
-                                <button class="toolbar-btn" data-action="italic" title="Italic (Ctrl+I)">
+                                <button class="toolbar-btn" type="button" role="button" data-action="italic" title="Italic (Ctrl+I)">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
                                         <path d="M10 4h6M8 20h6m1-16-4 16"
                                             stroke="currentColor"
@@ -318,7 +342,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Header Button -->
-                                <button class="toolbar-btn" data-action="header" title="Header">
+                                <button class="toolbar-btn" type="button" role="button" data-action="header" title="Header">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
                                         <path d="M6 12h12M6 20V4m6 16V4"
                                             stroke="currentColor"
@@ -329,7 +353,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Quote Button -->
-                                <button class="toolbar-btn" data-action="quote" title="Quote">
+                                <button class="toolbar-btn" type="button" role="button" data-action="quote" title="Quote">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1zM15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h2v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
                                             fill="currentColor"/>
@@ -337,14 +361,14 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Code Button -->
-                                <button class="toolbar-btn" data-action="code" title="Code">
+                                <button class="toolbar-btn" type="button" role="button" data-action="code" title="Code">
                                     <svg viewBox="0 0 16 16">
                                         <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z"/>
                                     </svg>
                                 </button>
 
                                 <!-- Link Button -->
-                                <button class="toolbar-btn" data-action="link" title="Link (Ctrl+K)">
+                                <button class="toolbar-btn" type="button" role="button" data-action="link" title="Link (Ctrl+K)">
                                     <svg viewBox="0 0 16 16">
                                         <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/>
                                         <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/>
@@ -352,7 +376,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Unordered List Button -->
-                                <button class="toolbar-btn" data-action="list" title="Bullet List">
+                                <button class="toolbar-btn" type="button" role="button" data-action="list" title="Bullet List">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
                                         <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                         <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -364,7 +388,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Numbered List Button -->
-                                <button class="toolbar-btn" data-action="ordered-list" title="Numbered List">
+                                <button class="toolbar-btn" type="button" role="button" data-action="ordered-list" title="Numbered List">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
                                         <line x1="10" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                         <line x1="10" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -378,7 +402,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Task List Button -->
-                                <button class="toolbar-btn" data-action="task-list" title="Task List">
+                                <button class="toolbar-btn" type="button" role="button" data-action="task-list" title="Task List">
                                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M3 3h6a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 9 12H3a1.5 1.5 0 0 1-1.5-1.5v-6A1.5 1.5 0 0 1 3 3Zm6.983 12.893a1.125 1.125 0 0 1 0 1.59l-3.938 3.938a1.125 1.125 0 0 1-1.59 0l-2.25-2.25a1.124 1.124 0 0 1 .489-1.913 1.124 1.124 0 0 1 1.101.323l1.455 1.455 3.143-3.143a1.125 1.125 0 0 1 1.59 0ZM14.625 3.75h8.25a1.125 1.125 0 0 1 0 2.25h-8.25a1.125 1.125 0 0 1 0-2.25Zm0 7.5h8.25a1.125 1.125 0 0 1 0 2.25h-8.25a1.125 1.125 0 0 1 0-2.25Zm0 7.5h8.25a1.125 1.125 0 0 1 0 2.25h-8.25a1.125 1.125 0 0 1 0-2.25ZM3.375 5.625v4.5h4.5v-4.5Z"
                                             fill="currentColor"/>
@@ -386,7 +410,7 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Summary/Details Button -->
-                                <button class="toolbar-btn" data-action="summary" title="Summary">
+                                <button class="toolbar-btn" type="button" role="button" data-action="summary" title="Summary">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
                                         <path d="M2 2h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5.414L2 14V3a1 1 0 0 1 1-1z"/>
                                         <circle cx="5" cy="7" r="1"/>
@@ -396,28 +420,28 @@ class TextEditorHTML {
                                 </button>
 
                                 <!-- Table Button -->
-                                <button class="toolbar-btn" data-action="table" title="Table">
+                                <button class="toolbar-btn" type="button" role="button" data-action="table" title="Table">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
                                         <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h11A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11zM2.5 2a.5.5 0 0 0-.5.5V5h12V2.5a.5.5 0 0 0-.5-.5h-11zM14 6H2v4h12V6zM2 11v2.5a.5.5 0 0 0 .5.5H5v-3H2zm4 0v3h4v-3H6zm5 0v3h2.5a.5.5 0 0 0 .5-.5V11h-3z"/>
                                     </svg>
                                 </button>
 
                                 <!-- Hr Button -->
-                                <button class="toolbar-btn" data-action="hr" title="Hr">
+                                <button class="toolbar-btn" type="button" role="button" data-action="hr" title="Hr">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
                                         <rect x="2" y="7.5" width="12" height="1" rx="0.5"/>
                                     </svg>
                                 </button>
 
                                 <!-- Alert Button -->
-                                <button class="toolbar-btn" data-action="alert" title="Alert">
+                                <button class="toolbar-btn" type="button" role="button" data-action="alert" title="Alert">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M7.938 2.016a.13.13 0 0 1 .125 0l6.857 11.856c.04.069.08.176.08.253 0 .275-.223.5-.5.5H1.5a.5.5 0 0 1-.5-.5c0-.077.04-.184.08-.253L7.938 2.016zM8 5c-.535 0-.954.462-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 5zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
                                     </svg>
                                 </button>
 
                                 <!-- Image Button -->
-                                <button class="toolbar-btn" data-action="image" title="Insert Image">
+                                <button class="toolbar-btn" type="button" role="button" data-action="image" title="Insert Image">
                                     <svg viewBox="0 0 16 16">
                                         <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
                                         <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
@@ -450,12 +474,32 @@ class TextEditorHTML {
     }
 
     initializeElements() {
+        // Initializing unique ID to CONTAINER element
+        this.container.id = `texteditorhtml-${TextEditorHTML.IinitCounter}`;
+
         this.editorContainer = this.container.querySelector(
             ".text-editor-html-container"
         );
-        this.textarea = this.container.querySelector(".editor-textarea");
-        this.previewContent = this.container.querySelector(".preview-content");
-        this.fileInput = this.container.querySelector(".file-input");
+        this.textarea = this.options.hasOwnProperty("textarea")
+            ? this.container.querySelector(`#${this.options.textarea}`)
+            : this.container.querySelector(".editor-textarea");
+        this.previewContent = this.options.hasOwnProperty("previewContent")
+            ? this.container.querySelector(`#${this.options.previewContent}`)
+            : this.container.querySelector(".preview-content");
+        this.fileInput = this.options.hasOwnProperty("fileInput")
+            ? this.container.querySelector(`#${this.options.fileInput}`)
+            : this.container.querySelector(".file-input");
+
+        if (
+            this.textarea instanceof HTMLTextAreaElement === false ||
+            this.previewContent instanceof HTMLDivElement === false ||
+            this.fileInput instanceof HTMLInputElement === false
+        ) {
+            console.error(
+                "Please provide valid textarea, previewContent, and fileInput elements. So that the TextEditorHTML can work properly."
+            );
+            return;
+        }
 
         // Initialize SlashCommands manu
         this.slashCommandsMenu = document.createElement("div");
@@ -481,6 +525,7 @@ class TextEditorHTML {
         this.container.querySelectorAll(".tab").forEach((tab) => {
             tab.addEventListener("click", (e) => {
                 e.preventDefault();
+
                 this.switchTab(e.target.dataset.tab);
             });
         });
@@ -494,8 +539,6 @@ class TextEditorHTML {
             btn.addEventListener("click", (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
-                console.log("tabPreview: ", tabPreview);
 
                 // Switch to write mode first if in preview mode
                 if (
@@ -1091,6 +1134,13 @@ class TextEditorHTML {
             const RESULT_RESPONSE = await response.json();
 
             if (
+                RESULT_RESPONSE.hasOwnProperty("success") &&
+                RESULT_RESPONSE.success !== true
+            ) {
+                throw new Error(RESULT_RESPONSE.message);
+            }
+
+            if (
                 (RESULT_RESPONSE.hasOwnProperty("path") &&
                     RESULT_RESPONSE.hasOwnProperty("filename") &&
                     RESULT_RESPONSE.path === undefined &&
@@ -1181,8 +1231,19 @@ class TextEditorHTML {
     }
 
     updatePreview() {
+        if (this.previewContent instanceof HTMLDivElement === false) {
+            console.error(
+                "Preview content element not found. Please provide valid preview content element while initializing editor."
+            );
+            return;
+        }
+
         const markdown = this.textarea.value;
+
+        // Showing loader
+        LOADER.show();
         const html = SHOWDOWN.makeHtml(markdown.replace(/\r\n/g, "\n").trim());
+        LOADER.hide();
         this.previewContent.innerHTML = html;
 
         // Check if Highlight.js is loaded
@@ -1400,9 +1461,6 @@ class TextEditorHTML {
 
                     // Remove event listener
                     document.removeEventListener("click", onClickOutside);
-                    menu.querySelector(
-                        ".__button#table-grid-menu-insert"
-                    )?.removeEventListener("click", () => {});
                 }
             };
             document.addEventListener("click", onClickOutside);
@@ -1796,6 +1854,7 @@ class TextEditorHTML {
             console.error(
                 "Failed to set a new value of texteditor, because textarea editor property does'nt declared or initialized ELEMENT/HTMLTEXTAREAELEMENT instance."
             );
+            return;
         }
     }
 
@@ -1810,11 +1869,5 @@ class TextEditorHTML {
 
     focus() {
         this.textarea.focus();
-    }
-
-    destroy() {
-        if (this.container) {
-            this.container.innerHTML = "";
-        }
     }
 }

@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
             Route::put('user-guides/update/{id}', [SettingController::class, 'user_guide__update'])->name('userguides.update');
             Route::delete('user-guides/delete/{id}', [SettingController::class, 'user_guide__destroy'])->name('userguides.destroy');
             Route::put('user-guides/activate/{id}', [SettingController::class, 'user_guide__activate'])->name('userguides.activate');
+            Route::put('user-guides/deactivate/{id}', [SettingController::class, 'user_guide__deactivate'])->name('userguides.deactivate');
             // Index User Guide route adding in last route sequence to provide the highest priority
             Route::get('user-guides', [SettingController::class, 'user_guide__index'])->name('userguides.index');
         });
@@ -128,6 +129,7 @@ Route::middleware('auth')->group(function () {
             Route::put('{name}/user-guides/update/{id}', [SettingController::class, 'user_guide__update'])->where('name', '^(?!update$).*')->name('userguides.update.named');
             Route::delete('{name}/user-guides/delete/{id}', [SettingController::class, 'user_guide__destroy'])->where('name', '^(?!delete$).*')->name('userguides.destroy.named');
             Route::put('{name}/user-guides/activate/{id}', [SettingController::class, 'user_guide__activate'])->where('name', '^(?!activate$).*')->name('userguides.activate.named');
+            Route::put('{name}/user-guides/deactivate/{id}', [SettingController::class, 'user_guide__deactivate'])->where('name', '^(?!deactivate$).*')->name('userguides.deactivate.named');
             // Index User Guide route adding in last route sequence to provide the highest priority
             Route::get('{name}/user-guides', [SettingController::class, 'user_guide__index'])->name('userguides.index.named');
 

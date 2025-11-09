@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\DocumentType;
 use App\Traits\ApiResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Events\RouteMatched;
+use Illuminate\Support\Facades\Cache;
 
 class SettingController extends Controller
 {
@@ -34,9 +36,10 @@ class SettingController extends Controller
 
         // validate request
         $validator = Validator::make(
-            $request->only(['file']),
+            $request->only(['file', 'documents']),
             [
-                'file' => FileRule::types(['avif', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'])->max(20 * 1024 * 1024)
+                'file' => FileRule::types(['avif', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'])->max(20 * 1024 * 1024),
+                'documents' => 'nullable|string|exists:files,en'
             ]
         );
 
@@ -174,20 +177,44 @@ class SettingController extends Controller
             return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
         }
 
+        $DOCUMENT_TYPE = null;
         if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
         // Get user guides data just ID, PARENT_ID, and TITLE fields
-        $DATA = UserGuides::with(['document_type' => function ($query) {
-            $query->select('id', 'name', 'long_name');
-        }, 'children' => function ($query) {
-            $query->orderBy('created_at', 'desc');
-        }]);
+        $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
+            $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
 
-        if (isset($DOCUMENT_TYPE)) $DATA = $DATA->where('document_type_id', $DOCUMENT_TYPE->id);
-        else $DATA = $DATA->whereNull('document_type_id');
-        $DATA = $DATA->whereNull('parent_id')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->withQueryString();
+            if (isset($DOCUMENT_TYPE)) $USER_GUIDES = $USER_GUIDES->where('document_type_id', $DOCUMENT_TYPE->id);
+            else $USER_GUIDES = $USER_GUIDES->whereNull('document_type_id');
+            return $USER_GUIDES->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')
+                ->pluck('id')
+                ->toArray();
+        });
+
+        $P__PER_PAGE = 10;
+        $P__PAGE = $request->get('page', 1);
+        $P__OFFSET = ($P__PAGE - 1) * $P__PER_PAGE;
+
+        $DATA = new LengthAwarePaginator(
+            UserGuides::with(['document_type' => function ($query) {
+                $query->select('id', 'name', 'long_name');
+            }, 'children' => function ($query) {
+                $query->orderBy('title', 'desc');
+            }])->when(isset($DOCUMENT_TYPE), function ($query) use ($DOCUMENT_TYPE) {
+                $query->where('document_type_id', $DOCUMENT_TYPE->id);
+            }, function ($query) {
+                $query->whereNull('document_type_id');
+            })->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')->whereIn('id', array_slice($DATA, $P__OFFSET, $P__PER_PAGE))->get(),
+            count($DATA),
+            $P__PER_PAGE,
+            $P__PAGE,
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
+        );
+
         // Check if user guide not found or NULL
         if ($DATA->isEmpty()) {
             return $this->not_found_response("List of user guide data's not found.");
@@ -196,7 +223,28 @@ class SettingController extends Controller
         return $this->success_response("List of user guide data's has successfully found.", ['html' => view('partials.userguide-create-edit-tree-item', ['USER_GUIDES' => $DATA, 'DOCUMENT_TYPE' => $DOCUMENT_TYPE ?? NULL])->render()]);
     }
 
-    public function user_guide__index(?string $name = null)
+    public function __get_user_guide_content(Request $request, int $id)
+    {
+        // Check if content type of request is want json
+        if ($request->wantsJson() === FALSE) {
+            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+        }
+
+        $USER_GUIDE = UserGuides::with(['document_type' => function ($query) {
+            $query->select('id', 'name', 'long_name');
+        }, 'children' => function ($query) {
+            $query->orderBy('title', 'desc');
+        }])->where('id', $id)->first();
+
+        // Check if user guide not found or NULL
+        if (empty($USER_GUIDE)) {
+            return $this->not_found_response("User guide data with ID {$id} is not found.");
+        }
+
+        return $this->success_response("User guide data has successfully found.", ['data' => $USER_GUIDE->content]);
+    }
+
+    public function user_guide__index(Request $request, ?string $name = null)
     {
         $resources = build_resource_array(
             'User Guide',
@@ -225,6 +273,7 @@ class SettingController extends Controller
             ]
         );
 
+        $DOCUMENT_TYPE = null;
         if (empty($name) !== true) {
             $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
 
@@ -241,25 +290,78 @@ class SettingController extends Controller
             $resources['breadcrumb']['User Guide'] = route('userguides.index.named', $name);
         }
         // Get user guides data just ID, PARENT_ID, and TITLE fields
-        $DATA = UserGuides::with(['document_type' => function ($query) {
-            $query->select('id', 'name', 'long_name');
-        }, 'children' => function ($query) {
-            $query->orderBy('title', 'desc');
-        }]);
+        $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
+            $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
 
-        if (isset($DOCUMENT_TYPE)) $DATA = $DATA->where('document_type_id', $DOCUMENT_TYPE->id);
-        else $DATA = $DATA->whereNull('document_type_id');
-        $DATA = $DATA->whereNull('parent_id')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->withQueryString();
+            if (isset($DOCUMENT_TYPE)) $USER_GUIDES = $USER_GUIDES->where('document_type_id', $DOCUMENT_TYPE->id);
+            else $USER_GUIDES = $USER_GUIDES->whereNull('document_type_id');
+            return $USER_GUIDES->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')
+                ->pluck('id')
+                ->toArray();
+        });
+
+        $P__PER_PAGE = 10;
+        $P__PAGE = $request->get('page', 1);
+        $P__OFFSET = ($P__PAGE - 1) * $P__PER_PAGE;
+
+        $DATA = new LengthAwarePaginator(
+            UserGuides::with(['document_type' => function ($query) {
+                $query->select('id', 'name', 'long_name');
+            }, 'children' => function ($query) {
+                $query->orderBy('title', 'desc');
+            }])->when(isset($DOCUMENT_TYPE), function ($query) use ($DOCUMENT_TYPE) {
+                $query->where('document_type_id', $DOCUMENT_TYPE->id);
+            }, function ($query) {
+                $query->whereNull('document_type_id');
+            })->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')->whereIn('id', array_slice($DATA, $P__OFFSET, $P__PER_PAGE))->get(),
+            count($DATA),
+            $P__PER_PAGE,
+            $P__PAGE,
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
+        );
+
         $resources['user_guides'] = $DATA;
         $resources['document_type'] = $DOCUMENT_TYPE ?? NULL;
 
         return view('apps.userguides.index', $resources);
     }
 
-    public function user_guide__activate(array ...$params)
+    public function user_guide__activate(mixed ...$params)
+    {
+        // Check if length of $params is more than 2
+        if (count($params) > 2) {
+            abort(404);
+        }
+
+        $id = $name = null;
+        for ($i = 0; $i < count($params); $i++) {
+            if (empty($params[$i]) !== true && is_numeric($params[$i])) {
+                $id = (int)$params[$i];
+            } else {
+                $name = $params[$i];
+            }
+        }
+
+        $USER_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+            $query->where(function ($query) use ($name) {
+                $query->whereHas('document_type', function ($query) use ($name) {
+                    $query->where('name', $name)->where('is_active', 0);
+                });
+            });
+        })->where('is_active', 0)->findOrFail($id);
+
+        $USER_GUIDE->is_active = 1; // Change visibility status active
+        $USER_GUIDE->save();
+
+        return redirect()->back()->with('message', toast("User guide status has succesfully changed to 'Active'", 'success'));
+    }
+
+    public function user_guide__deactivate(mixed ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -281,16 +383,15 @@ class SettingController extends Controller
                     $query->where('name', $name)->where('is_active', 1);
                 });
             });
-        })->findOrFail($id);
+        })->where('is_active', 1)->findOrFail($id);
 
-        $status = $USER_GUIDE->is_active === 0 ? "Inactivate" : "Activate";
-        $USER_GUIDE->is_active = $status === "Activate" ? 0 : 1; // Change visibility status (active & inactive)
+        $USER_GUIDE->is_active = 0; // Change visibility status inactive
         $USER_GUIDE->save();
 
-        return redirect()->back()->with('message', toast("User guide status has succesfully changed to $status", 'success'));
+        return redirect()->back()->with('message', toast("User guide status has succesfully changed to 'Inactive'", 'success'));
     }
 
-    public function user_guide__create(?string $name = null)
+    public function user_guide__create(Request $request, ?string $name = null)
     {
         $resources = build_resource_array(
             // List of data for the page
@@ -341,24 +442,44 @@ class SettingController extends Controller
             ]
         );
 
+        $DOCUMENT_TYPE = NULL;
         if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
         // Get user guides data just ID, PARENT_ID, and TITLE fields
-        $DATA = UserGuides::with(['document_type' => function ($query) {
-            $query->select('id', 'name', 'long_name');
-        }, 'children' => function ($query) {
-            $query->orderBy('created_at', 'desc');
-        }]);
+        $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
+            $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
 
-        if (isset($DOCUMENT_TYPE)) {
-            $DATA = $DATA->where('document_type_id', $DOCUMENT_TYPE->id);
-            $resources['breadcrumb'] = array_merge(array_slice($resources['breadcrumb'], 0, 1, true), ['Documents' => route('documents.index'), "Document type {$DOCUMENT_TYPE->name}"], array_slice($resources['breadcrumb'], 1, null, true));
-        } else {
-            $DATA = $DATA->whereNull('document_type_id');
-        }
-        $DATA = $DATA->whereNull('parent_id')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->withQueryString();
+            if (isset($DOCUMENT_TYPE)) $USER_GUIDES = $USER_GUIDES->where('document_type_id', $DOCUMENT_TYPE->id);
+            else $USER_GUIDES = $USER_GUIDES->whereNull('document_type_id');
+            return $USER_GUIDES->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')
+                ->pluck('id')
+                ->toArray();
+        });
+
+        $P__PER_PAGE = 10;
+        $P__PAGE = $request->get('page', 1);
+        $P__OFFSET = ($P__PAGE - 1) * $P__PER_PAGE;
+
+        $DATA = new LengthAwarePaginator(
+            UserGuides::with(['document_type' => function ($query) {
+                $query->select('id', 'name', 'long_name');
+            }, 'children' => function ($query) {
+                $query->orderBy('title', 'desc');
+            }])->when(isset($DOCUMENT_TYPE), function ($query) use ($DOCUMENT_TYPE) {
+                $query->where('document_type_id', $DOCUMENT_TYPE->id);
+            }, function ($query) {
+                $query->whereNull('document_type_id');
+            })->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')->whereIn('id', array_slice($DATA, $P__OFFSET, $P__PER_PAGE))->get(),
+            count($DATA),
+            $P__PER_PAGE,
+            $P__PAGE,
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
+        );
+
         $resources['user_guides'] = $DATA;
         $resources['document_type'] = $DOCUMENT_TYPE ?? NULL;
 
@@ -371,9 +492,11 @@ class SettingController extends Controller
 
         // Get document_type_id from parent list 
         if ($request->input('parent_id') !== null) {
-            $PARENT_GUIDE = UserGuides::where(function ($query) use ($name) {
-                $query->whereHas('document_type', function ($query) use ($name) {
-                    $query->where('name', $name)->where('is_active', 1);
+            $PARENT_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+                $query->where(function ($query) use ($name) {
+                    $query->whereHas('document_type', function ($query) use ($name) {
+                        $query->where('name', $name)->where('is_active', 1);
+                    });
                 });
             })->find((int) $request->input('parent_id'));
 
@@ -413,7 +536,7 @@ class SettingController extends Controller
         return redirect()->route(($name !== null ? 'userguides.create.named' : 'userguides.create'), $name ?? [])->with('message', toast('User guide was created successfully!', 'success'));
     }
 
-    public function user_guide__edit(array ...$params)
+    public function user_guide__edit(Request $request, mixed ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -430,7 +553,7 @@ class SettingController extends Controller
         }
 
         // Check if $ID and $NAME variable is not empty or NULL 
-        $CURRENT_DATA = UserGuides::select('id', 'parent_id', 'title', 'slug', 'content')->findOrFail($id);
+        $CURRENT_DATA = UserGuides::select('id', 'parent_id', 'title', 'path', 'content')->findOrFail($id);
         $FORMATED_CONTENT = $CURRENT_DATA->content ? str_replace('`', '\`', e($CURRENT_DATA->content)) : ""; // Formatting or encode special char to prevent an error
         $resources = build_resource_array(
             // List of data for the page
@@ -486,24 +609,44 @@ class SettingController extends Controller
             ]
         );
 
+        $DOCUMENT_TYPE = null;
         if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
         // Get user guides data just ID, PARENT_ID, and TITLE fields
-        $DATA = UserGuides::with(['document_type' => function ($query) {
-            $query->select('id', 'name', 'long_name');
-        }, 'children' => function ($query) {
-            $query->orderBy('created_at', 'desc');
-        }]);
+        $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
+            $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
 
-        if (isset($DOCUMENT_TYPE)) {
-            $DATA = $DATA->where('document_type_id', $DOCUMENT_TYPE->id);
-            $resources['breadcrumb'] = array_merge(array_slice($resources['breadcrumb'], 0, 1, true), ['Documents' => route('documents.index'), "Document type {$DOCUMENT_TYPE->name}"], array_slice($resources['breadcrumb'], 1, null, true));
-        } else {
-            $DATA = $DATA->whereNull('document_type_id');
-        }
-        $DATA = $DATA->whereNull('parent_id')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->withQueryString();
+            if (isset($DOCUMENT_TYPE)) $USER_GUIDES = $USER_GUIDES->where('document_type_id', $DOCUMENT_TYPE->id);
+            else $USER_GUIDES = $USER_GUIDES->whereNull('document_type_id');
+            return $USER_GUIDES->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')
+                ->pluck('id')
+                ->toArray();
+        });
+
+        $P__PER_PAGE = 10;
+        $P__PAGE = $request->get('page', 1);
+        $P__OFFSET = ($P__PAGE - 1) * $P__PER_PAGE;
+
+        $DATA = new LengthAwarePaginator(
+            UserGuides::with(['document_type' => function ($query) {
+                $query->select('id', 'name', 'long_name');
+            }, 'children' => function ($query) {
+                $query->orderBy('title', 'desc');
+            }])->when(isset($DOCUMENT_TYPE), function ($query) use ($DOCUMENT_TYPE) {
+                $query->where('document_type_id', $DOCUMENT_TYPE->id);
+            }, function ($query) {
+                $query->whereNull('document_type_id');
+            })->whereNull('parent_id')
+                ->orderBy('created_at', 'desc')->whereIn('id', array_slice($DATA, $P__OFFSET, $P__PER_PAGE))->get(),
+            count($DATA),
+            $P__PER_PAGE,
+            $P__PAGE,
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
+        );
+
         $resources['user_guides'] = $DATA;
         $resources['CURRENT_DATA'] = $CURRENT_DATA;
         $resources['document_type'] = $DOCUMENT_TYPE ?? NULL;
@@ -511,7 +654,7 @@ class SettingController extends Controller
         return view('apps.userguides.create-edit', $resources);
     }
 
-    public function user_guide__update(Request $request, array ...$params)
+    public function user_guide__update(Request $request, mixed ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -543,14 +686,17 @@ class SettingController extends Controller
 
         // Get document_type_id from parent list 
         if ($request->input('parent_id') !== null) {
-            $PARENT_GUIDE = UserGuides::where(function ($query) use ($name) {
-                $query->whereHas('document_type', function ($query) use ($name) {
-                    $query->where('name', $name)->where('is_active', 1);
+            $PARENT_GUIDE = UserGuides::when($name !== NULL, function ($query) use ($name) {
+                $query->where(function ($query) use ($name) {
+                    $query->whereHas('document_type', function ($query) use ($name) {
+                        $query->where('name', $name)->where('is_active', 1);
+                    });
                 });
             })->find((int) $request->input('parent_id'));
+            dd($request->input('parent_id'), $PARENT_GUIDE);
 
             if ($PARENT_GUIDE === NULL) {
-                return redirect()->back()->with('message', toast('Parent for new user guide is not found. Please choose another valid parent user guide.', 'error'))->withInput();
+                return redirect()->back()->with('message', toast('Parent for current user guide is not found. Please choose another valid parent user guide.', 'error'))->withInput();
             }
         }
 
@@ -558,6 +704,7 @@ class SettingController extends Controller
         $PATH = Str::slug($request->input('title'));
         if (isset($PARENT_GUIDE)) {
             $PATH = "{$PARENT_GUIDE->path}/$PATH";
+            dd($PATH, $PARENT_GUIDE);
             // Check if path already exist
             if (UserGuides::where('parent_id', $PARENT_GUIDE->id)->where('is_active', 1)->where('id', '!=', $USER_GUIDE->id)->where('path', $PATH)->exists()) {
                 return redirect()->back()->with('message', toast('New user guide already exist or duplicated. Please try again or change with another title.', 'error'))->withInput();
@@ -578,7 +725,7 @@ class SettingController extends Controller
         return redirect()->route('userguides.edit.named', [$name, $USER_GUIDE->id])->with('message', toast('User guide was updated successfully!', 'success'));
     }
 
-    public function user_guide__destroy(array ...$params)
+    public function user_guide__destroy(mixed ...$params)
     {
         // Check if length of $params is more than 2
         if (count($params) > 2) {
@@ -648,6 +795,18 @@ class SettingController extends Controller
             }
         }
 
+        // Cache lists menu of user guide
+        Cache::forget('menu:userguides');
+        $USER_GUIDE_LISTS_MENU = Cache::rememberForever('menu:userguides', function () {
+            return UserGuides::with(['document_type' => function ($query) {
+                $query->select('id', 'name')->where('is_active', 1);
+            }, 'children' => function ($query) {
+                $query->select('id', 'parent_id', 'title', 'path')->where('is_active', 1)->with(['children' => function ($query) {
+                    $query->select('id', 'parent_id', 'title', 'path')->where('is_active', 1);
+                }]);
+            }])->whereNull('parent_id')->select('id', 'title', 'path')->where('is_active', 1)->get()->toArray();
+        });
+
         $resources = build_resource_array(
             "User Guide - " . (isset($USER_GUIDE) ? $USER_GUIDE->title : "Index"),
             "User Guide - " . (isset($USER_GUIDE) ? $USER_GUIDE->title : "Index"),
@@ -662,6 +821,14 @@ class SettingController extends Controller
                 [
                     'href' => 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css'
                 ],
+                [
+                    'href' => 'texteditorhtml.css',
+                    'base_path' => asset('/resources/plugins/texteditorhtml/css/')
+                ],
+                [
+                    'href' => 'show.css',
+                    'base_path' => asset('resources/apps/userguides/css/')
+                ]
             ],
             [
                 [
@@ -674,12 +841,20 @@ class SettingController extends Controller
                     'src' => 'https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js',
                 ],
                 [
+                    'src' => 'texteditorhtml.js',
+                    'base_path' => asset('/resources/plugins/texteditorhtml/js/')
+                ],
+                [
                     'src' => 'show.js',
                     'base_path' => asset('resources/apps/userguides/js/')
                 ]
             ]
         );
-        if (isset($USER_GUIDE)) $resources['user_guide'] = $USER_GUIDE;
+        if (isset($USER_GUIDE)) {
+            $resources['user_guide'] = $USER_GUIDE;
+        }
+        $resources['USER_GUIDE_LISTS_MENU'] = $USER_GUIDE_LISTS_MENU;
+        // dd($resources['USER_GUIDE_LISTS_MENU']);
 
         return view('apps/userguides.show', $resources);
     }

@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use App\Models\UserGuides;
+use App\Observers\UserGuidesObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,5 +40,12 @@ class AppServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
         Paginator::useBootstrapFive();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Observer User Guides Actions
+        |--------------------------------------------------------------------------
+        */
+        UserGuides::observe(UserGuidesObserver::class);
     }
 }

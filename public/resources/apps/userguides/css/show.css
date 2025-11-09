@@ -1,0 +1,131 @@
+.app-userguide-sidebar {
+    position: fixed;
+    top: 52.71px;
+    right: auto;
+    width: 100vw;
+    height: calc(100vh - 52.71px);
+    overflow: auto;
+    background-color: #fff;
+    margin-left: -8px;
+    padding: 20px 10px;
+    transition: width 0.3s ease;
+}
+
+.app-userguide-sidebar__menu {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.app-userguide-sidebar__menu li:not(:last-child) {
+    padding-bottom: 0 !important;
+}
+
+.app-userguide-sidebar__menu li.app-userguide-sidebar__menu-item {
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    list-style: none;
+    border-width: 1px 1px 0 1px;
+    border-color: var(--primary-color);
+    border-style: solid;
+}
+
+.app-userguide-sidebar__menu > li.app-userguide-sidebar__menu-item:last-child {
+    border-width: 1px;
+}
+
+.app-userguide-sidebar__menu
+    ul.app-userguide-sidebar__menu-item-children-list
+    li.app-userguide-sidebar__menu-item {
+    border-width: 1px 0 0 1px;
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-link-wrapper {
+    position: relative;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    padding: 6px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    -webkit-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-link-wrapper
+    a.app-userguide-sidebar__menu-link {
+    position: relative;
+    text-decoration: none;
+    color: #000;
+    font-size: 14px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: block;
+    width: 100%;
+    max-width: calc(100% - 26.67px);
+
+    &:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-link-wrapper
+    button.app-userguide-sidebar__menu-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: auto;
+    height: 100%;
+    border-width: 0 0 0 1px;
+    border-style: solid;
+    border-color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: var(--bs-white);
+    cursor: pointer;
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-link-wrapper
+    button.app-userguide-sidebar__menu-toggle:hover {
+    background-color: rgb(0, 105, 92, 0.8);
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-item-children {
+    display: none;
+}
+
+.app-userguide-sidebar__menu
+    li.app-userguide-sidebar__menu-item
+    .app-userguide-sidebar__menu-item-children.expanded {
+    display: block;
+}
+
+@media screen and (max-width: 768px) {
+    .app-userguide-sidebar {
+        margin-left: calc(-8px * 2);
+    }
+}
+
+@media screen and (min-width: 769px) {
+    .app.sidenav-toggled .app-userguide-sidebar {
+        width: calc(100vw - 230px);
+    }
+}

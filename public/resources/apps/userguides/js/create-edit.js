@@ -50,16 +50,75 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
     });
 
     const btnClearSelection = document.querySelector(
-        ".user-guides-actions-wrapper button#user-guides-clear-selection-btn"
-    );
+            ".user-guides-actions-wrapper button#user-guides-clear-selection-btn"
+        ),
+        btnClearUncheckSelection = document.querySelector(
+            ".user-guides-actions-wrapper button#user-guides-clear-uncheck-current-selection-btn"
+        ),
+        radioInputs = document.querySelectorAll(
+            '.user-guides-wrapper input[type="radio"].radio-input'
+        ),
+        userGuiderWrapper = document.querySelector(".user-guides-wrapper");
+
+    let selectedRadioInput = null;
     if (btnClearSelection) {
         btnClearSelection.addEventListener("click", function () {
-            const radioInputs = document.querySelectorAll(
-                ".user-guides-tree-item .radio-input:checked"
-            );
+            if (radioInputs)
+                for (const el of radioInputs) {
+                    const index = Array.from(radioInputs).indexOf(el);
+                    if (
+                        selectedRadioInput !== null &&
+                        selectedRadioInput === index
+                    ) {
+                        el.checked = true;
+                        el.ariaChecked = true;
+                        continue;
+                    }
+                    el.checked = false;
+                    el.removeAttribute("checked");
+                    el.ariaChecked = false;
+                }
+
+            const treeItems = document.querySelectorAll(
+                    ".user-guides-tree-item.selected"
+                ),
+                isCreateFormState =
+                    userGuiderWrapper instanceof HTMLElement
+                        ? userGuiderWrapper.dataset.isCreate
+                        : null,
+                isEditFormState =
+                    userGuiderWrapper instanceof HTMLElement
+                        ? userGuiderWrapper.dataset.isEdit
+                        : null;
+
+            // Remove selected elements
+            if (treeItems)
+                treeItems.forEach((el) => {
+                    el.classList.remove("selected");
+                });
+
+            // check if form state is edit
+            if (isEditFormState === "true" && isCreateFormState === "false") {
+                let parent =
+                    radioInputs[selectedRadioInput].closest(".children");
+
+                // Expand all parent elements
+                while (parent instanceof Element) {
+                    parent.classList.remove("collapsed");
+                    parent.classList.add("expanded");
+                    parent.ariaExpanded = true;
+                    parent = parent.parentElement?.closest(".children");
+                }
+            }
+        });
+    }
+
+    if (btnClearUncheckSelection) {
+        btnClearUncheckSelection.addEventListener("click", function () {
             if (radioInputs)
                 radioInputs.forEach((el) => {
                     el.checked = false;
+                    el.removeAttribute("checked");
                     el.ariaChecked = false;
                 });
 
@@ -73,11 +132,12 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
         });
     }
 
-    const radioInputs = document.querySelectorAll(
-        '.user-guides-wrapper input[type="radio"].radio-input'
-    );
     if (radioInputs) {
-        radioInputs.forEach((el) => {
+        radioInputs.forEach((el, index) => {
+            if (el.checked === true) {
+                selectedRadioInput = index;
+            }
+
             el.addEventListener("change", function () {
                 const treeItem = el.closest(".user-guides-tree-item");
 
@@ -92,9 +152,19 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
                             el.classList.remove("selected");
                         });
 
+                    if (radioInputs)
+                        radioInputs.forEach((_el, _index) => {
+                            if (_index !== index) {
+                                _el.checked = false;
+                                _el.ariaChecked = false;
+                                _el.removeAttribute("checked");
+                            }
+                        });
+
                     if (treeItem) treeItem.classList.add("selected");
                 } else {
                     el.ariaChecked = false;
+                    el.removeAttribute("checked");
 
                     if (treeItem) treeItem.classList.remove("selected");
                 }
@@ -174,9 +244,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
                             DATA.success === false) ||
                         DATA.hasOwnProperty("html") === false
                     ) {
-                        throw new Error(
-                            "Failed to get user guide data. Please try again."
-                        );
+                        throw new Error(data.message);
                     }
 
                     if (treeItemView instanceof Element) {

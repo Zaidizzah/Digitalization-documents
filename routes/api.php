@@ -29,7 +29,10 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::get('users/{id}', [UserController::class, 'get__user_data'])->name('users.data.get');
+
+    Route::group(['prefix' => 'users'], function () {
+        Route::get('{id}', [UserController::class, 'get__user_data'])->name('users.data.get');
+    });
 
     Route::group(['prefix' => 'documents'], function () {
         /*
@@ -58,12 +61,21 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Settings Routes
+    | Settings/Userguides Routes
     |-------------------------------------------------------------------------
     */
     Route::group(['prefix' => 'settings/user-guide'], function () {
         Route::post('upload', [SettingController::class, 'upload'])->name('settings.upload');
         Route::get('get', [SettingController::class, '__get_user_guide_create_edit__tree_items'])->name('userguides.get');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Userguides Routes
+    |-------------------------------------------------------------------------
+    */
+    Route::group(['prefix' => 'userguides'], function () {
+        Route::get('content/{id}', [SettingController::class, '__get_user_guide_content'])->name('userguides.content');
     });
 
     Route::group(['prefix' => 'documents/files'], function () {
