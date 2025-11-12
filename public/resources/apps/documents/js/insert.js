@@ -2,6 +2,7 @@
 const schemaBuilder = new DocumentSchemaBuilder({
     submissionURL: `${location.origin}/api/documents/schema/save`,
     loadURL: `${location.origin}/api/documents/schema/load`,
+    loadSavedURL: `${location.origin}/api/documents/schema/status/get`,
     csrf_token: CSRF_TOKEN,
 });
 

@@ -4,7 +4,7 @@
 
     @include('partials.document-type-action-menu', ['document_type', $document_type])
 
-    {!! note("Name of the attribute can't be '" .implode('\', \'', explode('$|', $except_attributes_name)). "'. That name's of the attribute has been added.") !!}
+    {!! note("Name of the attribute can't be '" . implode('\', \'', explode('$|', $except_attributes_name)) . "'. That name's of the attribute has been added. And if the attribute type is TEXT, EMAIL, URL, NUMBER, DATE, TIME, or DATETIME make sure to Min- and Max- must be valid (e.g Max must be greater than Min, MinTime must be less than MaxTime, or MaxDatTime must be greater than MinDateTime, etc).") !!}
 
     <form action="{{ route("documents.update.schema", $document_type->name) }}" method="POST" id="form-modify-document-type">
         @csrf

@@ -89,9 +89,6 @@ class DocumentTypeController extends Controller
      */
     public function create()
     {
-        // variable for detect if user have saved schema in temporary storage
-        $has_saved_schema = TempSchema::where('user_id', auth()->user()->id)->exists();
-
         $resources = build_resource_array(
             "Add document type",
             "Add document type",
@@ -110,22 +107,19 @@ class DocumentTypeController extends Controller
             ],
             [
                 [
+                    'src' => 'validationError.js',
+                    'base_path' => asset('/resources/plugins/schemabuilder/exceptions/')
+                ],
+                [
                     'src' => 'schemabuilder.js',
                     'base_path' => asset('/resources/plugins/schemabuilder/js/')
                 ],
                 [
                     'src' => 'create.js',
                     'base_path' => asset('/resources/apps/documents/js/')
-                ],
-                [
-                    'inline' => <<<JS
-                        schemaBuilder.hasSavedSchema = $has_saved_schema;
-                    JS
                 ]
             ]
         );
-
-        $resources['has_saved_schema'] = $has_saved_schema;
 
         return view('apps.documents.create', $resources);
     }
@@ -145,7 +139,7 @@ class DocumentTypeController extends Controller
     {
         // check if request is json request
         if ($request->wantsJson() === false) {
-            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+            return $this->error_response("Invalid request", code: Response::HTTP_BAD_REQUEST);
         }
 
         if ($request->has('schema')) {
@@ -168,10 +162,10 @@ class DocumentTypeController extends Controller
                 ['schema' => json_encode($validated['schema'], JSON_PRETTY_PRINT)]
             );
 
-            return $this->success_response("Your schema has been saved successfully.", null, Response::HTTP_CREATED);
+            return $this->success_response("Your schema has been saved successfully.", code: Response::HTTP_CREATED);
         }
 
-        return $this->error_response("Sorry, we are unable to save your schema. Please try again.", null, Response::HTTP_UNPROCESSABLE_ENTITY);
+        return $this->error_response("Sorry, we are unable to save your schema. Please try again.", code: Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     /**
@@ -191,7 +185,7 @@ class DocumentTypeController extends Controller
     {
         // check if request is json request
         if ($request->wantsJson() === false) {
-            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+            return $this->error_response("Invalid request", code: Response::HTTP_BAD_REQUEST);
         }
 
         if ($name) {
@@ -208,7 +202,7 @@ class DocumentTypeController extends Controller
                 $schema = json_decode($document_type->schema_form, true);
             }
 
-            if (empty($schema)) return $this->error_response("Sorry, we can't load your schema. Document type '$name' may not have a schema yet. Please create a valid schema.", null, Response::HTTP_UNPROCESSABLE_ENTITY);
+            if (empty($schema)) return $this->error_response("Sorry, we can't load your schema. Document type '$name' may not have a schema yet. Please create a valid schema.", code: Response::HTTP_UNPROCESSABLE_ENTITY);
 
             return $this->success_response("Schema has been successfully loaded.", ['schema' => $schema]);
         }
@@ -219,6 +213,32 @@ class DocumentTypeController extends Controller
         if (empty($temp_schema)) return $this->error_response("Sorry, we can't load your schema. You don't have a saved schema on temporary storage yet.");
 
         return $this->success_response("Schema has been successfully loaded.", ['schema' => json_decode($temp_schema->schema, true)]);
+    }
+
+    /**
+     * Checks if the user has a saved schema in temporary storage.
+     *
+     * This function is responsible for checking if the user has saved a schema in temporary storage.
+     * It returns a HTTP 404 response code if the user does not have a saved schema.
+     * If the user has a saved schema, it returns a HTTP 302 response code with a success message.
+     * 
+     * @param \Illuminate\Http\Request $request
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function get__status_saved_schema(Request $request)
+    {
+        // check if request is json request
+        if ($request->wantsJson() === false) {
+            return $this->error_response("Invalid request", code: Response::HTTP_BAD_REQUEST);
+        }
+
+        // Checking schema has stored/saved before or not.
+        $temp_schema = TempSchema::where('user_id', auth()->user()->id)->first();
+
+        if (empty($temp_schema)) return $this->error_response("You don't have a saved schema.", code: Response::HTTP_NOT_FOUND);
+
+        return $this->success_response("You have a saved schema.");
     }
 
     /**
@@ -544,6 +564,10 @@ class DocumentTypeController extends Controller
             ],
             [
                 [
+                    'src' => 'validationError.js',
+                    'base_path' => asset('/resources/plugins/schemabuilder/exceptions/')
+                ],
+                [
                     'src' => 'schemabuilder.js',
                     'base_path' => asset('/resources/plugins/schemabuilder/js/')
                 ],
@@ -642,9 +666,6 @@ class DocumentTypeController extends Controller
 
         if ($document_type->long_name) $document_type->abbr = $document_type->long_name ? '<abbr title="' . $document_type->long_name . '">' . $name . '</abbr>' : $document_type->name;
 
-        // variable for detect if user have saved schema in temporary storage
-        $has_saved_schema = TempSchema::where('user_id', auth()->user()->id)->exists();
-
         // get schema attributes from table
         $except_attributes_name = SchemaBuilder::get_table_columns_name_from_schema_representation($document_type->table_name);
         $except_attributes_name = implode(
@@ -683,6 +704,10 @@ class DocumentTypeController extends Controller
             ],
             [
                 [
+                    'src' => 'validationError.js',
+                    'base_path' => asset('/resources/plugins/schemabuilder/exceptions/')
+                ],
+                [
                     'src' => 'schemabuilder.js',
                     'base_path' => asset('/resources/plugins/schemabuilder/js/')
                 ],
@@ -693,18 +718,8 @@ class DocumentTypeController extends Controller
             ]
         );
 
-        $resources['has_saved_schema'] = $has_saved_schema;
         $resources['document_type'] = $document_type;
         $resources['except_attributes_name'] = $except_attributes_name;
-
-        // Check if user or creator has saved schema in temporary storage
-        if ($has_saved_schema === TRUE) {
-            array_push($resources['javascript'], [
-                'inline' => <<<JS
-                    schemaBuilder.hasSavedSchema = true;
-                JS
-            ]);
-        }
 
         return view('apps.documents.insert-schema', $resources);
     }
@@ -1056,14 +1071,14 @@ class DocumentTypeController extends Controller
     {
         // check if request is json
         if ($request->wantsJson() === false) {
-            return $this->error_response("Invalid request", null, Response::HTTP_BAD_REQUEST);
+            return $this->error_response("Invalid request", code: Response::HTTP_BAD_REQUEST);
         }
 
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->first();
 
         // check if document type exists
         if ($document_type === null) {
-            return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", null, Response::HTTP_NOT_FOUND);
+            return $this->error_response("Sorry, we couldn't find a document type with the name '$name'. Please try again.", code: Response::HTTP_NOT_FOUND);
         }
 
         $document_type->schema_form = json_decode($document_type->schema_form, true);
@@ -1071,7 +1086,7 @@ class DocumentTypeController extends Controller
 
         // check if document type has schema attributes
         if (empty($document_type->schema_form) || empty($document_type->schema_table)) {
-            return $this->error_response("Sorry, we couldn't find schema for document type '$name'. Please try again.", null, Response::HTTP_BAD_REQUEST);
+            return $this->error_response("Sorry, we couldn't find schema for document type '$name'. Please try again.", code: Response::HTTP_BAD_REQUEST);
         }
 
         // Get columns data with format { id: 'column_id', name: 'column_name', type: 'column_type', sequence: 'column_sequence' }

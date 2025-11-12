@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum', 'role:Admin')->group(function () {
         */
         Route::post('schema/save', [DocumentTypeController::class, 'save_schema'])->name('documents.schema.save'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         Route::get('schema/load/', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.root.load'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
+        Route::get('schema/status/get', [DocumentTypeController::class, 'get__status_saved_schema'])->name('documents.schema.status.get'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         Route::get('{name}/schema/load/{id?}', [DocumentTypeController::class, 'load_schema'])->name('documents.schema.load'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route
         // Get schema attribute columns
         Route::get('{name}/schema/columns', [DocumentTypeController::class, 'get__schema_attribute_columns'])->name('documents.schema.columns'); // BOOKMARK: Implementasion done for appliying laravel sanctum authentication method to this route

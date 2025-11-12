@@ -2,21 +2,23 @@ class DocumentSchemaBuilder {
     /**
      * Class constructor
      *
-     * @param {Object} options Options object
-     * @param {string} options.submissionURL The URL to which the schema will be submitted
-     * @param {boolean} [options.hasSavedSchema] Whether the schema has been saved or not
+     * @param {string} submissionURL The URL to which the schema will be submitted
+     * @param {string} loadURL The URL from which the schema will be loaded
+     * @param {string} csrf_token The CSRF token
+     * @param {boolean} isModify Whether the schema is being modified
      *
      * @returns {DocumentSchemaBuilder} The DocumentSchemaBuilder instance
      */
     constructor({
         submissionURL = null,
         loadURL = null,
+        loadSavedURL = null,
         csrf_token,
         isModify = false,
-        hasSavedSchema = false,
     }) {
         this.submissionURL = submissionURL;
         this.loadURL = loadURL;
+        this.loadSavedURL = loadSavedURL;
         this.isModify = isModify;
         this.attributes = [];
 
@@ -24,15 +26,16 @@ class DocumentSchemaBuilder {
         this.savedAttributes = [];
 
         // get csrf token
-        this.csrf_token = csrf_token;
+        this.CSRF_TOKEN = csrf_token;
 
         /**
-         * Checks if the schema has been saved before.
+         * Indicates whether the schema has been saved.
          *
-         * @returns {boolean} Whether the schema has been saved or not.
+         * @returns {boolean} True if the schema has been saved, false otherwise.
          */
-        this.hasSavedSchema = hasSavedSchema;
+        this.hasSavedSchema = false;
 
+        this.loadSavedSchemaFromServer(this.loadSavedURL);
         this.setupEventListeners();
         this.updateNoAttributesVisibility();
 
@@ -166,7 +169,7 @@ class DocumentSchemaBuilder {
                 headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": this.csrf_token,
+                    "X-CSRF-TOKEN": this.CSRF_TOKEN,
                     "XSRF-TOKEN": XSRF_TOKEN,
                 },
                 credentials: "include",
@@ -270,7 +273,7 @@ class DocumentSchemaBuilder {
                 headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": this.csrf_token,
+                    "X-CSRF-TOKEN": this.CSRF_TOKEN,
                     "XSRF-TOKEN": XSRF_TOKEN,
                 },
                 credentials: "include",
@@ -319,7 +322,7 @@ class DocumentSchemaBuilder {
                 }
         } catch (error) {
             // Display the error message
-            toast(error.message, "error");
+            toast(`${error.message}`, "error");
 
             console.error(error);
             return false;
@@ -452,7 +455,7 @@ class DocumentSchemaBuilder {
                             )
                         ) {
                             this.resetAttributes();
-                            this.statusSave.hasUnsavedChanges = true;
+                            this.statusSave.hasUnsavedChanges = false;
                             this.updateStatusSchema();
                         }
                     }
@@ -519,7 +522,6 @@ class DocumentSchemaBuilder {
                         )
                     ) {
                         this.removeAttribute(index);
-                        this.statusSave.hasUnsavedChanges = true;
                         this.updateStatusSchema();
                     }
                 } else if (e.target.closest(".toggle-rules")) {
@@ -669,6 +671,14 @@ class DocumentSchemaBuilder {
             }
 
             list.children[index].remove();
+
+            // check if list children is empty then make attribute this.statusSave.hasUnsavedChanges to false
+            if (list.children.length === 0) {
+                this.statusSave.hasUnsavedChanges = false;
+            } else {
+                this.statusSave.hasUnsavedChanges = true;
+            }
+
             this.updateNoAttributesVisibility();
         }
     }
@@ -964,8 +974,8 @@ class DocumentSchemaBuilder {
      * unsaved changes, or if all changes have been saved.
      */
     updateStatusSchema() {
-        const schemaStatus = document.getElementById("schema-status");
-        const attributesList = document.getElementById("attribute-lists");
+        const schemaStatus = document.getElementById("schema-status"),
+            attributesList = document.getElementById("attribute-lists");
 
         if (!schemaStatus) return; // Guard clause if element doesn't exist
 
@@ -1129,7 +1139,19 @@ class DocumentSchemaBuilder {
 
             // Validate rules based on type
             if (attribute.rules) {
-                this.validateRules(attribute.type, attribute.rules);
+                try {
+                    this.validateRules(
+                        attribute.type,
+                        attribute.rules,
+                        attribute.name
+                    );
+                } catch (error) {
+                    if (error instanceof ValidationError) {
+                        this.focusErrorInput(attribute.name, error.rule);
+                    }
+
+                    throw error;
+                }
             }
 
             return true;
@@ -1144,52 +1166,101 @@ class DocumentSchemaBuilder {
      *
      * @param {string} type - The type of the attribute.
      * @param {Object} rules - The rules to be validated.
+     * @param {string} attributeName - The name of the attribute (for better error messages)
      * @throws {Error} If the rules are invalid.
      * @returns {boolean} Whether the rules are valid.
      */
-    validateRules(type, rules) {
+    validateRules(type, rules, attributeName = "Unknown") {
         const config = this.schema_config[type];
         if (!config) return false;
 
+        // --- Common value type checks ---
         for (const [ruleName, value] of Object.entries(rules)) {
             if (!config[ruleName]) {
-                throw new Error(
-                    `Invalid rule "${ruleName}" for type "${type}"`
+                throw new ValidationError(
+                    `Invalid rule "${ruleName}" for "${attributeName}" (type: ${type})`,
+                    ruleName
                 );
             }
 
-            // Validate number-type rules
             if (
                 ["minLength", "maxLength", "min", "max", "step"].includes(
                     ruleName
                 )
             ) {
-                if (value !== null && !Number.isInteger(Number(value))) {
-                    throw new Error(`Rule "${ruleName}" must be an integer`);
-                }
-            }
-
-            // Validate select options
-            if (type === "select" && ruleName === "options") {
-                if (value === null)
-                    throw new Error(`Rule "${ruleName}" must not be null`);
-
-                if (!Array.isArray(value) || value.length === 0) {
-                    if (value.split("\n") === 0)
-                        throw new Error(
-                            "Select type must have at least one option"
-                        );
-                } else if (value.length === 0) {
-                    throw new Error(
-                        "Select type must have at least one option"
+                if (
+                    value !== null &&
+                    value !== "" &&
+                    !Number.isInteger(Number(value))
+                ) {
+                    throw new ValidationError(
+                        `Rule "${ruleName}" on "${attributeName}" must be an integer`,
+                        ruleName
                     );
                 }
             }
 
-            // Validate Datetime rules
-            if (type === "datetime" && ruleName === "format") {
-                if (value === null)
-                    throw new Error(`Rule "${ruleName}" must not be null`);
+            if (
+                type === "select" &&
+                ruleName === "options" &&
+                (!value || value.trim() === "")
+            ) {
+                throw new ValidationError(
+                    `"${attributeName}" must have at least one option`,
+                    ruleName
+                );
+            }
+        }
+
+        // --- Date/Time-based validation ---
+        if (["time", "date", "datetime"].includes(type)) {
+            const map = {
+                time: ["minTime", "maxTime"],
+                date: ["minDate", "maxDate"],
+                datetime: ["minDateTime", "maxDateTime"],
+            };
+            const [minKey, maxKey] = map[type];
+            const minDate = this.parseDateValue(type, rules[minKey]);
+            const maxDate = this.parseDateValue(type, rules[maxKey]);
+
+            if (minDate && maxDate) {
+                const diff = maxDate - minDate;
+                if (diff <= 0) {
+                    throw new ValidationError(
+                        `${maxKey} must be greater than ${minKey} in "${attributeName}"`,
+                        maxKey
+                    );
+                }
+                if (type !== "date" && diff < 60000) {
+                    throw new ValidationError(
+                        `${maxKey} must be at least 1 minute greater than ${minKey} in "${attributeName}"`,
+                        maxKey
+                    );
+                }
+            }
+        }
+
+        // --- Numeric / length-based rules ---
+        if (["number", "text", "email", "url", "textarea"].includes(type)) {
+            const minRule = rules.min !== undefined ? "min" : "minLength";
+            const maxRule = rules.max !== undefined ? "max" : "maxLength";
+
+            const min = Number(rules[minRule] ?? null);
+            const max = Number(rules[maxRule] ?? null);
+
+            if (!isNaN(min) && !isNaN(max)) {
+                if (min >= max) {
+                    throw new ValidationError(
+                        `Minimum (${min}) must be less than Maximum (${max}) in "${attributeName}"`,
+                        minRule
+                    );
+                }
+                if (max - min < 1) {
+                    throw new ValidationError(
+                        `Maximum (${max}) must be at least 1 greater than Minimum (${min}) in "${attributeName}"`,
+                        maxRule
+                    );
+                }
             }
         }
 
@@ -1217,7 +1288,7 @@ class DocumentSchemaBuilder {
         // check if url is not null
         if (!url) {
             toast(
-                "Invalid submission URL. Please check your submission URL and try again.",
+                "Invalid load URL. Please check your load URL and try again.",
                 "error"
             );
             return false;
@@ -1225,6 +1296,84 @@ class DocumentSchemaBuilder {
 
         // Fetching to load/get the attributes schema from the database
         return this.attributeLoadHandler(url);
+    }
+
+    async loadSavedSchemaFromServer(url = null) {
+        const container = document.querySelector(
+            '.tile[aria-label="Tile section of attributes list"]'
+        );
+
+        // check if url is not null
+        if (url === null || url === "") {
+            toast(
+                "Invalid load saved URL. For now you are not able to load saved schema attributes from previous saving. Please check your load saved URL and try again.",
+                "error"
+            );
+            return;
+        }
+
+        // check if container is not null
+        if (container === null) {
+            return;
+        }
+
+        const SCHEMA_STATUS_ELEMENT = document.createElement("small");
+
+        SCHEMA_STATUS_ELEMENT.className =
+            "caption small font-italic text-muted";
+        SCHEMA_STATUS_ELEMENT.id = "schema-status";
+        SCHEMA_STATUS_ELEMENT.textContent = "No attributes defined.";
+
+        if (container.querySelector(".tile-title-w-btn")) {
+            container
+                .querySelector(".tile-title-w-btn")
+                .appendChild(SCHEMA_STATUS_ELEMENT);
+        } else {
+            return;
+        }
+
+        LOADER.show(true);
+
+        // Fetching to load/get the attributes schema from the database
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": this.CSRF_TOKEN,
+                    "XSRF-TOKEN": XSRF_TOKEN,
+                },
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to load saved schema status. Please check your load saved URL and refresh this page again.`
+                );
+            }
+
+            const data = await response.json();
+
+            if (data.hasOwnProperty("success") && data.success !== true) {
+                throw new Error(data.message);
+            }
+
+            toast(data.message, data.success ? "success" : "error");
+
+            SCHEMA_STATUS_ELEMENT.textContent = data.message;
+            SCHEMA_STATUS_ELEMENT.classList.remove("text-muted");
+            SCHEMA_STATUS_ELEMENT.classList.add("text-success");
+
+            // update the hasSavedSchema attribute
+            this.hasSavedSchema = true;
+        } catch (error) {
+            // Display error
+            toast(error.message, "error");
+
+            console.error(error);
+        } finally {
+            LOADER.hide();
+        }
     }
 
     /**
@@ -1259,5 +1408,39 @@ class DocumentSchemaBuilder {
 
         // Fetching or submitting the attributes schema to the server
         return this.attributeSubmissionHandler(schema, url);
+    }
+
+    /**
+     * Helper: parse time/date/datetime safely into Date
+     */
+    parseDateValue(type, value) {
+        if (!value) return null;
+        if (type === "time") return new Date(`1970-01-01T${value}`);
+        if (type === "date") return new Date(`${value}T00:00:00`);
+        return new Date(value); // datetime
+    }
+
+    /**
+     * Helper: focus and highlight the input field related to a specific rule
+     */
+    focusErrorInput(attributeName, ruleName) {
+        const attributeRow = Array.from(
+            document.querySelectorAll(".attribute-row")
+        ).find(
+            (row) =>
+                row.querySelector(".attribute-name").value === attributeName
+        );
+
+        if (!attributeRow) return;
+        const input = attributeRow.querySelector(`[data-rule="${ruleName}"]`);
+        if (!input) return;
+
+        input.focus();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        input.classList.add("border", "border-danger", "invalid");
+
+        setTimeout(() => {
+            input.classList.remove("border", "border-danger", "invalid");
+        }, 2000);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Faker\Factory as Faker;
 use Carbon\Carbon;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -483,6 +484,54 @@ class SchemaBuilder
         // Handle INSTRUCTIONS rule
         if (Arr::has($field, 'rules.instructions') && is_string($field['rules']['instructions']) && trim($field['rules']['instructions']) !== '') {
             $field['rules']['instructions'] = strip_tags($field['rules']['instructions']);
+        }
+
+        // Handle DATE, TIME, and DATETIME rule
+        if (in_array($field['type'], ['date', 'time', 'datetime'])) {
+            $MAP_CONFIG = [
+                'date' => ['format' => 'Y-m-d', 'min' => 'minDate', 'max' => 'maxDate'],
+                'time' => ['format' => 'H:i', 'min' => 'minTime', 'max' => 'maxTime'],
+                'datetime' => ['format' => 'Y-m-d H:i', 'min' => 'minDateTime', 'max' => 'maxDateTime'],
+            ];
+
+            $minKey = $MAP_CONFIG[$field['type']]['min'];
+            $maxKey = $MAP_CONFIG[$field['type']]['max'];
+
+            $VALIDATE_VALUE = function ($value) {
+                if (!is_string($value) || trim($value) === '') {
+                    return null;
+                }
+
+                $value = str_replace('T', ' ', $value);
+
+                $timestamp = strtotime($value);
+                return $timestamp === false ? null : $timestamp;
+            };
+
+            $min = $VALIDATE_VALUE($field['rules'][$minKey] ?? null);
+            $max = $VALIDATE_VALUE($field['rules'][$maxKey] ?? null);
+
+            if ($min !== null && $max !== null) {
+                if ($min > $max) $min = $max;
+                else if ($max < $min) $max = $min;
+
+                // ADD 1 minutes to max-
+                if ($min === $max) {
+                    $max = strtotime("+1 minutes", $max);
+                }
+            }
+
+            if ($min !== null) {
+                $attribute['rules'][$minKey] = date('Y-m-d\TH:i', $min);
+            } else {
+                $attribute['rules'][$minKey] = null;
+            }
+
+            if ($max !== null) {
+                $attribute['rules'][$maxKey] = date('Y-m-d\TH:i', $max);
+            } else {
+                $attribute['rules'][$maxKey] = null;
+            }
         }
 
         // if status is create add sequence_number and created_at attribute
