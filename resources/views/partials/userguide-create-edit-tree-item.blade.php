@@ -35,7 +35,7 @@
             }
 
             $HTML .= "
-                <div class=\"user-guides-tree-item " . ($isActive ? 'active' : '') . "\"
+                <div class=\"user-guides-tree-item " . ($isActive ? "active" : '') . "\"
                     title=\"{$title}\"
                     role=\"treeitem\"
                     data-level=\"{$LEVEL}\"
@@ -43,11 +43,11 @@
                     style=\"margin-left:" . ($LEVEL * 10) . "px\">
                     <div class=\"item-content\">
                         <button
-                            class=\"toggle-btn " . ($hasChildren ? ($childExpanded ? 'expanded' : 'collapsed') : 'no-children') . " btn-toggle-children-vibility btn-toggle-children-visibility\"
+                            class=\"toggle-btn " . ($hasChildren ? ($childExpanded ? "expanded" : "collapsed") : "no-children") . " btn-toggle-children-vibility btn-toggle-children-visibility\"
                             type=\"button\"
                             role=\"button\"
                             data-parent-id=\"{$id}\"
-                            aria-controls=\"user-guides-children-{$id}\"" . (!$hasChildren ? ' disabled aria-disabled=\"true\"' : '') . ">
+                            aria-controls=\"user-guides-children-{$id}\"" . (!$hasChildren ? " disabled aria-disabled=\"true\"" : '') . ">
                         </button>
 
                         <label for=\"user-guides-radio-{$id}\" class=\"radio-label visually-hidden\"></label>
@@ -55,7 +55,7 @@
                             name=\"parent_id\"
                             value=\"{$id}\"
                             class=\"radio-input\"
-                            id=\"user-guides-radio-{$id}\" " . ($isActive ? 'checked' : '') . " aria-checked=\"" . ($isActive ? 'true' : 'false') . "\" " . ($isActive ? 'disabled aria-disabled=\"true\"' : 'aria-disabled=\"false\"') . " role=\"radio\">
+                            id=\"user-guides-radio-{$id}\" aria-checked=\"false\"" . ($isActive ? "disabled aria-disabled=\"true\"" : "aria-disabled=\"false\"") . " role=\"radio\">
 
                         <span class=\"item-title\">{$title}</span>
 
@@ -68,10 +68,10 @@
             ";
 
             if ($hasChildren) {
-                $HTML .= "<div class=\"children " . ($childExpanded ? 'expanded' : 'collapsed') . "\"
+                $HTML .= "<div class=\"children " . ($childExpanded ? "expanded" : "collapsed") . "\"
                             id=\"user-guides-children-{$id}\"
                             role=\"group\"
-                            aria-expanded=\"" . ($childExpanded ? 'true' : 'false') . "\">";
+                            aria-expanded=\"" . ($childExpanded ? "true" : "false") . "\">";
                 $HTML .= $childHtml;
                 $HTML .= "</div>";
             }

@@ -58,7 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::group(['prefix' => 'user-guides'], function () {
         Route::get('index.html', [SettingController::class, 'user_guide__show'])->name('userguides.show.index');
         Route::get('{path}.html', [SettingController::class, 'user_guide__show'])->where('path', '.*')->name('userguides.show.dynamic');
-        Route::get('content/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguides.content');
+        // Route::get('get/file/{encrypted}', [SettingController::class, '__get_file_content'])->name('userguides.get.file');
     });
 
     Route::middleware('role:Admin')->group(function () {

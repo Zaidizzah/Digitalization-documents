@@ -241,7 +241,7 @@ class SettingController extends Controller
             return $this->not_found_response("User guide data with ID {$id} is not found.");
         }
 
-        return $this->success_response("User guide data has successfully found.", ['data' => $USER_GUIDE->content]);
+        return $this->success_response("User guide data has successfully loaded.", ['content' => $USER_GUIDE->content]);
     }
 
     public function user_guide__index(Request $request, ?string $name = null)
@@ -443,7 +443,23 @@ class SettingController extends Controller
         );
 
         $DOCUMENT_TYPE = NULL;
-        if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+        if (empty($name) !== true) {
+            $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+
+            $resources['breadcrumb'] = array_merge(
+                array_slice($resources['breadcrumb'], 0, 1, true),
+                [
+                    'Documents' => route('documents.index'),
+                    "Document type {$DOCUMENT_TYPE->name}"
+                ],
+                array_slice($resources['breadcrumb'], 1, 2, true)
+            );
+
+            // Change correct route for 'User Guides' and 'Create' element in breadcrumb
+            $resources['breadcrumb']['User Guide'] = route('userguides.index.named', $name);
+            $resources['breadcrumb']['Create'] = route('userguides.create.named', $name);
+        }
+
         // Get user guides data just ID, PARENT_ID, and TITLE fields
         $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
             $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
@@ -533,7 +549,7 @@ class SettingController extends Controller
         $DATA->content = $request->input('content');
         $DATA->save();
 
-        return redirect()->route(($name !== null ? 'userguides.create.named' : 'userguides.create'), $name ?? [])->with('message', toast('User guide was created successfully!', 'success'));
+        return redirect()->route(($name !== null ? 'userguides.index.named' : 'userguides.index'), $name ?? [])->with('message', toast('User guide was created successfully!', 'success'));
     }
 
     public function user_guide__edit(Request $request, mixed ...$params)
@@ -554,7 +570,6 @@ class SettingController extends Controller
 
         // Check if $ID and $NAME variable is not empty or NULL 
         $CURRENT_DATA = UserGuides::select('id', 'parent_id', 'title', 'path', 'content')->findOrFail($id);
-        $FORMATED_CONTENT = $CURRENT_DATA->content ? str_replace('`', '\`', e($CURRENT_DATA->content)) : ""; // Formatting or encode special char to prevent an error
         $resources = build_resource_array(
             // List of data for the page
             'User Guide',
@@ -600,17 +615,28 @@ class SettingController extends Controller
                 [
                     'src' => 'create-edit.js',
                     'base_path' => asset('/resources/apps/userguides/js/')
-                ],
-                [
-                    'inline' => <<<JS
-                        TEXT_EDITOR_HTML.setValue(`{$FORMATED_CONTENT}`)
-                    JS
                 ]
             ]
         );
 
         $DOCUMENT_TYPE = null;
-        if (empty($name) !== true) $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+        if (empty($name) !== true) {
+            $DOCUMENT_TYPE = DocumentType::where('is_active', 1)->where('name', $name)->firstOrFail();
+
+            $resources['breadcrumb'] = array_merge(
+                array_slice($resources['breadcrumb'], 0, 1, true),
+                [
+                    'Documents' => route('documents.index'),
+                    "Document type {$DOCUMENT_TYPE->name}"
+                ],
+                array_slice($resources['breadcrumb'], 1, 2, true)
+            );
+
+            // Change correct route for 'User Guides' and 'Create' element in breadcrumb
+            $resources['breadcrumb']['User Guide'] = route('userguides.index.named', $name);
+            $resources['breadcrumb']['Edit'] = route('userguides.edit.named', [$name, $id]);
+        }
+
         // Get user guides data just ID, PARENT_ID, and TITLE fields
         $DATA = Cache::remember("list:userguides", 60, function () use ($DOCUMENT_TYPE) {
             $USER_GUIDES = UserGuides::without(['document_type', 'parent', 'children']);
@@ -719,10 +745,7 @@ class SettingController extends Controller
         $USER_GUIDE->save();
 
         // Checking route type for redirecting user to correct route
-        if (route_check("userguides.update")) {
-            return redirect()->route('userguides.edit', $USER_GUIDE->id)->with('message', toast('User guide was updated successfully!', 'success'));
-        }
-        return redirect()->route('userguides.edit.named', [$name, $USER_GUIDE->id])->with('message', toast('User guide was updated successfully!', 'success'));
+        return redirect()->route($name ? "userguides.update.named" : 'userguides.edit', $name ? [$name, $USER_GUIDE->id] : $USER_GUIDE->id)->with('message', toast('User guide was updated successfully!', 'success'));
     }
 
     public function user_guide__destroy(mixed ...$params)

@@ -188,6 +188,7 @@ class TextEditorHTML {
         };
 
         this.init();
+        this.readyState = true;
     }
 
     init() {
@@ -1842,7 +1843,7 @@ class TextEditorHTML {
         return uppercase ? result.toUpperCase() : result;
     }
 
-    setValue(value) {
+    async setValue(value) {
         // Check if textarea property has beend declared and initialized with HTMLElement instance
         if (
             this.hasOwnProperty("textarea") &&
@@ -1852,7 +1853,7 @@ class TextEditorHTML {
             this.textarea.value = value;
         } else {
             console.error(
-                "Failed to set a new value of texteditor, because textarea editor property does'nt declared or initialized ELEMENT/HTMLTEXTAREAELEMENT instance."
+                "Failed to set a new value to texteditor, because textarea editor property does'nt declared or initialized ELEMENT/HTMLTEXTAREAELEMENT instance."
             );
             return;
         }

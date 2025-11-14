@@ -35,7 +35,7 @@ class DocumentSchemaBuilder {
          */
         this.hasSavedSchema = false;
 
-        this.loadSavedSchemaFromServer(this.loadSavedURL);
+        if (!this.isModify) this.loadSavedSchemaFromServer(this.loadSavedURL);
         this.setupEventListeners();
         this.updateNoAttributesVisibility();
 

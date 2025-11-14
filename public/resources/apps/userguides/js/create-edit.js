@@ -1,6 +1,6 @@
 // Initialize the text editor
 const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
-    uploadEndpoint: `${location.origin}/api/settings/user-guide/upload`,
+    uploadEndpoint: `${location.origin}/api/settings/user-guides/upload`,
     minHeight: "500px",
     attributes: {
         spellcheck: false,
@@ -10,7 +10,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
     },
 });
 
-(() => {
+(async () => {
     "use strict";
 
     document.querySelectorAll(".markdown-input:not(.list").forEach((el) => {
@@ -56,7 +56,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
             ".user-guides-actions-wrapper button#user-guides-clear-uncheck-current-selection-btn"
         ),
         radioInputs = document.querySelectorAll(
-            '.user-guides-wrapper input[type="radio"].radio-input'
+            '.user-guides-wrapper input[type="radio"].radio-input:not(.active)'
         ),
         userGuiderWrapper = document.querySelector(".user-guides-wrapper");
 
@@ -83,13 +83,9 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
                     ".user-guides-tree-item.selected"
                 ),
                 isCreateFormState =
-                    userGuiderWrapper instanceof HTMLElement
-                        ? userGuiderWrapper.dataset.isCreate
-                        : null,
+                    window.location.pathname.split("/").pop() === "create",
                 isEditFormState =
-                    userGuiderWrapper instanceof HTMLElement
-                        ? userGuiderWrapper.dataset.isEdit
-                        : null;
+                    window.location.pathname.split("/").at(-2) === "edit";
 
             // Remove selected elements
             if (treeItems)
@@ -217,7 +213,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
 
                     // Get more data's
                     const response = await fetch(
-                        `${location.origin}/api/settings/user-guide/get?page=${currentPage}`,
+                        `${location.origin}/api/settings/user-guides/get?page=${currentPage}`,
                         {
                             method: "GET",
                             headers: {
@@ -232,7 +228,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
 
                     if (!response.ok) {
                         throw new Error(
-                            "Failed to get user guide data. Please try again."
+                            `Failed to get user guide data from server for page ${currentPage}. Please try to refresh this page.`
                         );
                     }
 
@@ -244,7 +240,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
                             DATA.success === false) ||
                         DATA.hasOwnProperty("html") === false
                     ) {
-                        throw new Error(data.message);
+                        throw new Error(DATA.message);
                     }
 
                     if (treeItemView instanceof Element) {
@@ -296,4 +292,57 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
             }
         });
     }
-})();
+
+    // Handle getting userguide content after page has been loaded completely and if current page is for editing userguide data
+    if (
+        TEXT_EDITOR_HTML instanceof TextEditorHTML &&
+        TEXT_EDITOR_HTML.readyState === true &&
+        window.location.pathname.split("/").at(-2) === "edit"
+    ) {
+        LOADER.show(true);
+        try {
+            const response = await fetch(
+                `${
+                    location.origin
+                }/api/userguides/get/content/${window.location.pathname
+                    .split("/")
+                    .pop()}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": CSRF_TOKEN,
+                        "XSRF-TOKEN": XSRF_TOKEN,
+                        Accept: "application/json",
+                    },
+                    credentials: "include",
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to get user guide data from server. Please try to refresh this page.`
+                );
+            }
+
+            const DATA = await response.json();
+
+            // Check if response structure is valid
+            if (
+                (DATA.hasOwnProperty("success") && DATA.success === false) ||
+                DATA.hasOwnProperty("content") === false
+            ) {
+                throw new Error(DATA.message);
+            }
+            toast(DATA.message, "success");
+
+            await TEXT_EDITOR_HTML.setValue(DATA.content);
+        } catch (error) {
+            // Display error message
+            toast(error.message, "error");
+            console.log(error);
+        } finally {
+            LOADER.hide();
+        }
+    }
+})(TEXT_EDITOR_HTML, LOADER);
