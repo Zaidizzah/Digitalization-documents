@@ -25,6 +25,10 @@
     border: 1px solid var(--primary-color);
 }
 
+.file-list-container:has(.file-list .no-file-available) {
+    overflow-y: hidden;
+}
+
 .folder-list {
     position: relative;
     max-height: calc(100vh - 2rem);
