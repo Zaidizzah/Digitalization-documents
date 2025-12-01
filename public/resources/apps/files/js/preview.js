@@ -30,18 +30,8 @@
     }
 
     if (pdfContainer) {
-        const pdfPreviewUrl = `${
-                window.location.origin
-            }/api/content/${window.location.search.substring(
-                6,
-                window.location.search.length
-            )}`,
-            pdfTitle = pdfContainer.title.substring(
-                5,
-                pdfContainer.title.length
-            );
-
-        console.log(pdfTitle, pdfPreviewUrl);
+        const pdfPreviewUrl = pdfContainer.getAttribute("data-url-preview"),
+            pdfTitle = pdfContainer.getAttribute("data-title");
 
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.10.111/pdf.worker.min.js";
@@ -103,7 +93,6 @@
                     "X-CSRF-TOKEN": CSRF_TOKEN,
                     "XSRF-TOKEN": XSRF_TOKEN,
                     Accept: "application/pdf",
-                    "Sec-Fetch-Dest": "document",
                 },
             })
             .promise.then(function (pdf) {
@@ -115,10 +104,7 @@
                 }
             })
             .catch(function (error) {
-                toast(
-                    `Failed to load file ${pdfTitle}. Detail: ${error.message}`,
-                    "error"
-                );
+                toast(`Failed to load file ${pdfTitle}.`, "error");
             })
             .finally(function () {
                 LOADER.hide();

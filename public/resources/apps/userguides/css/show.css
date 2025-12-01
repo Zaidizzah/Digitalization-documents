@@ -1,4 +1,4 @@
-/* .app-userguide-sidebar {
+.app-userguide-sidebar {
     position: fixed;
     top: 52.71px;
     right: auto;
@@ -128,4 +128,4 @@
     .app.sidenav-toggled .app-userguide-sidebar {
         width: calc(100vw - 230px);
     }
-} */
+}

@@ -236,7 +236,7 @@ class DocumentTypeController extends Controller
         // Checking schema has stored/saved before or not.
         $temp_schema = TempSchema::where('user_id', auth()->user()->id)->first();
 
-        if (empty($temp_schema)) return $this->error_response("You don't have any saved schema.", code: Response::HTTP_NOT_FOUND);
+        if (empty($temp_schema)) return $this->error_response("You don't have a saved schema.", code: Response::HTTP_NOT_FOUND);
 
         return $this->success_response("You have a saved schema.");
     }

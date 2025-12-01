@@ -797,7 +797,7 @@ class SchemaBuilder
                     >
                         <td class=\"text-nowrap\">$loop_index</td>
                         <td class=\"text-nowrap\">$field</td>
-                        <td class=\"text-nowrap\" translate=\"no\">" . Str::upper($data['type']) . "</td>
+                        <td class=\"text-nowrap\" translate=\"no\">{$data['type']}</td>
                         <td class=\"text-nowrap\">{$data['required']}</td>
                         <td class=\"text-nowrap\">{$data['unique']}</td>
                         <td class=\"text-nowrap\"><time datetime=\"{$data['created_at']}\">{$data['created_at']}</time></td>
@@ -1141,7 +1141,7 @@ class SchemaBuilder
                 'number' => $faker->numberBetween($value['min'] ?? 0, $value['max'] ?? random_int(1, 9)),
                 'date' => $faker->date(),
                 'time' => $faker->time('H:i'),
-                'datetime' => $faker->dateTime()->format('Y-m-d H:i'),
+                'datetime' => $faker->dateTime(),
                 'email' => $faker->email(),
                 'url' => $faker->url(),
                 'phone' => $faker->phoneNumber(),
