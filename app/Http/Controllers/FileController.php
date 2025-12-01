@@ -17,6 +17,7 @@ use App\Services\SchemaBuilder;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ExampleExport;
 use App\Models\DynamicModel;
+use Illuminate\Support\Str;
 use PhpParser\Node\Expr\Instanceof_;
 
 class FileController extends Controller
@@ -399,11 +400,11 @@ class FileController extends Controller
             return redirect()->back()->with('message', toast("Unable to retrieve the file {$file->name}.{$file->extension}.", 'error'));
         }
 
-        if ($name) {
-            $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
-        }
+        abort_if(($name && DocumentType::where('name', $name)->where('is_active', 1)->exists() === false), Response::HTTP_NOT_FOUND);
 
-        return Storage::download($file->path, "{$file->name}.{$file->extension}");
+        return Storage::download($file->path, "{$file->name}.{$file->extension}", [
+            'Content-Type' => Storage::mimeType($file->path)
+        ]);
     }
 
     /**
@@ -425,10 +426,16 @@ class FileController extends Controller
             return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
         }
 
-        $file_name = "Example-$name-" . date("Y-m-d-His") . ".xlsx";
+        try {
+            $file_name = "Example-$name-" . date("Y-m-d-His") . ".xlsx";
 
-        // Create example excel file for importing data
-        return Excel::download(new ExampleExport($file_name, SchemaBuilder::get_example_data_for_import($document_type->table_name, $document_type->schema_form)), $file_name);
+            // Create example excel file for importing data
+            return Excel::download(new ExampleExport($document_type->name, $file_name, SchemaBuilder::get_example_data_for_import($document_type->table_name, $document_type->schema_form)), $file_name, headers: [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('message', toast($e->getMessage(), ($e instanceof \Maatwebsite\Excel\Validators\ValidationException ? 'warning' : 'error')));
+        }
     }
 
     /**
@@ -501,24 +508,27 @@ class FileController extends Controller
      * @param string $name The encrypted name of the file to be previewed.
      * @return \Illuminate\Http\Response The streamed file content response.
      */
-    public function __get_file_content(Request $request, $name)
+    public function __get_file_content(Request $request, $encrypted_name)
     {
-        // Chek header value of "Sec-Fetch-Dest"
-        if ($request->header('Sec-Fetch-Dest') !== 'image') {
-            abort(403, 'Forbidden');
+        if (Str::contains($request->header('Accept', ''), ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp']) === FALSE) {
+            $this->error_response("Invalid request. Accepted request type: application/pdf, image/png, image/jpeg, image/jpg, image/webp. But received: {$request->header('Accept', 'empty')}.", code: Response::HTTP_BAD_REQUEST);
         }
 
-        // Chek Accept headers
-        if (! str_contains($request->header('Accept', ''), 'image')) {
-            abort(406, 'Not Acceptable');
+        // Chek header value of "Sec-Fetch-Dest"
+        if (in_array($request->header('Sec-Fetch-Dest', 'empty'), ['image', 'document']) === FALSE) {
+            $this->error_response("Invalid request. Accepted request content type is: image and document. But received: {$request->header('Sec-Fetch-Dest', 'empty')}.", code: Response::HTTP_BAD_REQUEST);
         }
 
         // get file data and checking if file exists
-        $file = FileModel::where('encrypted_name', $name)->firstOrFail();
+        $file = FileModel::where('encrypted_name', $encrypted_name)->first();
+
+        if ($file === NULL) {
+            $this->error_response("Current file data is not found.", code: Response::HTTP_NOT_FOUND);
+        }
 
         // Check if file exist
         if (Storage::disk('local')->exists($file->path) === FALSE) {
-            abort(404);
+            $this->error_response("Current file is not found in storage.", code: Response::HTTP_NOT_FOUND);
         }
 
         // return file content/stream

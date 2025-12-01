@@ -68,7 +68,7 @@
                         <small class="caption small font-italic fs-5">Forgot password? Change Here.</small>
                     </div>
                 </div> 
-                <form action="{{ route('users.profile.change_password') }}" class="form-horizontal" method="post">
+                <form action="{{ route('users.profile.change.password') }}" class="form-horizontal" method="post">
                     @csrf
 
                     @method('PUT')
@@ -112,7 +112,7 @@
                     <h1 class="modal-title fs-5" id="modal-users-label">Edit name</h1>
                     <button type="button" role="button" class="btn-close bg-light-subtle" tabindex="-1" title="Button: to close this modal" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('users.profile.change_name') }}" class="form-horizontal" id="form-users" method="POST">
+                <form action="{{ route('users.profile.update') }}" class="form-horizontal" id="form-users" method="POST">
                     <div class="modal-body">
                         @csrf
 

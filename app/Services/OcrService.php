@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Log;
-use Ilovepdf\Ilovepdf;
 use Ilovepdf\PdfjpgTask;
 use setasign\Fpdi\Fpdi;
 use setasign\Fpdf\Fpdf;

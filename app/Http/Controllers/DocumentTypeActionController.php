@@ -1287,16 +1287,35 @@ class DocumentTypeActionController extends FileController
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
 
         // check if format is valid
-        if (!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(404);
+        if (!in_array($req->format, ['xlsx', 'xls', 'pdf', 'csv'])) abort(Response::HTTP_NOT_FOUND);
 
         // check table is exists
         if (!SchemaBuilder::table_exists($document_type->table_name)) {
             return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
         }
 
-        $file_name =  "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}";
+        try {
+            // check if table has data
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = new DynamicModel();
+            $DYNAMIC_DOCUMENT_TYPE_MODEL->__setConnection('mysql');
+            $DYNAMIC_DOCUMENT_TYPE_MODEL->__setTableName($document_type->table_name);
+            if ($DYNAMIC_DOCUMENT_TYPE_MODEL->count() < 1) {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't find any data in table for document type '$name', please add at least one data to table and try again.", 'error'));
+            }
 
-        return Excel::download(new TableExport($document_type->name, $document_type->table_name, $file_name), $file_name);
+            $file_name =  "{$document_type->name}_" . date('Y_m_d_His') . ".{$req->format}";
+
+            return Excel::download(new TableExport($document_type->name, $document_type->table_name, $file_name), $file_name, headers: [
+                'Content-Type' => match ($req->format) {
+                    'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'xls' => 'application/vnd.ms-excel',
+                    'pdf' => 'application/pdf',
+                    'csv' => 'text/csv',
+                },
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('message', toast($e->getMessage(), ($e instanceof \Maatwebsite\Excel\Validators\ValidationException ? 'warning' : 'error')));
+        }
     }
 
     /**
@@ -1315,27 +1334,45 @@ class DocumentTypeActionController extends FileController
     {
         $document_type = DocumentType::where('name', $name)->where('is_active', 1)->firstOrFail();
 
-        // decode schema from json to array schema attributes
-        $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
-        $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
+        try {
+            // decode schema from json to array schema attributes
+            $document_type->schema_form = json_decode($document_type->schema_form, true) ?? null;
+            $document_type->schema_table = json_decode($document_type->schema_table, true) ?? null;
 
-        // check table is exists
-        if (!SchemaBuilder::table_exists($document_type->table_name)) {
-            return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
-        }
+            // check table is exists
+            if (!SchemaBuilder::table_exists($document_type->table_name)) {
+                return redirect()->back()->with('message', toast("Sorry, we couldn't find table for document type '$name', please create a valid table/schema for document type '$name' and try again.", 'error'));
+            }
 
-        // check if document type has schema attributes and table
-        if (empty($document_type->schema_form) || empty($document_type->schema_table) || empty($document_type->table_name)) {
-            throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
-        }
+            // check if document type has schema attributes and table
+            if (empty($document_type->schema_form) || empty($document_type->schema_table) || empty($document_type->table_name)) {
+                throw new \InvalidArgumentException("Sorry, we couldn't find schema for document type '$name', please create a valid schema for this document type and try again.", Response::HTTP_BAD_REQUEST);
+            }
 
-        $import = new TableImport($document_type->table_name, $document_type->schema_form);
-        Excel::import($import, $req->file('data'));
+            DB::beginTransaction();
+            $import = new TableImport($document_type->table_name, $document_type->schema_form);
+            $DYNAMIC_DOCUMENT_TYPE_MODEL = new DynamicModel();
+            $DYNAMIC_DOCUMENT_TYPE_MODEL->__setConnection('mysql');
+            $DYNAMIC_DOCUMENT_TYPE_MODEL->__setTableName($import->table_name);
 
-        if ($import->success) {
-            return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Importing data in document type '{$name}' has been successfully saved."));
-        } else {
-            return redirect()->back()->withErrors($import->messages);
+            // Start importing
+            Excel::import($import, $req->file('data'));
+
+            if ($import->is_success) {
+                if (!$DYNAMIC_DOCUMENT_TYPE_MODEL->insert($import->data)) {
+                    throw new \RuntimeException("The data's from your current file cannot be saved, please try again.", Response::HTTP_INTERNAL_SERVER_ERROR);
+                }
+
+                DB::commit();
+                return redirect()->route('documents.browse', [$name, 'action' => 'browse'])->with('message', toast("Importing data in document type '{$name}' has been successfully saved."));
+            } else {
+                return redirect()->back()->withErrors($import->messages);
+            }
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            return redirect()->back()->with('message', toast($e->getMessage(), 'error'));
         }
     }
 }

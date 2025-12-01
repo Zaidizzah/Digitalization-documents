@@ -58,52 +58,89 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
         radioInputs = document.querySelectorAll(
             '.user-guides-wrapper input[type="radio"].radio-input:not(.active)'
         ),
-        userGuiderWrapper = document.querySelector(".user-guides-wrapper");
+        isCreateFormState =
+            window.location.pathname.split("/").pop() === "create",
+        isEditFormState = window.location.pathname.split("/").at(-2) === "edit",
+        selectedTreeItems = document.querySelectorAll(
+            ".user-guides-tree-item.selected"
+        );
 
-    let selectedRadioInput = null;
+    let SELECTED_RADIO_INPUT_INDEX = null,
+        CURRENT_EDIT_PARENT_TREE_ITEM_ID = null,
+        CURRENT_EDIT_PARENT_TREE_ITEM = null;
+
+    // if the current action is edit then replace null value from CURRENT_EDIT_PARENT_TREE_ITEM to parent tree item element
+    if (isEditFormState) {
+        CURRENT_EDIT_PARENT_TREE_ITEM_ID = document
+            .querySelector(
+                `.user-guides-tree-item.active[data-id="${window.location.pathname
+                    .split("/")
+                    .pop()}"]`
+            )
+            .parentElement.id.split("-")
+            .pop();
+
+        CURRENT_EDIT_PARENT_TREE_ITEM = document.querySelector(
+            `.user-guides-tree-item[data-id="${CURRENT_EDIT_PARENT_TREE_ITEM_ID}"]`
+        );
+    }
+
+    // Check if value of CURRENT_EDIT_PARENT_TREE_ITEM_ID and CURRENT_EDIT_PARENT_TREE_ITEM is not null
+    if (
+        isEditFormState &&
+        (CURRENT_EDIT_PARENT_TREE_ITEM instanceof Element === false ||
+            CURRENT_EDIT_PARENT_TREE_ITEM_ID === null)
+    ) {
+        toast(
+            "Sorry, the parent tree item not found. can you please refresh this page or reported if this issue is still happens.",
+            "error"
+        );
+    }
+
     if (btnClearSelection) {
         btnClearSelection.addEventListener("click", function () {
             if (radioInputs)
-                for (const el of radioInputs) {
-                    const index = Array.from(radioInputs).indexOf(el);
+                for (let index = 0; index < radioInputs.length; index++) {
                     if (
-                        selectedRadioInput !== null &&
-                        selectedRadioInput === index
+                        radioInputs[index].value ===
+                        CURRENT_EDIT_PARENT_TREE_ITEM_ID
                     ) {
-                        el.checked = true;
-                        el.ariaChecked = true;
+                        SELECTED_RADIO_INPUT_INDEX = index;
+                        radioInputs[index].checked = true;
+                        radioInputs[index].ariaChecked = true;
                         continue;
                     }
-                    el.checked = false;
-                    el.removeAttribute("checked");
-                    el.ariaChecked = false;
+                    radioInputs[index].checked = false;
+                    radioInputs[index].removeAttribute("checked");
+                    radioInputs[index].ariaChecked = false;
                 }
 
-            const treeItems = document.querySelectorAll(
-                    ".user-guides-tree-item.selected"
-                ),
-                isCreateFormState =
-                    window.location.pathname.split("/").pop() === "create",
-                isEditFormState =
-                    window.location.pathname.split("/").at(-2) === "edit";
-
             // Remove selected elements
-            if (treeItems)
-                treeItems.forEach((el) => {
-                    el.classList.remove("selected");
+            if (selectedTreeItems)
+                selectedTreeItems.forEach((element) => {
+                    if (
+                        element.dataset.id &&
+                        element.dataset.id !== CURRENT_EDIT_PARENT_TREE_ITEM_ID
+                    )
+                        element.classList.remove("selected");
+
+                    element.classList.add("selected");
                 });
 
             // check if form state is edit
-            if (isEditFormState === "true" && isCreateFormState === "false") {
-                let parent =
-                    radioInputs[selectedRadioInput].closest(".children");
+            if (isEditFormState) {
+                let CHILDREN_PARENT_TREE_ITEM =
+                    radioInputs[SELECTED_RADIO_INPUT_INDEX].closest(
+                        ".children"
+                    );
 
                 // Expand all parent elements
-                while (parent instanceof Element) {
-                    parent.classList.remove("collapsed");
-                    parent.classList.add("expanded");
-                    parent.ariaExpanded = true;
-                    parent = parent.parentElement?.closest(".children");
+                while (CHILDREN_PARENT_TREE_ITEM instanceof Element) {
+                    CHILDREN_PARENT_TREE_ITEM.classList.remove("collapsed");
+                    CHILDREN_PARENT_TREE_ITEM.classList.add("expanded");
+                    CHILDREN_PARENT_TREE_ITEM.ariaExpanded = true;
+                    CHILDREN_PARENT_TREE_ITEM =
+                        parent.parentElement?.closest(".children");
                 }
             }
         });
@@ -112,61 +149,58 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
     if (btnClearUncheckSelection) {
         btnClearUncheckSelection.addEventListener("click", function () {
             if (radioInputs)
-                radioInputs.forEach((el) => {
-                    el.checked = false;
-                    el.removeAttribute("checked");
-                    el.ariaChecked = false;
+                radioInputs.forEach((element) => {
+                    element.checked = false;
+                    element.removeAttribute("checked");
+                    element.ariaChecked = false;
                 });
 
-            const treeItems = document.querySelectorAll(
-                ".user-guides-tree-item.selected"
-            );
-            if (treeItems)
-                treeItems.forEach((el) => {
-                    el.classList.remove("selected");
+            if (selectedTreeItems)
+                selectedTreeItems.forEach((element) => {
+                    element.classList.remove("selected");
                 });
         });
     }
 
-    if (radioInputs) {
-        radioInputs.forEach((el, index) => {
-            if (el.checked === true) {
-                selectedRadioInput = index;
-            }
+    // if (radioInputs) {
+    //     radioInputs.forEach((el, index) => {
+    //         if (el.checked === true) {
+    //             selectedRadioInput = index;
+    //         }
 
-            el.addEventListener("change", function () {
-                const treeItem = el.closest(".user-guides-tree-item");
+    //         el.addEventListener("change", function () {
+    //             const treeItem = el.closest(".user-guides-tree-item");
 
-                if (el.checked) {
-                    el.ariaChecked = true;
-                    // Remove all selected tree items
-                    const treeItems = document.querySelectorAll(
-                        ".user-guides-tree-item.selected"
-                    );
-                    if (treeItems)
-                        treeItems.forEach((el) => {
-                            el.classList.remove("selected");
-                        });
+    //             if (el.checked) {
+    //                 el.ariaChecked = true;
+    //                 // Remove all selected tree items
+    //                 const treeItems = document.querySelectorAll(
+    //                     ".user-guides-tree-item.selected"
+    //                 );
+    //                 if (treeItems)
+    //                     treeItems.forEach((el) => {
+    //                         el.classList.remove("selected");
+    //                     });
 
-                    if (radioInputs)
-                        radioInputs.forEach((_el, _index) => {
-                            if (_index !== index) {
-                                _el.checked = false;
-                                _el.ariaChecked = false;
-                                _el.removeAttribute("checked");
-                            }
-                        });
+    //                 if (radioInputs)
+    //                     radioInputs.forEach((_el, _index) => {
+    //                         if (_index !== index) {
+    //                             _el.checked = false;
+    //                             _el.ariaChecked = false;
+    //                             _el.removeAttribute("checked");
+    //                         }
+    //                     });
 
-                    if (treeItem) treeItem.classList.add("selected");
-                } else {
-                    el.ariaChecked = false;
-                    el.removeAttribute("checked");
+    //                 if (treeItem) treeItem.classList.add("selected");
+    //             } else {
+    //                 el.ariaChecked = false;
+    //                 el.removeAttribute("checked");
 
-                    if (treeItem) treeItem.classList.remove("selected");
-                }
-            });
-        });
-    }
+    //                 if (treeItem) treeItem.classList.remove("selected");
+    //             }
+    //         });
+    //     });
+    // }
 
     const btnLoadMoreData = document.querySelector(
         "button.btn-load-more-data#user-guides-load-more-data-btn"
@@ -191,21 +225,21 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
                           `#${btnLoadMoreData.getAttribute("aria-controls")}`
                       )
                     : null;
-            let currentPage = btnLoadMoreData.dataset.currentPage,
-                lastPage = btnLoadMoreData.dataset.lastPage;
+            let CURRENTPAGE = btnLoadMoreData.dataset.currentPage,
+                LASTPAGE = btnLoadMoreData.dataset.lastPage;
 
             // Check if all resource is defined and not NULL
             if (
                 controlElement !== null &&
-                currentPage !== null &&
-                lastPage !== null
+                CURRENTPAGE !== null &&
+                LASTPAGE !== null
             ) {
                 // Parse type to integer, then increase amount of currentPage by 1
-                currentPage = parseInt(currentPage, 10);
-                lastPage = parseInt(lastPage, 10);
+                CURRENTPAGE = parseInt(CURRENTPAGE, 10);
+                LASTPAGE = parseInt(LASTPAGE, 10);
 
                 try {
-                    currentPage++;
+                    CURRENTPAGE++;
 
                     LOADER.show(true, "bottom-right");
                     // Change status isGetting variable to true
@@ -213,7 +247,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
 
                     // Get more data's
                     const response = await fetch(
-                        `${location.origin}/api/settings/user-guides/get?page=${currentPage}`,
+                        `${location.origin}/api/settings/user-guides/get?page=${CURRENTPAGE}`,
                         {
                             method: "GET",
                             headers: {
@@ -228,7 +262,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
 
                     if (!response.ok) {
                         throw new Error(
-                            `Failed to get user guide data from server for page ${currentPage}. Please try to refresh this page.`
+                            `Failed to get user guide data from server for page ${CURRENTPAGE}. Please try to refresh this page.`
                         );
                     }
 
@@ -261,10 +295,10 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
 
                     // Change status isGetting variable to false
                     isGetting = false;
-                    btnLoadMoreData.dataset.currentPage = currentPage;
+                    btnLoadMoreData.dataset.currentPage = CURRENTPAGE;
 
                     // And check if currentPage value is equal lastPage value, then remove this event listener
-                    if (currentPage === lastPage) {
+                    if (CURRENTPAGE === LASTPAGE) {
                         btnLoadMoreData.removeEventListener(
                             "click",
                             loadMoreData
@@ -304,7 +338,7 @@ const TEXT_EDITOR_HTML = new TextEditorHTML("editor-content-wrapper", {
             const response = await fetch(
                 `${
                     location.origin
-                }/api/userguides/get/content/${window.location.pathname
+                }/api/user-guides/get/content/${window.location.pathname
                     .split("/")
                     .pop()}`,
                 {

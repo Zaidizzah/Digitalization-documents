@@ -1,6 +1,96 @@
 (() => {
     "use strict";
 
+    const sidebar = document.getElementById("sidebar");
+    const mobileToggle = document.getElementById("mobileToggle");
+    const closeBtn = document.getElementById("closeBtn");
+    const overlay = document.getElementById("overlay");
+
+    function toggleSubmenu(element) {
+        event.stopPropagation(); // Prevent event bubbling
+
+        const submenu = element.nextElementSibling;
+        const arrow = element.querySelector(".arrow");
+
+        const isCurrentlyOpen = submenu.classList.contains("show");
+
+        // Tutup submenu yang satu level dengan element ini (sibling)
+        const parent = element.parentElement.parentElement;
+        const siblings = parent.querySelectorAll(
+            ":scope > .menu-item > .submenu, :scope > .submenu-item > .submenu"
+        );
+
+        siblings.forEach((sub) => {
+            if (sub !== submenu && !submenu.contains(sub)) {
+                sub.classList.remove("show");
+                const siblingArrow =
+                    sub.previousElementSibling.querySelector(".arrow");
+                if (siblingArrow) siblingArrow.classList.remove("rotate");
+            }
+        });
+
+        // Toggle submenu saat ini
+        if (isCurrentlyOpen) {
+            submenu.classList.remove("show");
+            arrow.classList.remove("rotate");
+            // Tutup semua child submenu
+            submenu.querySelectorAll(".submenu").forEach((child) => {
+                child.classList.remove("show");
+                const childArrow =
+                    child.previousElementSibling.querySelector(".arrow");
+                if (childArrow) childArrow.classList.remove("rotate");
+            });
+        } else {
+            submenu.classList.add("show");
+            arrow.classList.add("rotate");
+        }
+    }
+
+    mobileToggle.addEventListener("click", () => {
+        sidebar.classList.add("open");
+        overlay.classList.add("show");
+        mobileToggle.style.display = "none";
+    });
+
+    closeBtn.addEventListener("click", closeSidebar);
+    overlay.addEventListener("click", closeSidebar);
+
+    function closeSidebar() {
+        sidebar.classList.remove("open");
+        overlay.classList.remove("show");
+        mobileToggle.style.display = "block";
+    }
+
+    // Active state untuk submenu (hanya untuk link, bukan yang punya child)
+    document
+        .querySelectorAll(".submenu-link:not(.has-child)")
+        .forEach((link) => {
+            link.addEventListener("click", function (e) {
+                document
+                    .querySelectorAll(".submenu-link")
+                    .forEach((l) => l.classList.remove("active"));
+                this.classList.add("active");
+
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            });
+        });
+
+    // Active state untuk menu utama
+    document.querySelectorAll(".menu-link[href]").forEach((link) => {
+        link.addEventListener("click", function (e) {
+            document
+                .querySelectorAll(".menu-link")
+                .forEach((l) => l.classList.remove("active"));
+            this.classList.add("active");
+
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+        });
+    });
+
     const userGuideSidebarMenuTogglers = document.querySelectorAll(
             ".app-userguide-sidebar__menu button.app-userguide-sidebar__menu-toggle"
         ),
@@ -51,10 +141,12 @@
         try {
             LOADER.show(true);
 
-            const ENDPOINT = `${location.origin}/api${location.pathname.replace(
-                /\/(documents\/[^\/]+\/user-guides|userguides)\/.+/,
-                "/$1"
-            )}/content/${userGuideContentWrapper.dataset.userguideId}`;
+            const ENDPOINT = `${location.origin}/api${location.pathname
+                .replace(
+                    /\/(documents\/[^\/]+\/user-guides|userguides)\/.+/,
+                    "/$1"
+                )
+                .replace(/\/userguides\/[^\/]+/, "/get/content/")}`;
 
             console.log(ENDPOINT);
 

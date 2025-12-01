@@ -21,7 +21,7 @@
     @includeWhen($document_type instanceof App\Models\DocumentType, 'partials.document-type-action-menu', ['document_type' => $document_type])
     @includeWhen(($document_type instanceof App\Models\DocumentType) === FALSE, 'partials.setting-menu', ['document_type' => NULL])
 
-    <form action="{{ $FORM_ROUTE }}" method="POST" id="form-settings" data-action="{{ (route_check("userguides.edit", "userguides.edit.named") ? "update" : "create") }}">
+    <form action="{{ $FORM_ROUTE }}" method="POST" id="form-settings">
         @csrf
 
         @if (route_check("userguides.edit", "userguides.edit.named"))

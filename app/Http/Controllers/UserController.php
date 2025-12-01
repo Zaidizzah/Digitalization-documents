@@ -189,7 +189,7 @@ class UserController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function edit_profile(Request $req)
+    public function update_profile(Request $req)
     {
         $req->validate([
             'name' => 'required|string|max:100',
@@ -208,7 +208,7 @@ class UserController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function edit_password(Request $req)
+    public function update_password(Request $req)
     {
         $req->validate([
             'password_new' => [

@@ -306,12 +306,6 @@ class DocumentSchemaBuilder {
                     this.updateStatusSchema();
 
                     if (!this.isModify) {
-                        // change the status saved title
-                        document.getElementById(
-                            "schema-saved-status"
-                        ).innerHTML =
-                            '(<span class="text-success">You have saved schema.</span>)';
-
                         // change status saved schema to database
                         this.hasSavedSchema = true;
                     }
@@ -1346,13 +1340,18 @@ class DocumentSchemaBuilder {
                 credentials: "include",
             });
 
-            if (!response.ok) {
+            if (!response.ok && response.status !== 404) {
                 throw new Error(
                     `Failed to load saved schema status. Please check your load saved URL and refresh this page again.`
                 );
             }
 
             const data = await response.json();
+
+            // check if response status is 404 and response.ok is false
+            if (!response.ok && response.status === 404) {
+                throw data;
+            }
 
             if (data.hasOwnProperty("success") && data.success !== true) {
                 throw new Error(data.message);
@@ -1367,10 +1366,21 @@ class DocumentSchemaBuilder {
             // update the hasSavedSchema attribute
             this.hasSavedSchema = true;
         } catch (error) {
-            // Display error
-            toast(error.message, "error");
+            if (error instanceof Error === false) {
+                toast(
+                    `Failed to load saved schema status. Detail: ${error.message}`,
+                    "info"
+                );
 
-            console.error(error);
+                console.info(
+                    `Failed to load saved schema status. Detail: ${error.message}`
+                );
+            } else {
+                // Display error message
+                toast(error.message, "error");
+
+                console.error(error);
+            }
         } finally {
             LOADER.hide();
         }

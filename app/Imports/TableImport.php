@@ -11,18 +11,19 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 
 class TableImport implements ToCollection
 {
-    private string $table;
+    public string $table_name;
     private array $columns;
     private array $rules;
 
     public MessageBag $messages;
-    public bool $success = false;
+    public bool $is_success = false;
+    public array $data = [];
 
-    public function __construct($table, $form_schema)
+    public function __construct(string $table_name, array $form_schema)
     {
-        $this->table = $table;
-        $this->columns = SchemaBuilder::get_table_columns_name_from_schema_representation($table);
-        $this->rules = SchemaBuilder::get_validation_rules_from_schema($table, $form_schema, $this->columns);
+        $this->table_name = $table_name;
+        $this->columns = SchemaBuilder::get_table_columns_name_from_schema_representation($this->table_name);
+        $this->rules = SchemaBuilder::get_validation_rules_from_schema($this->table_name, $form_schema, $this->columns);
     }
 
     /**
@@ -41,7 +42,6 @@ class TableImport implements ToCollection
      */
     public function collection(Collection $collection): void
     {
-        $data = [];
         $messages = new MessageBag();
 
         foreach ($collection as $j => $row) {
@@ -58,16 +58,11 @@ class TableImport implements ToCollection
                 $messages->add("row$j", "Invalid value at row " . ($j + 1) . ": <br>" . implode("<br>", $valid->messages()->all()));
             }
 
-            $data[] = $rowData;
+            $this->data[] = $rowData;
         }
         $this->messages = $messages;
 
         // Save all valid rows
-        if ($this->messages->isEmpty() && !empty($data)) {
-            $this->success = true;
-
-            // Insert data
-            DB::table($this->table)->insert($data);
-        }
+        if ($this->messages->isEmpty() && !empty($this->data)) $this->is_success = true;
     }
 }

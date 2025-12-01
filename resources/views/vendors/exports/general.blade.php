@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Export data</title>
+    <title>Example data @if (strlen($document_type_name) < 17) of {{ $document_type_name }} @endif</title>
 </head>
 <body>
     <table>
