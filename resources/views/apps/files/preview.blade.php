@@ -27,7 +27,7 @@
                             <img src="{{ route('documents.files.content', $file->encrypted_name) }}" class="file-preview-image img-fluid" id="file-preview-image" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" loading="lazy" alt="{{ "{$file->name}.{$file->extension}" }}">
                         @else
                             <!-- PDF preview -->
-                            <div class="file-preview-pdf" id="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}" data-title="{{ "{$file->name}.{$file->extension}" }}" data-url-preview="{{ route('documents.files.content', $file->encrypted_name) }}"></div>
+                            <div class="file-preview-pdf" id="file-preview-pdf" aria-label="File {{ "{$file->name}.{$file->extension}" }}" title="File {{ "{$file->name}.{$file->extension}" }}"></div>
                         @endif
 
                     </div>

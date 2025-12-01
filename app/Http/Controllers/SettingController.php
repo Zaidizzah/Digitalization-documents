@@ -719,10 +719,14 @@ class SettingController extends Controller
                     });
                 });
             })->find((int) $request->input('parent_id'));
-            dd($request->input('parent_id'), $PARENT_GUIDE);
 
             if ($PARENT_GUIDE === NULL) {
                 return redirect()->back()->with('message', toast('Parent for current user guide is not found. Please choose another valid parent user guide.', 'error'))->withInput();
+            }
+
+            // Check if parent guide is actually the children of the current parent guide
+            if ($PARENT_GUIDE->parent_id === $id) {
+                return redirect()->back()->with('message', toast('Invalid parent guide data, parent guide must be another user-guide data and not be the children itself.'))->withInput();
             }
         }
 
@@ -730,7 +734,6 @@ class SettingController extends Controller
         $PATH = Str::slug($request->input('title'));
         if (isset($PARENT_GUIDE)) {
             $PATH = "{$PARENT_GUIDE->path}/$PATH";
-            dd($PATH, $PARENT_GUIDE);
             // Check if path already exist
             if (UserGuides::where('parent_id', $PARENT_GUIDE->id)->where('is_active', 1)->where('id', '!=', $USER_GUIDE->id)->where('path', $PATH)->exists()) {
                 return redirect()->back()->with('message', toast('New user guide already exist or duplicated. Please try again or change with another title.', 'error'))->withInput();
@@ -745,7 +748,7 @@ class SettingController extends Controller
         $USER_GUIDE->save();
 
         // Checking route type for redirecting user to correct route
-        return redirect()->route($name ? "userguides.update.named" : 'userguides.edit', $name ? [$name, $USER_GUIDE->id] : $USER_GUIDE->id)->with('message', toast('User guide was updated successfully!', 'success'));
+        return redirect()->route($name ? "userguides.edit.named" : 'userguides.edit', $name ? [$name, $USER_GUIDE->id] : $USER_GUIDE->id)->with('message', toast('User guide was updated successfully!', 'success'));
     }
 
     public function user_guide__destroy(mixed ...$params)
@@ -784,6 +787,7 @@ class SettingController extends Controller
             'Index' => route('userguides.show.index')
         ];
 
+        $USER_GUIDE = null;
         if ($path !== null) {
             // Unset the last element from the array breadcrumbs
             unset($breadcrumbs[array_key_last($breadcrumbs)]);
@@ -802,19 +806,7 @@ class SettingController extends Controller
                 );
 
                 $breadcrumbs['User Guide'] = route('userguides.index.named', $USER_GUIDE->document_type->name);
-            }
-
-            $segments = explode('/', $USER_GUIDE->path);
-            $pathBuild = "";
-
-            foreach ($segments as $i => $segment) {
-                $pathBuild .= ($i > 0 ? '/' : '') . $segment;
-
-                if ($i === array_key_last($segments)) {
-                    $breadcrumbs[ucwords(str_replace('-', ' ', $segment))] = route('userguides.show.dynamic', [$pathBuild]);
-                } else {
-                    $breadcrumbs[ucwords(str_replace('-', ' ', $segment))] = route('userguides.show.dynamic', [$pathBuild]);
-                }
+                $breadcrumbs['Show'] = route('userguides.show.dynamic', $USER_GUIDE->path);
             }
         }
 
@@ -824,10 +816,10 @@ class SettingController extends Controller
             return UserGuides::with(['document_type' => function ($query) {
                 $query->select('id', 'name')->where('is_active', 1);
             }, 'children' => function ($query) {
-                $query->select('id', 'parent_id', 'title', 'path')->where('is_active', 1)->with(['children' => function ($query) {
-                    $query->select('id', 'parent_id', 'title', 'path')->where('is_active', 1);
+                $query->select('id', 'parent_id', 'title', 'path', 'created_at')->where('is_active', 1)->with(['children' => function ($query) {
+                    $query->select('id', 'parent_id', 'title', 'path', 'created_at')->where('is_active', 1);
                 }]);
-            }])->whereNull('parent_id')->select('id', 'title', 'path')->where('is_active', 1)->get()->toArray();
+            }])->whereNull('parent_id')->select('id', 'title', 'path', 'created_at')->where('is_active', 1)->get()->toArray();
         });
 
         $resources = build_resource_array(

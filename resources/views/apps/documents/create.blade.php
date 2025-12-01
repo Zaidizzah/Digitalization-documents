@@ -51,10 +51,9 @@
         <div class="tile" aria-label="Tile section of attributes list" aria-labelledby="tile-attibutes-list-label">
             <div class="tile-title-w-btn flex-wrap">  
                 <div class="tile-title flex-nowrap">
-                    <h3 class="title" id="tile-attibutes-list-label"><i class="bi bi-list"></i> Schema Attributes <span class="small" id="schema-saved-status" aria-label="Attributes list" aria-hidden="true">{!! $has_saved_schema ? '(<span class="text-success">You have saved schema.</span>)' : '' !!}</span></h3>
+                    <h3 class="title" id="tile-attibutes-list-label"><i class="bi bi-list"></i> Schema Attributes</h3>
                     <small class="caption small font-italic fs-5">Manage schema attributes.</small>
                 </div>
-                <small class="caption small font-italic {{ $has_saved_schema ? 'text-success' : 'text-muted' }}" id="schema-status">{{ $has_saved_schema ? 'You have saved schema.' : 'No attributes defined.' }}</small>
             </div>
             <div class="tile-body">
                 <div class="no-attributes" id="no-attributes" aria-hidden="true" aria-label="No attributes">

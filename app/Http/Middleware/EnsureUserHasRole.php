@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
+use \Illuminate\Http\Response;
 use App\Traits\ApiResponse;
 
 class EnsureUserHasRole
@@ -25,15 +25,15 @@ class EnsureUserHasRole
         // Check if the user is authenticated
         if (!Auth::check()) {
             // Check if the request is JSON or wants JSON response
-            if ($request->isJson() || $request->wantsJson() || $request->expectsJson() || $request->ajax()) {
-                return response()->json(['message' => 'You must be logged in or if you are a guest you must be registered to access this page'], 401);
+            if ($request->isJson() || $request->wantsJson() || $request->expectsJson() || $request->ajax() || $request->isXmlHttpRequest()) {
+                return response()->json(['message' => 'You must be logged in or if you are a guest you must be registered to access this page'], Response::HTTP_UNAUTHORIZED);
             } else {
                 return redirect()->route('signin')->with('message', toast('You must be logged in or if you are a guest you must be registered to access this page', 'error'));
             }
         }
 
         if ($role && Auth::user()->role !== $role) {
-            abort(403, 'You do not have permission to access this page or this resource.');
+            abort(Response::HTTP_FORBIDDEN, 'You do not have permission to access this page or this resource.');
         }
 
         return $next($request);

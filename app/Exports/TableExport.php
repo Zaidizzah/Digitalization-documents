@@ -47,6 +47,7 @@ class TableExport implements FromView, ShouldAutoSize, WithProperties
             ->get();
 
         return view('vendors.exports.general', [
+            'document_type_name' => $this->document_type_name,
             'headings' => $headings,
             'data' => $data,
             'action' => 'export'

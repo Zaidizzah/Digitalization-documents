@@ -3,7 +3,10 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\RateLimiter;
 
 trait ApiResponse
 {
@@ -75,6 +78,34 @@ trait ApiResponse
         ], $additional ?? []);
 
         return response()->json($response, $code, $this->getAdditionalHeaders());
+    }
+
+    protected function limit_excedeed_response(
+        Request $request,
+        array $headers,
+        int $max_requests,
+        array $options = [],
+    ): JsonResponse|RedirectResponse {
+        $status = 'limit-excedeed-response';
+
+        // Check if request is expects JSON response or not
+        if ($request->isJson() || $request->wantsJson() || $request->expectsJson() || $request->ajax() || $request->isXmlHttpRequest()) {
+            $this->setAdditionalHeaders($headers);
+
+            $RETRY_AFTER = $headers['Retry-After'] ?? RateLimiter::availableIn($request);
+            $ADDITIONAL_DATA = [
+                'limit_details' => [
+                    'max_requests_allowed' => $max_requests,
+                    'time_to_wait_until_reset' => (int) $RETRY_AFTER,
+                    'reset_time_until_next_request' => time() + $RETRY_AFTER,
+                    'client_ip' => $request->ip()
+                ]
+            ];
+
+            return $this->error_response((in_array('message', $options) ? $options['message'] : 'Too many requests, the request limit has been exceeded. Please try again later.'), (in_array('additional', $options) ? array_merge($ADDITIONAL_DATA, $options['additional']) : $ADDITIONAL_DATA), Response::HTTP_TOO_MANY_REQUESTS, $status);
+        } else {
+            abort(Response::HTTP_TOO_MANY_REQUESTS, (in_array('message', $options) ? $options['message'] : 'Too many requests, the request limit has been exceeded. Please try again later.'), $headers);
+        }
     }
 
     /**

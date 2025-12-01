@@ -6,7 +6,30 @@ let initialColumns = null,
     currentDropIndicator = null,
     isDragging = false,
     dragOffsetY = 0,
-    ghostElement = null;
+    ghostElement = null,
+    cachedIndicators = null,
+    resizeHandler = null;
+
+/**
+ * Removes the ghost element from the DOM if it exists.
+ * This is a utility function to avoid code duplication.
+ */
+function removeGhostElement() {
+    if (ghostElement && ghostElement.parentNode) {
+        ghostElement.parentNode.removeChild(ghostElement);
+        ghostElement = null;
+    }
+}
+
+/**
+ * Removes the active class from all drop indicators.
+ * This is a utility function to avoid code duplication.
+ */
+function resetDropIndicators() {
+    document.querySelectorAll(".drop-indicator").forEach((ind) => {
+        ind.classList.remove("active");
+    });
+}
 
 /**
  * Renders all columns in the UI, sorted by sequence number. This function
@@ -31,6 +54,7 @@ function renderColumns() {
         columnItem.setAttribute("draggable", "true");
         columnItem.setAttribute("aria-grabbed", "false");
         columnItem.setAttribute("role", "listitem");
+        columnItem.setAttribute("tabindex", "0");
 
         columnItem.innerHTML = `
             <!-- Input hidden for id of column attribute and sequence -->
@@ -125,7 +149,9 @@ function handleDragStart(e) {
 
     // Hide the ghost immediately after creating it
     setTimeout(() => {
-        dragImage.style.display = "none";
+        if (dragImage.parentNode) {
+            dragImage.style.display = "none";
+        }
     }, 0);
 
     isDragging = true;
@@ -147,15 +173,10 @@ function handleDragEnd(e) {
     }
 
     // Remove ghost element if it exists
-    if (ghostElement && ghostElement.parentNode) {
-        ghostElement.parentNode.removeChild(ghostElement);
-        ghostElement = null;
-    }
+    removeGhostElement();
 
     // Reset all drop indicators
-    document.querySelectorAll(".drop-indicator").forEach((indicator) => {
-        indicator.classList.remove("active");
-    });
+    resetDropIndicators();
 
     isDragging = false;
 }
@@ -176,9 +197,7 @@ function handleDragOver(e) {
     e.dataTransfer.dropEffect = "move";
 
     // Remove active class from all indicators
-    document.querySelectorAll(".drop-indicator").forEach((ind) => {
-        ind.classList.remove("active");
-    });
+    resetDropIndicators();
 
     // Add active class to current indicator
     this.classList.add("active");
@@ -194,7 +213,6 @@ function handleDragOver(e) {
  *
  * @param {DragEvent} e - The drag leave event.
  */
-
 function handleDragLeave(e) {
     this.classList.remove("active");
 }
@@ -266,6 +284,9 @@ function handleTouchStart(e) {
     columnItem.classList.add("dragging");
     columnItem.style.opacity = "0.4";
 
+    // Cache indicators for performance
+    cachedIndicators = document.querySelectorAll(".drop-indicator");
+
     isDragging = true;
 }
 
@@ -291,8 +312,9 @@ function handleTouchMove(e) {
         ghostElement.style.top = `${currentY - dragOffsetY}px`;
     }
 
-    // Find the drop indicator we're over
-    const indicators = document.querySelectorAll(".drop-indicator");
+    // Use cached indicators
+    const indicators =
+        cachedIndicators || document.querySelectorAll(".drop-indicator");
     let activeIndicator = null;
 
     indicators.forEach((indicator) => {
@@ -333,7 +355,7 @@ function handleTouchMove(e) {
  *
  * Restores the original item appearance, cleans up the ghost element, and
  * processes the drop by calling reorderColumns if we have an active drop
- * indicator.  Resets the state after the drop is complete.
+ * indicator. Resets the state after the drop is complete.
  */
 function handleTouchEnd(e) {
     if (!isDragging || !draggedItem) return;
@@ -343,10 +365,7 @@ function handleTouchEnd(e) {
     draggedItem.style.opacity = "";
 
     // Clean up ghost element
-    if (ghostElement && ghostElement.parentNode) {
-        ghostElement.parentNode.removeChild(ghostElement);
-        ghostElement = null;
-    }
+    removeGhostElement();
 
     // Process the drop if we have an active indicator
     if (currentDropIndicator) {
@@ -360,6 +379,7 @@ function handleTouchEnd(e) {
     // Reset state
     draggedItem = null;
     currentDropIndicator = null;
+    cachedIndicators = null;
     isDragging = false;
 }
 
@@ -372,29 +392,29 @@ function handleTouchEnd(e) {
  * - Space or Enter: Toggles the grab/release state of the column item.
  * - ArrowUp: Moves the grabbed item up in the order, if possible.
  * - ArrowDown: Moves the grabbed item down in the order, if possible.
+ * - Escape: Releases the grabbed item without moving it.
  *
  * The function ensures that only one item can be grabbed at a time and
  * provides visual feedback for the grabbed state.
  */
-
 function handleKeyDown(e) {
     const columnItem = e.target.closest(".column-item");
     if (!columnItem) return;
 
     const currentIndex = parseInt(columnItem.dataset.index, 10);
     const currentId = columnItem.dataset.id;
+    const isGrabbed = columnItem.getAttribute("aria-grabbed") === "true";
 
     // Space or Enter to grab/release
     if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault();
-
-        const isGrabbed = columnItem.getAttribute("aria-grabbed") === "true";
 
         if (isGrabbed) {
             // Release
             columnItem.setAttribute("aria-grabbed", "false");
             columnItem.classList.remove("keyboard-dragging");
             draggedItem = null;
+            announceChange("Item released");
         } else {
             // Grab
             // First reset any previously grabbed items
@@ -408,22 +428,36 @@ function handleKeyDown(e) {
             columnItem.setAttribute("aria-grabbed", "true");
             columnItem.classList.add("keyboard-dragging");
             draggedItem = columnItem;
+            announceChange(
+                `Item grabbed. Use arrow keys to move, Escape to cancel`
+            );
         }
     }
 
+    // Escape to cancel grab
+    if (e.code === "Escape" && isGrabbed) {
+        e.preventDefault();
+        columnItem.setAttribute("aria-grabbed", "false");
+        columnItem.classList.remove("keyboard-dragging");
+        draggedItem = null;
+        announceChange("Move cancelled");
+    }
+
     // If item is grabbed, arrow keys to move
-    if (columnItem.getAttribute("aria-grabbed") === "true") {
+    if (isGrabbed) {
         if (e.code === "ArrowUp" && currentIndex > 0) {
             e.preventDefault();
+            // Move up means inserting at current position (before current item)
             reorderColumns(currentId, currentIndex);
-            showNotification("Item moved up");
+            announceChange("Item moved up");
         } else if (
             e.code === "ArrowDown" &&
             currentIndex < columns.length - 1
         ) {
             e.preventDefault();
+            // Move down means inserting after next item
             reorderColumns(currentId, currentIndex + 2);
-            showNotification("Item moved down");
+            announceChange("Item moved down");
         }
     }
 }
@@ -444,11 +478,9 @@ function reorderColumns(columnId, dropIndex) {
     const currentIndex = sortedColumns.findIndex((col) => col.id === columnId);
 
     // If dragged column is already at the target position, abort
-    if (
-        currentIndex === dropIndex ||
-        (currentIndex + 1 === dropIndex && dropIndex === sortedColumns.length)
-    )
+    if (currentIndex === dropIndex || currentIndex + 1 === dropIndex) {
         return;
+    }
 
     // Calculate new sequence number
     if (dropIndex === 0) {
@@ -472,10 +504,12 @@ function reorderColumns(columnId, dropIndex) {
     // Display notification
     showNotification("Columns have been reordered");
 
-    // Announce for screen readers
-    announceChange(
-        `Column ${draggedColumn.name} moved to position ${dropIndex}`
-    );
+    // Announce for screen readers (only if not already announced by keyboard handler)
+    if (!isDragging) {
+        announceChange(
+            `Column ${draggedColumn.name} moved to position ${dropIndex + 1}`
+        );
+    }
 }
 
 /**
@@ -486,7 +520,6 @@ function reorderColumns(columnId, dropIndex) {
  *
  * @returns {void}
  */
-
 function normalizeSequence() {
     const sortedColumns = [...columns].sort((a, b) => a.sequence - b.sequence);
 
@@ -503,7 +536,11 @@ function normalizeSequence() {
  * @returns {void}
  */
 function resetColumns() {
-    columns = JSON.parse(JSON.stringify(initialColumns));
+    // Use structuredClone if available, fallback to JSON method
+    columns =
+        typeof structuredClone !== "undefined"
+            ? structuredClone(initialColumns)
+            : JSON.parse(JSON.stringify(initialColumns));
 
     renderColumns();
     showNotification("Sequence has been reset");
@@ -540,13 +577,19 @@ async function loadColumnsData(url) {
 
         const data = await response.json();
 
-        if (data.hasOwnProperty("success") && data.success !== true) {
+        if (data.success === false) {
             throw new Error(data.message);
         }
 
-        // create new object of data columns
-        initialColumns = JSON.parse(JSON.stringify(data.columns));
-        columns = JSON.parse(JSON.stringify(data.columns));
+        // Create new object of data columns
+        // Use structuredClone if available, fallback to JSON method
+        if (typeof structuredClone !== "undefined") {
+            initialColumns = structuredClone(data.columns);
+            columns = structuredClone(data.columns);
+        } else {
+            initialColumns = JSON.parse(JSON.stringify(data.columns));
+            columns = JSON.parse(JSON.stringify(data.columns));
+        }
 
         // Render columns
         renderColumns();
@@ -651,13 +694,29 @@ function setupDeviceSpecificStyles() {
 
 /**
  * Removes all event listeners from the document and removes the ghost element
- * from the DOM. Used to clean up after reordering the columns.
+ * from the DOM. Used to clean up after reordering the columns or when
+ * component is unmounted.
  */
 function cleanup() {
-    if (ghostElement && ghostElement.parentNode) {
-        ghostElement.parentNode.removeChild(ghostElement);
+    // Remove ghost element
+    removeGhostElement();
+
+    // Clear cached indicators
+    cachedIndicators = null;
+
+    // Remove resize handler
+    if (resizeHandler) {
+        window.removeEventListener("resize", resizeHandler);
+        resizeHandler = null;
     }
 
+    // Clear notification timeout
+    const notification = document.getElementById("notification");
+    if (notification && notification.timeoutId) {
+        clearTimeout(notification.timeoutId);
+    }
+
+    // Remove event listeners from column items
     document.querySelectorAll(".column-item").forEach((item) => {
         item.removeEventListener("dragstart", handleDragStart);
         item.removeEventListener("dragend", handleDragEnd);
@@ -667,6 +726,7 @@ function cleanup() {
         item.removeEventListener("keydown", handleKeyDown);
     });
 
+    // Remove event listeners from drop indicators
     document.querySelectorAll(".drop-indicator").forEach((indicator) => {
         indicator.removeEventListener("dragover", handleDragOver);
         indicator.removeEventListener("dragleave", handleDragLeave);
@@ -686,13 +746,24 @@ function cleanup() {
     }
 
     // Handle window resize events
-    window.addEventListener("resize", () => {
+    resizeHandler = () => {
         // Clear any ghost elements that might be stuck
-        if (ghostElement && ghostElement.parentNode) {
-            ghostElement.parentNode.removeChild(ghostElement);
-            ghostElement = null;
+        removeGhostElement();
+
+        // Reset dragging state if window is resized during drag
+        if (isDragging) {
+            isDragging = false;
+            if (draggedItem) {
+                draggedItem.classList.remove("dragging", "keyboard-dragging");
+                draggedItem.setAttribute("aria-grabbed", "false");
+                draggedItem.style.opacity = "";
+                draggedItem = null;
+            }
+            resetDropIndicators();
         }
-    });
+    };
+
+    window.addEventListener("resize", resizeHandler);
 
     // Provide cleanup method
     window.cleanupDragDrop = cleanup;
